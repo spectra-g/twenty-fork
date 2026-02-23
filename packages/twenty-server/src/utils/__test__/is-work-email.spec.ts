@@ -1,4 +1,4 @@
-import { isWorkEmail } from 'src/utils/is-work-email';
+import { isWorkEmail, isWorkDomain } from 'src/utils/is-work-email';
 
 describe('isWorkEmail', () => {
   it('should return true for a work email', () => {
@@ -20,5 +20,31 @@ describe('isWorkEmail', () => {
 
   it('should return false for an invalid email format', () => {
     expect(isWorkEmail('invalid-email')).toBe(false);
+  });
+});
+
+describe('isWorkDomain', () => {
+  it('should return false for uppercase GMAIL.COM (non-work domain)', () => {
+    expect(isWorkDomain('GMAIL.COM')).toBe(false);
+  });
+
+  it('should return false for mixed case GmAiL.cOm (non-work domain)', () => {
+    expect(isWorkDomain('GmAiL.cOm')).toBe(false);
+  });
+
+  it('should return true for lowercase gmail.com (non-work domain)', () => {
+    expect(isWorkDomain('gmail.com')).toBe(false);
+  });
+
+  it('should return true for uppercase COMPANY.COM (work domain)', () => {
+    expect(isWorkDomain('COMPANY.COM')).toBe(true);
+  });
+
+  it('should return true for mixed case CoMpAnY.cOm (work domain)', () => {
+    expect(isWorkDomain('CoMpAnY.cOm')).toBe(true);
+  });
+
+  it('should return true for lowercase company.com (work domain)', () => {
+    expect(isWorkDomain('company.com')).toBe(true);
   });
 });
