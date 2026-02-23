@@ -1,4 +1,4 @@
-import { isWorkEmail } from 'src/utils/is-work-email';
+import { isWorkDomain, isWorkEmail } from 'src/utils/is-work-email';
 
 describe('isWorkEmail', () => {
   it('should return true for a work email', () => {
@@ -20,5 +20,19 @@ describe('isWorkEmail', () => {
 
   it('should return false for an invalid email format', () => {
     expect(isWorkEmail('invalid-email')).toBe(false);
+  });
+});
+
+describe('isWorkDomain', () => {
+  it('should return false for a known consumer domain in lowercase', () => {
+    expect(isWorkDomain('gmail.com')).toBe(false);
+  });
+
+  it('should return false for a known consumer domain in uppercase', () => {
+    expect(isWorkDomain('GMAIL.COM')).toBe(false);
+  });
+
+  it('should return true for a work-like domain', () => {
+    expect(isWorkDomain('Company.com')).toBe(true);
   });
 });
