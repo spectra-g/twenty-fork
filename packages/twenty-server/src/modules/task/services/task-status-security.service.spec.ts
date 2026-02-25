@@ -39,4 +39,22 @@ describe('TaskStatusSecurityService', () => {
       ),
     ).not.toThrow();
   });
+
+  it('should allow valid status transition TODO -> IN_PROGRESS', () => {
+    expect(() =>
+      service.enforceDoneLock({ status: 'TODO' }, { status: 'IN_PROGRESS' }),
+    ).not.toThrow();
+  });
+
+  it('should throw for invalid status transition TODO -> DONE', () => {
+    expect(() =>
+      service.enforceDoneLock({ status: 'TODO' }, { status: 'DONE' }),
+    ).toThrow(BadRequestException);
+
+    expect(() =>
+      service.enforceDoneLock({ status: 'TODO' }, { status: 'DONE' }),
+    ).toThrow(
+      'Invalid status transition: TODO → DONE. Allowed transitions: TODO → IN_PROGRESS',
+    );
+  });
 });
