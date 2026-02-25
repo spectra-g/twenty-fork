@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { TaskStatusPreUpdateHook } from 'src/modules/task/hooks/task-status-pre-update.hook';
 import { TaskDeleteManyPostQueryHook } from 'src/modules/task/query-hooks/task-delete-many.post-query.hook';
 import { TaskDeleteOnePostQueryHook } from 'src/modules/task/query-hooks/task-delete-one.post-query.hook';
 import { TaskPostQueryHookService } from 'src/modules/task/query-hooks/task-post-query-hook.service';
@@ -8,6 +9,7 @@ import { TaskRestoreOnePostQueryHook } from 'src/modules/task/query-hooks/task-r
 
 @Module({
   providers: [
+    TaskStatusPreUpdateHook,
     TaskPostQueryHookService,
     TaskDeleteManyPostQueryHook,
     TaskDeleteOnePostQueryHook,
