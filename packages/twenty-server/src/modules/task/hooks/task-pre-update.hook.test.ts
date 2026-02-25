@@ -1,8 +1,7 @@
-import { BadRequestException } from '@nestjs/common';
-
 import { WORKSPACE_QUERY_HOOK_METADATA } from 'src/engine/api/graphql/workspace-query-runner/workspace-query-hook/workspace-query-hook.constants';
 import { WorkspaceQueryHookType } from 'src/engine/api/graphql/workspace-query-runner/workspace-query-hook/types/workspace-query-hook.type';
 import { TaskStatus } from 'src/modules/task/enums/task-status.enum';
+import { BadRequestException } from 'src/modules/task/exceptions/bad-request.exception';
 
 import { TaskPreUpdateHook } from './task-pre-update.hook';
 
