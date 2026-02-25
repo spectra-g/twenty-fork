@@ -5,6 +5,7 @@ import { TaskDeleteOnePostQueryHook } from 'src/modules/task/query-hooks/task-de
 import { TaskPostQueryHookService } from 'src/modules/task/query-hooks/task-post-query-hook.service';
 import { TaskRestoreManyPostQueryHook } from 'src/modules/task/query-hooks/task-restore-many.post-query.hook';
 import { TaskRestoreOnePostQueryHook } from 'src/modules/task/query-hooks/task-restore-one.post-query.hook';
+import { TaskStatusPreUpdateHook } from 'src/modules/task/query-hooks/task-status.pre-update.hook';
 
 @Module({
   providers: [
@@ -13,6 +14,7 @@ import { TaskRestoreOnePostQueryHook } from 'src/modules/task/query-hooks/task-r
     TaskDeleteOnePostQueryHook,
     TaskRestoreManyPostQueryHook,
     TaskRestoreOnePostQueryHook,
+    TaskStatusPreUpdateHook,
   ],
 })
 export class TaskQueryHookModule {}
