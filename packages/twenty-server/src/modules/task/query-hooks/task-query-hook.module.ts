@@ -6,6 +6,7 @@ import { TaskPostQueryHookService } from 'src/modules/task/query-hooks/task-post
 import { TaskRestoreManyPostQueryHook } from 'src/modules/task/query-hooks/task-restore-many.post-query.hook';
 import { TaskRestoreOnePostQueryHook } from 'src/modules/task/query-hooks/task-restore-one.post-query.hook';
 import { TaskStatusPreUpdateHook } from 'src/modules/task/query-hooks/task-status.pre-update.hook';
+import { TaskStatusValidationService } from 'src/modules/task/services/task-status-validation.service';
 
 @Module({
   providers: [
@@ -15,6 +16,7 @@ import { TaskStatusPreUpdateHook } from 'src/modules/task/query-hooks/task-statu
     TaskRestoreManyPostQueryHook,
     TaskRestoreOnePostQueryHook,
     TaskStatusPreUpdateHook,
+    TaskStatusValidationService,
   ],
 })
 export class TaskQueryHookModule {}
