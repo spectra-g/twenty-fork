@@ -10,5 +10,5 @@ export const isWorkEmail = (email: string) => {
 };
 
 export const isWorkDomain = (domain: string) => {
-  return !emailProvidersSet.has(domain);
+  return !emailProvidersSet.has(domain.toLowerCase());
 };
