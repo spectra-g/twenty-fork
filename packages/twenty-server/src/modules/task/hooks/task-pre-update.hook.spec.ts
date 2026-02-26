@@ -6,11 +6,35 @@ import { WORKSPACE_QUERY_HOOK_METADATA } from 'src/engine/api/graphql/workspace-
 import { WorkspaceQueryHookType } from 'src/engine/api/graphql/workspace-query-runner/workspace-query-hook/types/workspace-query-hook.type';
 import { type AuthContext } from 'src/engine/core-modules/auth/types/auth-context.type';
 import { TaskPreUpdateHook } from 'src/modules/task/hooks/task-pre-update.hook';
+import { type GlobalWorkspaceOrmManager } from 'src/engine/twenty-orm/global-workspace-datasource/global-workspace-orm.manager';
+import { TaskStateMachineService } from 'src/modules/task/services/task-state-machine.service';
 import { type TaskWorkspaceEntity } from 'src/modules/task/standard-objects/task.workspace-entity';
 
 describe('TaskPreUpdateHook', () => {
+  const taskStateMachineServiceMock = {
+    validateTransition: jest.fn(),
+  } as unknown as TaskStateMachineService;
+  const globalWorkspaceOrmManagerMock = {
+    executeInWorkspaceContext: jest
+      .fn()
+      .mockImplementation((callback: () => Promise<unknown>) => callback()),
+    getRepository: jest.fn().mockResolvedValue({
+      findOne: jest.fn().mockResolvedValue({
+        id: 'task-id',
+        status: 'TODO',
+      }),
+    }),
+  } as unknown as GlobalWorkspaceOrmManager;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('should return 403 when no authenticated user is present (AC-001)', async () => {
-    const hook = new TaskPreUpdateHook();
+    const hook = new TaskPreUpdateHook(
+      taskStateMachineServiceMock,
+      globalWorkspaceOrmManagerMock,
+    );
     const payload: UpdateOneResolverArgs<Partial<TaskWorkspaceEntity>> = {
       id: 'task-id',
       data: { status: 'DONE' },
@@ -28,7 +52,10 @@ describe('TaskPreUpdateHook', () => {
   });
 
   it("should return 403 when authenticated user lacks 'task:edit' permission (AC-002)", async () => {
-    const hook = new TaskPreUpdateHook();
+    const hook = new TaskPreUpdateHook(
+      taskStateMachineServiceMock,
+      globalWorkspaceOrmManagerMock,
+    );
     const payload: UpdateOneResolverArgs<Partial<TaskWorkspaceEntity>> = {
       id: 'task-id',
       data: { status: 'DONE', title: 'Updated title' },
@@ -46,7 +73,10 @@ describe('TaskPreUpdateHook', () => {
   });
 
   it("should proceed when authenticated user has 'task:edit' permission (AC-003)", async () => {
-    const hook = new TaskPreUpdateHook();
+    const hook = new TaskPreUpdateHook(
+      taskStateMachineServiceMock,
+      globalWorkspaceOrmManagerMock,
+    );
     const payload: UpdateOneResolverArgs<Partial<TaskWorkspaceEntity>> = {
       id: 'task-id',
       data: {
@@ -56,6 +86,7 @@ describe('TaskPreUpdateHook', () => {
     };
     const authContext = {
       user: { id: 'user-id' },
+      workspace: { id: 'workspace-id' },
       userWorkspace: {
         permissionFlags: ['task:edit'],
       },
