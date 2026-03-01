@@ -559,6 +559,25 @@ describe('AuthService', () => {
         });
       }).not.toThrow();
     });
+
+    it('checkAccessForSignIn - allow signup for new user with uppercase email domain when trusted domain is lowercase', async () => {
+      await expect(
+        service.checkAccessForSignIn({
+          userData: {
+            type: 'newUser',
+            newUserPayload: {
+              email: 'email@GMAIL.COM',
+            },
+          } as ExistingUserOrNewUser['userData'],
+          invitation: undefined,
+          workspaceInviteHash: 'workspaceInviteHash',
+          workspace: {
+            isPublicInviteLinkEnabled: true,
+            approvedAccessDomains: [{ domain: 'gmail.com', isValidated: true }],
+          } as unknown as WorkspaceEntity,
+        }),
+      ).resolves.toBeUndefined();
+    });
   });
 
   describe('findWorkspaceForSignInUp', () => {

@@ -819,6 +819,25 @@ describe('UserWorkspaceService', () => {
         availableWorkspacesForSignUp: [{ workspace: workspace1 }],
       });
     });
+
+    it('should normalize email domain before approved access domain lookup', async () => {
+      const email = 'member@Yahoo.COM';
+
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
+      const approvedDomainSpy = jest
+        .spyOn(
+          approvedAccessDomainService,
+          'findValidatedApprovedAccessDomainWithWorkspacesAndSSOIdentityProvidersDomain',
+        )
+        .mockResolvedValue([]);
+      jest
+        .spyOn(workspaceInvitationService, 'findInvitationsByEmail')
+        .mockResolvedValue([]);
+
+      await service.findAvailableWorkspacesByEmail(email);
+
+      expect(approvedDomainSpy).toHaveBeenCalledWith('yahoo.com');
+    });
   });
 
   describe('findFirstWorkspaceByUserId', () => {
