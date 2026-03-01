@@ -3,12 +3,14 @@ import { getDomainNameByEmail } from 'src/utils/get-domain-name-by-email';
 
 export const isWorkEmail = (email: string) => {
   try {
-    return !emailProvidersSet.has(getDomainNameByEmail(email));
+    const normalizedDomain = getDomainNameByEmail(email);
+
+    return !emailProvidersSet.has(normalizedDomain);
   } catch {
     return false;
   }
 };
 
 export const isWorkDomain = (domain: string) => {
-  return !emailProvidersSet.has(domain);
+  return !emailProvidersSet.has(domain.trim().toLowerCase());
 };

@@ -9,6 +9,18 @@ describe('isWorkEmail', () => {
     expect(isWorkEmail('user@gmail.com')).toBe(false);
   });
 
+  it('should return false for a personal email with uppercase domain', () => {
+    expect(isWorkEmail('user@GMAIL.COM')).toBe(false);
+  });
+
+  it('should return false for a personal email with mixed-case domain', () => {
+    expect(isWorkEmail('user@Outlook.COM')).toBe(false);
+  });
+
+  it('should return true for a work email with mixed-case domain', () => {
+    expect(isWorkEmail('user@AcmeCorp.COM')).toBe(true);
+  });
+
   it('should return false for an empty email string', () => {
     expect(isWorkEmail('')).toBe(false);
   });

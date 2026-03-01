@@ -24,7 +24,7 @@ export const getDomainNameByEmail = (email: string) => {
     );
   }
 
-  const domain = fields[1];
+  const domain = fields[1].trim().toLowerCase();
 
   if (!domain) {
     throw new UserInputError(
