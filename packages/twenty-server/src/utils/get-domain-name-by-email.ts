@@ -35,5 +35,5 @@ export const getDomainNameByEmail = (email: string) => {
     );
   }
 
-  return domain;
+  return domain.toLowerCase();
 };
