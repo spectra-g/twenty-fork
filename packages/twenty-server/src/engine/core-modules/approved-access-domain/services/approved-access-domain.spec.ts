@@ -153,6 +153,52 @@ describe('ApprovedAccessDomainService', () => {
       );
       expect(approvedAccessDomainRepository.save).not.toHaveBeenCalled();
     });
+
+    it('should normalize domain with trim and lowercase before checking and saving', async () => {
+      const domain = '  Example.COM  ';
+      const normalizedDomain = 'example.com';
+      const inWorkspace = {
+        id: 'workspace-id',
+        customDomain: null,
+        isCustomDomainEnabled: false,
+      } as WorkspaceEntity;
+      const fromUser = {
+        userEmail: 'user@example.com',
+      } as WorkspaceMemberWorkspaceEntity;
+      const expectedApprovedAccessDomain = {
+        workspaceId: inWorkspace.id,
+        domain: normalizedDomain,
+        isValidated: false,
+      } as ApprovedAccessDomainEntity;
+
+      jest
+        .spyOn(approvedAccessDomainRepository, 'findOneBy')
+        .mockResolvedValue(null);
+      jest
+        .spyOn(approvedAccessDomainRepository, 'save')
+        .mockResolvedValue(expectedApprovedAccessDomain);
+      jest
+        .spyOn(service, 'sendApprovedAccessDomainValidationEmail')
+        .mockResolvedValue();
+
+      await service.createApprovedAccessDomain(
+        domain,
+        inWorkspace,
+        fromUser,
+        'validator@example.com',
+      );
+
+      expect(approvedAccessDomainRepository.findOneBy).toHaveBeenCalledWith({
+        domain: normalizedDomain,
+        workspaceId: inWorkspace.id,
+      });
+      expect(approvedAccessDomainRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: inWorkspace.id,
+          domain: normalizedDomain,
+        }),
+      );
+    });
   });
 
   describe('deleteApprovedAccessDomain', () => {
@@ -431,4 +477,26 @@ describe('ApprovedAccessDomainService', () => {
       );
     });
   });
+
+  describe(
+    'findValidatedApprovedAccessDomainWithWorkspacesAndSSOIdentityProvidersDomain',
+    () => {
+      it('should normalize domain before repository lookup', async () => {
+        jest.spyOn(approvedAccessDomainRepository, 'find').mockResolvedValue([]);
+
+        await service.findValidatedApprovedAccessDomainWithWorkspacesAndSSOIdentityProvidersDomain(
+          '  Example.COM  ',
+        );
+
+        expect(approvedAccessDomainRepository.find).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: {
+              domain: 'example.com',
+              isValidated: true,
+            },
+          }),
+        );
+      });
+    },
+  );
 });
