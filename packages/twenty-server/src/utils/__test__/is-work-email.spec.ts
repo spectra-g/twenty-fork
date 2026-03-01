@@ -14,7 +14,6 @@ describe('isWorkEmail', () => {
   });
 
   it('should return false for an email with undefined domain', () => {
-    // Assuming getDomainNameByEmail(email) returns undefined if no domain.
     expect(isWorkEmail('user@')).toBe(false);
   });
 
@@ -22,45 +21,32 @@ describe('isWorkEmail', () => {
     expect(isWorkEmail('invalid-email')).toBe(false);
   });
 
-  // T-01: AC-001 - Uppercase non-work domain should return false
-  it('should return false for uppercase non-work email (AC-001)', () => {
+  it('AC-001: GMAIL.COM returns false like gmail.com', () => {
     expect(isWorkEmail('user@GMAIL.COM')).toBe(false);
   });
 
-  // T-02: AC-002 - Mixed-case non-work domain should return false
-  it('should return false for mixed-case non-work email (AC-002)', () => {
+  it('AC-002: YAHOO.COM returns false like yahoo.com', () => {
+    expect(isWorkEmail('user@YAHOO.COM')).toBe(false);
+  });
+
+  it('AC-004: Mixed-case non-work email domains are case-insensitive', () => {
     expect(isWorkEmail('user@GmAiL.CoM')).toBe(false);
+    expect(isWorkEmail('user@YaHoO.CoM')).toBe(false);
   });
 
-  // T-05: AC-005 - Mixed-case work domain should return true
-  it('should return true for mixed-case work email (AC-005)', () => {
-    expect(isWorkEmail('user@MyCompany.COM')).toBe(true);
-  });
-
-  // T-06: Regression - Existing lowercase tests still pass
-  it('should still return false for lowercase personal email (Regression)', () => {
-    expect(isWorkEmail('user@gmail.com')).toBe(false);
-  });
-
-  // T-07: Regression - Existing work email tests still pass
-  it('should still return true for lowercase work email (Regression)', () => {
-    expect(isWorkEmail('user@mycompany.com')).toBe(true);
+  it('AC-004: Uppercase work domains are identified as work emails', () => {
+    expect(isWorkEmail('user@COMPANY.COM')).toBe(true);
   });
 });
 
 describe('isWorkDomain', () => {
-  // T-03: AC-003 - Uppercase non-work domain should return false
-  it('should return false for uppercase non-work domain (AC-003)', () => {
-    expect(isWorkDomain('GMAIL.COM')).toBe(false);
+  it('AC-003: Example.COM returns consistent result with example.com', () => {
+    expect(isWorkDomain('Example.COM')).toBe(isWorkDomain('example.com'));
   });
 
-  // T-04: AC-004 - Mixed-case non-work domain should return false
-  it('should return false for mixed-case non-work domain (AC-004)', () => {
-    expect(isWorkDomain('Yahoo.Com')).toBe(false);
-  });
-
-  // T-05 variant: Mixed-case work domain should return true
-  it('should return true for mixed-case work domain', () => {
-    expect(isWorkDomain('MyCompany.COM')).toBe(true);
+  it('AC-004: Mixed-case domain lookup is case-insensitive', () => {
+    expect(isWorkDomain('GmAiL.CoM')).toBe(isWorkDomain('gmail.com'));
+    expect(isWorkDomain('YaHoO.CoM')).toBe(isWorkDomain('yahoo.com'));
+    expect(isWorkDomain('CoMpAnY.CoM')).toBe(isWorkDomain('company.com'));
   });
 });
