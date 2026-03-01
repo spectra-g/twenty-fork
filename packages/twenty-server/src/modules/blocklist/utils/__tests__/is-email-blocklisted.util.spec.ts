@@ -66,4 +66,31 @@ describe('isEmailBlocklisted', () => {
 
     expect(result).toBe(false);
   });
+
+  it('should return true for uppercase domain when blocklist has lowercase bare domain', () => {
+    const channelHandles = ['abc@example.com'];
+    const email = 'user@SPAMDOMAIN.net';
+    const blocklist = ['spamdomain.net'];
+    const result = isEmailBlocklisted(channelHandles, email, blocklist);
+
+    expect(result).toBe(true);
+  });
+
+  it('should return true for lowercase domain when blocklist has lowercase bare domain', () => {
+    const channelHandles = ['abc@example.com'];
+    const email = 'user@spamdomain.net';
+    const blocklist = ['spamdomain.net'];
+    const result = isEmailBlocklisted(channelHandles, email, blocklist);
+
+    expect(result).toBe(true);
+  });
+
+  it('should return true for mixed-case domain when blocklist has lowercase bare domain', () => {
+    const channelHandles = ['abc@example.com'];
+    const email = 'user@SpamDomain.NET';
+    const blocklist = ['spamdomain.net'];
+    const result = isEmailBlocklisted(channelHandles, email, blocklist);
+
+    expect(result).toBe(true);
+  });
 });

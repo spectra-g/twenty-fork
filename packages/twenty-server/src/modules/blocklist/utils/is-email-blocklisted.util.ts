@@ -3,17 +3,36 @@ export const isEmailBlocklisted = (
   email: string | null | undefined,
   blocklist: string[],
 ): boolean => {
-  if (!email || channelHandle.includes(email)) {
+  if (!email) {
     return false;
   }
 
-  return blocklist.some((item) => {
-    if (item.startsWith('@')) {
-      const domain = email.split('@')[1];
+  const normalizedEmail = email.toLowerCase();
 
-      return domain === item.slice(1) || domain.endsWith(`.${item.slice(1)}`);
+  if (channelHandle.map((handle) => handle.toLowerCase()).includes(normalizedEmail)) {
+    return false;
+  }
+
+  const domain = normalizedEmail.split('@')[1];
+
+  return blocklist.some((item) => {
+    const normalizedItem = item.toLowerCase();
+
+    if (normalizedItem.startsWith('@')) {
+      const blocklistedDomain = normalizedItem.slice(1);
+
+      return (
+        domain === blocklistedDomain ||
+        (!!domain && domain.endsWith(`.${blocklistedDomain}`))
+      );
     }
 
-    return email === item;
+    if (normalizedItem.includes('@')) {
+      return normalizedEmail === normalizedItem;
+    }
+
+    return (
+      domain === normalizedItem || (!!domain && domain.endsWith(`.${normalizedItem}`))
+    );
   });
 };
