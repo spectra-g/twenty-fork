@@ -51,7 +51,12 @@ export class ApprovedAccessDomainService {
       );
     }
 
-    if (to.split('@')[1] !== approvedAccessDomain.domain) {
+    const recipientDomain = to.split('@')[1]?.toLowerCase();
+
+    if (
+      !isDefined(recipientDomain) ||
+      recipientDomain !== approvedAccessDomain.domain.toLowerCase()
+    ) {
       throw new ApprovedAccessDomainException(
         'Approved access domain does not match email domain',
         ApprovedAccessDomainExceptionCode.APPROVED_ACCESS_DOMAIN_DOES_NOT_MATCH_DOMAIN_EMAIL,
