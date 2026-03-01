@@ -13,6 +13,7 @@ export const filterOutInternals = (
     }
 
     const primaryHandleDomain = getDomainNameByEmail(primaryHandle);
+    const normalizedPrimaryHandleDomain = primaryHandleDomain.toLowerCase();
 
     try {
       const isAllHandlesFromSameDomain = message.participants
@@ -20,7 +21,8 @@ export const filterOutInternals = (
         .every(
           (participant) =>
             isDefined(participant.handle) &&
-            getDomainNameByEmail(participant.handle) === primaryHandleDomain,
+            getDomainNameByEmail(participant.handle).toLowerCase() ===
+              normalizedPrimaryHandleDomain,
         );
 
       if (isAllHandlesFromSameDomain) {
