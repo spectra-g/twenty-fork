@@ -66,4 +66,40 @@ describe('isEmailBlocklisted', () => {
 
     expect(result).toBe(false);
   });
+
+  it('should return true for case-insensitive base domain match (@spam.COM vs user@SPAM.com)', () => {
+    const channelHandles = ['abc@example.com'];
+    const email = 'user@SPAM.com';
+    const blocklist = ['@spam.COM'];
+    const result = isEmailBlocklisted(channelHandles, email, blocklist);
+
+    expect(result).toBe(true);
+  });
+
+  it('should return true for reverse case-insensitive base domain match (@SPAM.COM vs user@spam.com)', () => {
+    const channelHandles = ['abc@example.com'];
+    const email = 'user@spam.com';
+    const blocklist = ['@SPAM.COM'];
+    const result = isEmailBlocklisted(channelHandles, email, blocklist);
+
+    expect(result).toBe(true);
+  });
+
+  it('should return true for case-insensitive subdomain match (@spam.COM vs user@sub.Spam.COM)', () => {
+    const channelHandles = ['abc@example.com'];
+    const email = 'user@sub.Spam.COM';
+    const blocklist = ['@spam.COM'];
+    const result = isEmailBlocklisted(channelHandles, email, blocklist);
+
+    expect(result).toBe(true);
+  });
+
+  it('should return true for case-insensitive nested subdomain match (@Spam.Com vs user@mailer.sub.spam.com)', () => {
+    const channelHandles = ['abc@example.com'];
+    const email = 'user@mailer.sub.spam.com';
+    const blocklist = ['@Spam.Com'];
+    const result = isEmailBlocklisted(channelHandles, email, blocklist);
+
+    expect(result).toBe(true);
+  });
 });

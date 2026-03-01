@@ -9,9 +9,13 @@ export const isEmailBlocklisted = (
 
   return blocklist.some((item) => {
     if (item.startsWith('@')) {
-      const domain = email.split('@')[1];
+      const domain = email.split('@')[1]?.toLowerCase();
+      const blocklistedDomain = item.slice(1).toLowerCase();
 
-      return domain === item.slice(1) || domain.endsWith(`.${item.slice(1)}`);
+      return (
+        domain === blocklistedDomain ||
+        domain?.endsWith(`.${blocklistedDomain}`) === true
+      );
     }
 
     return email === item;
