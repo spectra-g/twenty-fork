@@ -814,11 +814,14 @@ export class AuthService {
       userData.type === 'newUser'
         ? userData.newUserPayload.email
         : userData.existingUser.email;
+    const normalizedEmailDomain = email?.split('@')[1]?.trim().toLowerCase();
 
     if (
+      normalizedEmailDomain &&
       workspace?.approvedAccessDomains.some(
         (trustDomain) =>
-          trustDomain.isValidated && trustDomain.domain === email.split('@')[1],
+          trustDomain.isValidated &&
+          trustDomain.domain.trim().toLowerCase() === normalizedEmailDomain,
       )
     ) {
       return;

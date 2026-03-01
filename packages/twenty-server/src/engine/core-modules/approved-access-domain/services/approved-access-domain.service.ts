@@ -41,6 +41,11 @@ export class ApprovedAccessDomainService {
     workspace: WorkspaceEntity,
     approvedAccessDomain: ApprovedAccessDomainEntity,
   ) {
+    const normalizedEmailDomain = to.split('@')[1]?.trim().toLowerCase();
+    const normalizedApprovedAccessDomain = approvedAccessDomain.domain
+      .trim()
+      .toLowerCase();
+
     if (approvedAccessDomain.isValidated) {
       throw new ApprovedAccessDomainException(
         'Approved access domain has already been validated',
@@ -51,7 +56,7 @@ export class ApprovedAccessDomainService {
       );
     }
 
-    if (to.split('@')[1] !== approvedAccessDomain.domain) {
+    if (normalizedEmailDomain !== normalizedApprovedAccessDomain) {
       throw new ApprovedAccessDomainException(
         'Approved access domain does not match email domain',
         ApprovedAccessDomainExceptionCode.APPROVED_ACCESS_DOMAIN_DOES_NOT_MATCH_DOMAIN_EMAIL,
@@ -169,7 +174,9 @@ export class ApprovedAccessDomainService {
     fromWorkspaceMember: WorkspaceMemberWorkspaceEntity,
     emailToValidateDomain: string,
   ): Promise<ApprovedAccessDomainEntity> {
-    if (!isWorkDomain(domain)) {
+    const formattedDomain = domain.trim().toLowerCase();
+
+    if (!isWorkDomain(formattedDomain)) {
       throw new ApprovedAccessDomainException(
         'Approved access domain must be a company domain',
         ApprovedAccessDomainExceptionCode.APPROVED_ACCESS_DOMAIN_MUST_BE_A_COMPANY_DOMAIN,
@@ -178,7 +185,7 @@ export class ApprovedAccessDomainService {
 
     if (
       await this.approvedAccessDomainRepository.findOneBy({
-        domain,
+        domain: formattedDomain,
         workspaceId: inWorkspace.id,
       })
     ) {
@@ -194,7 +201,7 @@ export class ApprovedAccessDomainService {
     const approvedAccessDomain = await this.approvedAccessDomainRepository.save(
       {
         workspaceId: inWorkspace.id,
-        domain,
+        domain: formattedDomain,
       },
     );
 
@@ -236,6 +243,8 @@ export class ApprovedAccessDomainService {
   async findValidatedApprovedAccessDomainWithWorkspacesAndSSOIdentityProvidersDomain(
     domain: string,
   ) {
+    const formattedDomain = domain.trim().toLowerCase();
+
     return await this.approvedAccessDomainRepository.find({
       relations: [
         'workspace',
@@ -243,7 +252,7 @@ export class ApprovedAccessDomainService {
         'workspace.approvedAccessDomains',
       ],
       where: {
-        domain,
+        domain: formattedDomain,
         isValidated: true,
       },
     });

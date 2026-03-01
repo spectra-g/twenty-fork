@@ -19,6 +19,10 @@ import { type WorkspaceMemberWorkspaceEntity } from 'src/modules/workspace-membe
 
 import { ApprovedAccessDomainService } from './approved-access-domain.service';
 
+jest.mock('twenty-emails', () => ({
+  SendApprovedAccessDomainValidation: jest.fn(() => ({})),
+}), { virtual: true });
+
 // To avoid dynamic import issues in Jest
 jest.mock('@react-email/render', () => ({
   render: jest.fn().mockImplementation(async (template, options) => {
@@ -153,6 +157,39 @@ describe('ApprovedAccessDomainService', () => {
       );
       expect(approvedAccessDomainRepository.save).not.toHaveBeenCalled();
     });
+
+    it('should normalize mixed-case domain before lookup and save', async () => {
+      const inWorkspace = { id: 'workspace-id' } as WorkspaceEntity;
+      const fromUser = {
+        userEmail: 'user@example.com',
+      } as WorkspaceMemberWorkspaceEntity;
+
+      jest.spyOn(approvedAccessDomainRepository, 'findOneBy').mockResolvedValue(null);
+      jest
+        .spyOn(approvedAccessDomainRepository, 'save')
+        .mockResolvedValue({} as ApprovedAccessDomainEntity);
+      jest
+        .spyOn(service, 'sendApprovedAccessDomainValidationEmail')
+        .mockResolvedValue();
+
+      await service.createApprovedAccessDomain(
+        ' Custom-Domain.COM ',
+        inWorkspace,
+        fromUser,
+        'validator@custom-domain.com',
+      );
+
+      expect(approvedAccessDomainRepository.findOneBy).toHaveBeenCalledWith({
+        domain: 'custom-domain.com',
+        workspaceId: inWorkspace.id,
+      });
+      expect(approvedAccessDomainRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          domain: 'custom-domain.com',
+          workspaceId: inWorkspace.id,
+        }),
+      );
+    });
   });
 
   describe('deleteApprovedAccessDomain', () => {
@@ -268,6 +305,45 @@ describe('ApprovedAccessDomainService', () => {
           ApprovedAccessDomainExceptionCode.APPROVED_ACCESS_DOMAIN_DOES_NOT_MATCH_DOMAIN_EMAIL,
         ),
       );
+    });
+
+    it('should compare target email domain and approved domain case-insensitively', async () => {
+      const sender = {
+        id: 'sender-id',
+        userEmail: 'sender@example.com',
+        name: { firstName: 'John', lastName: 'Doe' },
+        locale: 'en',
+      } as WorkspaceMemberWorkspaceEntity;
+      const workspace = {
+        id: 'workspace-id',
+        displayName: 'Test Workspace',
+      } as WorkspaceEntity;
+      const approvedAccessDomain = {
+        id: 'approved-access-domain-id',
+        isValidated: false,
+        domain: 'example.com',
+      } as ApprovedAccessDomainEntity;
+
+      jest
+        .spyOn(workspaceDomainsService, 'buildWorkspaceURL')
+        .mockReturnValue(new URL('https://sub.twenty.com'));
+      jest
+        .spyOn(twentyConfigService, 'get')
+        .mockImplementation((key: string) => {
+          if (key === 'EMAIL_FROM_ADDRESS') return 'no-reply@example.com';
+          if (key === 'SERVER_URL') return 'https://api.example.com';
+        });
+
+      await expect(
+        service.sendApprovedAccessDomainValidationEmail(
+          sender,
+          'validator@EXAMPLE.COM',
+          workspace,
+          approvedAccessDomain,
+        ),
+      ).resolves.not.toThrow();
+
+      expect(emailService.send).toHaveBeenCalledTimes(1);
     });
 
     it('should send a validation email if all conditions are met', async () => {
@@ -429,6 +505,28 @@ describe('ApprovedAccessDomainService', () => {
           ApprovedAccessDomainExceptionCode.APPROVED_ACCESS_DOMAIN_ALREADY_VALIDATED,
         ),
       );
+    });
+  });
+
+  describe('findValidatedApprovedAccessDomainWithWorkspacesAndSSOIdentityProvidersDomain', () => {
+    it('should use normalized domain in repository lookup', async () => {
+      jest.spyOn(approvedAccessDomainRepository, 'find').mockResolvedValue([]);
+
+      await service.findValidatedApprovedAccessDomainWithWorkspacesAndSSOIdentityProvidersDomain(
+        ' Custom-Domain.COM ',
+      );
+
+      expect(approvedAccessDomainRepository.find).toHaveBeenCalledWith({
+        relations: [
+          'workspace',
+          'workspace.workspaceSSOIdentityProviders',
+          'workspace.approvedAccessDomains',
+        ],
+        where: {
+          domain: 'custom-domain.com',
+          isValidated: true,
+        },
+      });
     });
   });
 });
