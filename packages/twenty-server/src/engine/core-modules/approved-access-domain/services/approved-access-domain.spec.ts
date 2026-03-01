@@ -270,6 +270,53 @@ describe('ApprovedAccessDomainService', () => {
       );
     });
 
+    it('should send a validation email when the email domain matches case-insensitively', async () => {
+      const sender = {
+        userEmail: 'sender@example.com',
+        name: { firstName: 'John', lastName: 'Doe' },
+        locale: 'en',
+      } as WorkspaceMemberWorkspaceEntity;
+      const workspace = {
+        displayName: 'Test Workspace',
+        logo: '/logo.png',
+      } as WorkspaceEntity;
+      const email = 'validator@COMPANY.ORG';
+      const approvedAccessDomain = {
+        isValidated: false,
+        domain: 'company.org',
+      } as ApprovedAccessDomainEntity;
+
+      jest
+        .spyOn(approvedAccessDomainRepository, 'findOneBy')
+        .mockResolvedValue(approvedAccessDomain);
+
+      jest
+        .spyOn(workspaceDomainsService, 'buildWorkspaceURL')
+        .mockReturnValue(new URL('https://sub.twenty.com'));
+
+      jest
+        .spyOn(twentyConfigService, 'get')
+        .mockImplementation((key: string) => {
+          if (key === 'EMAIL_FROM_ADDRESS') return 'no-reply@example.com';
+          if (key === 'SERVER_URL') return 'https://api.example.com';
+        });
+
+      await service.sendApprovedAccessDomainValidationEmail(
+        sender,
+        email,
+        workspace,
+        approvedAccessDomain,
+      );
+
+      expect(emailService.send).toHaveBeenCalledWith({
+        from: 'John Doe (via Twenty) <no-reply@example.com>',
+        to: email,
+        subject: 'Approve your access domain',
+        text: expect.any(String),
+        html: expect.any(String),
+      });
+    });
+
     it('should send a validation email if all conditions are met', async () => {
       const sender = {
         userEmail: 'sender@example.com',

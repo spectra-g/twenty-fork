@@ -559,6 +559,46 @@ describe('AuthService', () => {
         });
       }).not.toThrow();
     });
+
+    it('checkAccessForSignIn - allow signup for new user with uppercase email domain when trusted domain is lowercase', async () => {
+      await expect(
+        service.checkAccessForSignIn({
+          userData: {
+            type: 'newUser',
+            newUserPayload: {
+              email: 'user@ACME.COM',
+            },
+          } as ExistingUserOrNewUser['userData'],
+          invitation: undefined,
+          workspaceInviteHash: undefined,
+          workspace: {
+            isPublicInviteLinkEnabled: true,
+            approvedAccessDomains: [{ domain: 'acme.com', isValidated: true }],
+          } as unknown as WorkspaceEntity,
+        }),
+      ).resolves.toBeUndefined();
+    });
+
+    it('checkAccessForSignIn - allow signup for new user with lowercase email domain when trusted domain is mixed case', async () => {
+      await expect(
+        service.checkAccessForSignIn({
+          userData: {
+            type: 'newUser',
+            newUserPayload: {
+              email: 'user@mydomain.io',
+            },
+          } as ExistingUserOrNewUser['userData'],
+          invitation: undefined,
+          workspaceInviteHash: undefined,
+          workspace: {
+            isPublicInviteLinkEnabled: true,
+            approvedAccessDomains: [
+              { domain: 'MyDomain.io', isValidated: true },
+            ],
+          } as unknown as WorkspaceEntity,
+        }),
+      ).resolves.toBeUndefined();
+    });
   });
 
   describe('findWorkspaceForSignInUp', () => {
