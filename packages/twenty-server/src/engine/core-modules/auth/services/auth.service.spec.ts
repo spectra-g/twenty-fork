@@ -35,6 +35,10 @@ import { AuthService } from './auth.service';
 
 jest.mock('bcrypt');
 
+jest.mock('twenty-emails', () => ({
+  SendApprovedAccessDomainValidation: jest.fn(() => ({})),
+}), { virtual: true });
+
 const twentyConfigServiceGetMock = jest.fn();
 
 describe('AuthService', () => {
@@ -554,6 +558,26 @@ describe('AuthService', () => {
             isPublicInviteLinkEnabled: true,
             approvedAccessDomains: [
               { domain: 'domain.com', isValidated: true },
+            ],
+          } as unknown as WorkspaceEntity,
+        });
+      }).not.toThrow();
+    });
+
+    it('checkAccessForSignIn - allow signup when trusted domain matches email domain case-insensitively', async () => {
+      expect(async () => {
+        await service.checkAccessForSignIn({
+          userData: {
+            type: 'newUser',
+            newUserPayload: {
+              email: 'user@EXAMPLE.COM',
+            },
+          } as ExistingUserOrNewUser['userData'],
+          invitation: undefined,
+          workspaceInviteHash: undefined,
+          workspace: {
+            approvedAccessDomains: [
+              { domain: 'example.com', isValidated: true },
             ],
           } as unknown as WorkspaceEntity,
         });
