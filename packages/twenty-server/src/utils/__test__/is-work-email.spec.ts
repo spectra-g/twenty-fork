@@ -1,12 +1,20 @@
-import { isWorkEmail } from 'src/utils/is-work-email';
+import { isWorkDomain, isWorkEmail } from 'src/utils/is-work-email';
 
 describe('isWorkEmail', () => {
+  it('should classify domains case-insensitively', () => {
+    expect(isWorkDomain('GMAIL.COM')).toBe(false);
+  });
+
   it('should return true for a work email', () => {
     expect(isWorkEmail('user@company.com')).toBe(true);
   });
 
   it('should return false for a personal email', () => {
     expect(isWorkEmail('user@gmail.com')).toBe(false);
+  });
+
+  it('should classify emails case-insensitively', () => {
+    expect(isWorkEmail('user@GMAIL.COM')).toBe(false);
   });
 
   it('should return false for an empty email string', () => {

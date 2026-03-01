@@ -9,6 +9,10 @@ describe('getDomainNameByEmail', () => {
     expect(getDomainNameByEmail('user@example.com')).toBe('example.com');
   });
 
+  it('should return a lowercase domain name', () => {
+    expect(getDomainNameByEmail('user@GMAIL.COM')).toBe('gmail.com');
+  });
+
   it('should throw a UserInputError if email is empty', () => {
     expect(() => getDomainNameByEmail('')).toThrow(UserInputError);
     expect(() => getDomainNameByEmail('')).toThrow(
