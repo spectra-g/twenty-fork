@@ -1,4 +1,4 @@
-import { isWorkEmail } from 'src/utils/is-work-email';
+import { isWorkDomain, isWorkEmail } from 'src/utils/is-work-email';
 
 describe('isWorkEmail', () => {
   it('should return true for a work email', () => {
@@ -20,5 +20,17 @@ describe('isWorkEmail', () => {
 
   it('should return false for an invalid email format', () => {
     expect(isWorkEmail('invalid-email')).toBe(false);
+  });
+
+  it('should classify uppercase personal domains the same as lowercase equivalents', () => {
+    expect(isWorkDomain('GMAIL.COM')).toBe(isWorkDomain('gmail.com'));
+    expect(isWorkEmail('user@YAHOO.COM')).toBe(isWorkEmail('user@yahoo.com'));
+  });
+
+  it('should classify mixed-case personal domains the same as lowercase equivalents', () => {
+    expect(isWorkDomain('GMail.com')).toBe(isWorkDomain('gmail.com'));
+    expect(isWorkEmail('user@HotMail.com')).toBe(
+      isWorkEmail('user@hotmail.com'),
+    );
   });
 });
