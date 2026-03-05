@@ -42,6 +42,9 @@ const jestConfig = {
   moduleNameMapper: {
     '^src/(.*)': '<rootDir>/src/$1',
     '^test/(.*)': '<rootDir>/test/$1',
+    '^twenty-emails$': '<rootDir>/../twenty-emails/dist/index.js',
+    '^twenty-shared$': '<rootDir>/../twenty-shared/dist/index.cjs',
+    '^twenty-shared/(.*)$': '<rootDir>/../twenty-shared/dist/$1.cjs',
   },
   moduleFileExtensions: ['js', 'json', 'ts'],
   modulePathIgnorePatterns: ['<rootDir>/dist'],

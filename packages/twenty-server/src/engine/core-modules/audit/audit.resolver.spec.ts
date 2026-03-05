@@ -144,8 +144,10 @@ describe('AuditResolver', () => {
     const invalidInput = { type: 'invalid' };
 
     await expect(
-      resolver.trackAnalytics(invalidInput as any, undefined, undefined),
-    ).rejects.toThrowError(
+      Promise.resolve().then(() =>
+        resolver.trackAnalytics(invalidInput as any, undefined, undefined),
+      ),
+    ).rejects.toThrow(
       new AuditException(
         'Invalid analytics input',
         AuditExceptionCode.INVALID_TYPE,
@@ -161,8 +163,10 @@ describe('AuditResolver', () => {
     };
 
     await expect(
-      resolver.createObjectEvent(input, undefined, undefined),
-    ).rejects.toThrowError(
+      Promise.resolve().then(() =>
+        resolver.createObjectEvent(input, undefined, undefined),
+      ),
+    ).rejects.toThrow(
       new AuditException('Missing workspace', AuditExceptionCode.INVALID_INPUT),
     );
   });
