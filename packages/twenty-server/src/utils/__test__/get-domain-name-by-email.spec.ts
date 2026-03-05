@@ -9,6 +9,11 @@ describe('getDomainNameByEmail', () => {
     expect(getDomainNameByEmail('user@example.com')).toBe('example.com');
   });
 
+  it('should normalize mixed-case domain names to lowercase', () => {
+    expect(getDomainNameByEmail('user@Company.ORG')).toBe('company.org');
+    expect(getDomainNameByEmail('User@Sub.Domain.COM')).toBe('sub.domain.com');
+  });
+
   it('should throw a UserInputError if email is empty', () => {
     expect(() => getDomainNameByEmail('')).toThrow(UserInputError);
     expect(() => getDomainNameByEmail('')).toThrow(
@@ -105,6 +110,10 @@ describe('getDomainNameByEmail', () => {
     const longDomain = 'a'.repeat(160) + '.com';
 
     expect(getDomainNameByEmail(`user@${longDomain}`)).toBe(longDomain);
+  });
+
+  it('should normalize all-uppercase domain names', () => {
+    expect(getDomainNameByEmail('user@EXAMPLE.COM')).toBe('example.com');
   });
 
   it('should handle email with quoted local part containing spaces', () => {
