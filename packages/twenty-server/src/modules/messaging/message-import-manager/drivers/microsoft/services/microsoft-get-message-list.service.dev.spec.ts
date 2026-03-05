@@ -122,7 +122,7 @@ xdescribe('Microsoft dev tests : get message list service', () => {
           },
         ],
       }),
-    ).rejects.toThrowError('Access token is undefined or empty');
+    ).rejects.toThrow('Access token is undefined or empty');
   });
 
   // if you need to run this test, you need to manually update the syncCursor to a valid one
@@ -169,7 +169,7 @@ xdescribe('Microsoft dev tests : get message list service', () => {
           },
         ],
       }),
-    ).rejects.toThrowError(
+    ).rejects.toThrow(
       /Resource not found for the segment|Badly formed content/g,
     );
   });
