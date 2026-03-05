@@ -51,7 +51,10 @@ export class ApprovedAccessDomainService {
       );
     }
 
-    if (to.split('@')[1] !== approvedAccessDomain.domain) {
+    const normalizedEmailDomain = to.split('@')[1]?.toLowerCase();
+    const normalizedApprovedAccessDomain = approvedAccessDomain.domain.toLowerCase();
+
+    if (normalizedEmailDomain !== normalizedApprovedAccessDomain) {
       throw new ApprovedAccessDomainException(
         'Approved access domain does not match email domain',
         ApprovedAccessDomainExceptionCode.APPROVED_ACCESS_DOMAIN_DOES_NOT_MATCH_DOMAIN_EMAIL,
@@ -169,7 +172,9 @@ export class ApprovedAccessDomainService {
     fromWorkspaceMember: WorkspaceMemberWorkspaceEntity,
     emailToValidateDomain: string,
   ): Promise<ApprovedAccessDomainEntity> {
-    if (!isWorkDomain(domain)) {
+    const normalizedDomain = domain.toLowerCase();
+
+    if (!isWorkDomain(normalizedDomain)) {
       throw new ApprovedAccessDomainException(
         'Approved access domain must be a company domain',
         ApprovedAccessDomainExceptionCode.APPROVED_ACCESS_DOMAIN_MUST_BE_A_COMPANY_DOMAIN,
@@ -178,7 +183,7 @@ export class ApprovedAccessDomainService {
 
     if (
       await this.approvedAccessDomainRepository.findOneBy({
-        domain,
+        domain: normalizedDomain,
         workspaceId: inWorkspace.id,
       })
     ) {
@@ -194,7 +199,7 @@ export class ApprovedAccessDomainService {
     const approvedAccessDomain = await this.approvedAccessDomainRepository.save(
       {
         workspaceId: inWorkspace.id,
-        domain,
+        domain: normalizedDomain,
       },
     );
 
@@ -236,6 +241,8 @@ export class ApprovedAccessDomainService {
   async findValidatedApprovedAccessDomainWithWorkspacesAndSSOIdentityProvidersDomain(
     domain: string,
   ) {
+    const normalizedDomain = domain.toLowerCase();
+
     return await this.approvedAccessDomainRepository.find({
       relations: [
         'workspace',
@@ -243,7 +250,7 @@ export class ApprovedAccessDomainService {
         'workspace.approvedAccessDomains',
       ],
       where: {
-        domain,
+        domain: normalizedDomain,
         isValidated: true,
       },
     });

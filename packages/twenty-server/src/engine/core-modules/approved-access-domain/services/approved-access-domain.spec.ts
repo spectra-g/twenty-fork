@@ -30,6 +30,16 @@ jest.mock('@react-email/render', () => ({
   }),
 }));
 
+jest.mock(
+  'twenty-emails',
+  () => ({
+    SendApprovedAccessDomainValidation: jest
+      .fn()
+      .mockReturnValue('MockedEmailTemplate'),
+  }),
+  { virtual: true },
+);
+
 describe('ApprovedAccessDomainService', () => {
   let service: ApprovedAccessDomainService;
   let approvedAccessDomainRepository: Repository<ApprovedAccessDomainEntity>;
@@ -152,6 +162,77 @@ describe('ApprovedAccessDomainService', () => {
         ),
       );
       expect(approvedAccessDomainRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should reject mixed-case domain when lowercase version already exists in same workspace', async () => {
+      const inWorkspace = {
+        id: 'workspace-id',
+      } as WorkspaceEntity;
+      const fromUser = {
+        userEmail: 'user@example.com',
+      } as WorkspaceMemberWorkspaceEntity;
+
+      jest
+        .spyOn(approvedAccessDomainRepository, 'findOneBy')
+        .mockResolvedValue({ id: 'existing-domain-id' } as ApprovedAccessDomainEntity);
+
+      await expect(
+        service.createApprovedAccessDomain(
+          'Custom-Domain.COM',
+          inWorkspace,
+          fromUser,
+          'validator@custom-domain.com',
+        ),
+      ).rejects.toThrowError(
+        new ApprovedAccessDomainException(
+          'Approved access domain already registered.',
+          ApprovedAccessDomainExceptionCode.APPROVED_ACCESS_DOMAIN_ALREADY_REGISTERED,
+        ),
+      );
+
+      expect(approvedAccessDomainRepository.findOneBy).toHaveBeenCalledWith({
+        domain: 'custom-domain.com',
+        workspaceId: inWorkspace.id,
+      });
+    });
+
+    it('should persist domain in lowercase when created with mixed-case value', async () => {
+      const inWorkspace = {
+        id: 'workspace-id',
+      } as WorkspaceEntity;
+      const fromUser = {
+        userEmail: 'user@custom-domain.com',
+      } as WorkspaceMemberWorkspaceEntity;
+      const savedDomain = {
+        id: 'new-domain-id',
+        workspaceId: inWorkspace.id,
+        domain: 'custom-domain.com',
+        isValidated: false,
+      } as ApprovedAccessDomainEntity;
+
+      jest
+        .spyOn(approvedAccessDomainRepository, 'findOneBy')
+        .mockResolvedValue(null);
+      jest
+        .spyOn(approvedAccessDomainRepository, 'save')
+        .mockResolvedValue(savedDomain);
+      jest
+        .spyOn(service, 'sendApprovedAccessDomainValidationEmail')
+        .mockResolvedValue();
+
+      await service.createApprovedAccessDomain(
+        'Custom-Domain.COM',
+        inWorkspace,
+        fromUser,
+        'validator@custom-domain.com',
+      );
+
+      expect(approvedAccessDomainRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: inWorkspace.id,
+          domain: 'custom-domain.com',
+        }),
+      );
     });
   });
 
@@ -322,6 +403,44 @@ describe('ApprovedAccessDomainService', () => {
         html: expect.any(String),
       });
     });
+
+    it('should accept mixed-case recipient email domain when approved domain is lowercase', async () => {
+      const sender = {
+        userEmail: 'sender@example.com',
+        name: { firstName: 'John', lastName: 'Doe' },
+        locale: 'en',
+      } as WorkspaceMemberWorkspaceEntity;
+      const workspace = {
+        id: 'workspace-id',
+        displayName: 'Test Workspace',
+      } as WorkspaceEntity;
+      const approvedAccessDomain = {
+        id: 'approved-access-domain-id',
+        isValidated: false,
+        domain: 'custom-domain.com',
+      } as ApprovedAccessDomainEntity;
+
+      jest
+        .spyOn(workspaceDomainsService, 'buildWorkspaceURL')
+        .mockReturnValue(new URL('https://sub.twenty.com'));
+      jest
+        .spyOn(twentyConfigService, 'get')
+        .mockImplementation((key: string) => {
+          if (key === 'EMAIL_FROM_ADDRESS') return 'no-reply@example.com';
+          if (key === 'SERVER_URL') return 'https://api.example.com';
+        });
+
+      await expect(
+        service.sendApprovedAccessDomainValidationEmail(
+          sender,
+          'user@Custom-Domain.COM',
+          workspace,
+          approvedAccessDomain,
+        ),
+      ).resolves.not.toThrow();
+
+      expect(emailService.send).toHaveBeenCalled();
+    });
   });
 
   describe('validateApprovedAccessDomain', () => {
@@ -429,6 +548,38 @@ describe('ApprovedAccessDomainService', () => {
           ApprovedAccessDomainExceptionCode.APPROVED_ACCESS_DOMAIN_ALREADY_VALIDATED,
         ),
       );
+    });
+  });
+
+  describe('findValidatedApprovedAccessDomainWithWorkspacesAndSSOIdentityProvidersDomain', () => {
+    it('should lookup validated domain with lowercase normalization', async () => {
+      const foundDomain = {
+        id: 'approved-access-domain-id',
+        domain: 'custom-domain.com',
+        isValidated: true,
+      } as ApprovedAccessDomainEntity;
+
+      jest
+        .spyOn(approvedAccessDomainRepository, 'find')
+        .mockResolvedValue([foundDomain]);
+
+      const result =
+        await service.findValidatedApprovedAccessDomainWithWorkspacesAndSSOIdentityProvidersDomain(
+          'Custom-Domain.COM',
+        );
+
+      expect(approvedAccessDomainRepository.find).toHaveBeenCalledWith({
+        relations: [
+          'workspace',
+          'workspace.workspaceSSOIdentityProviders',
+          'workspace.approvedAccessDomains',
+        ],
+        where: {
+          domain: 'custom-domain.com',
+          isValidated: true,
+        },
+      });
+      expect(result).toEqual([foundDomain]);
     });
   });
 });
