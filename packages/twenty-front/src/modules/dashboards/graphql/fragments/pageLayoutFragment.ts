@@ -11,6 +11,7 @@ export const PAGE_LAYOUT_FRAGMENT = gql`
     defaultTabToFocusOnMobileAndSidePanelId
     createdAt
     updatedAt
+    globalFilterConfig
     tabs {
       ...PageLayoutTabFragment
     }
