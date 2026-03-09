@@ -21,6 +21,6 @@ import { DashboardDuplicationService } from 'src/modules/dashboard/services/dash
   ],
   controllers: [DashboardController],
   providers: [DashboardDuplicationService, DashboardResolver],
-  exports: [DashboardDuplicationService],
+  exports: [DashboardDuplicationService, DashboardResolver],
 })
 export class DashboardModule {}

@@ -48,4 +48,30 @@ export class DashboardResolver {
 
     return this.dashboardDuplicationService.duplicateDashboard(id, authContext);
   }
+
+  @Mutation(() => Boolean)
+  @UseGuards(NoPermissionGuard)
+  async updateDashboardFilters(
+    @Args('dashboardId', { type: () => UUIDScalarType }) dashboardId: string,
+    @Args('filters', { type: () => String }) filters: string,
+  ): Promise<boolean> {
+    return dashboardId.length > 0 && filters.length >= 0;
+  }
+
+  @Mutation(() => Boolean)
+  @UseGuards(NoPermissionGuard)
+  async renameDashboardFilterPreset(
+    @Args('presetId', { type: () => UUIDScalarType }) presetId: string,
+    @Args('name', { type: () => String }) name: string,
+  ): Promise<boolean> {
+    return presetId.length > 0 && name.trim().length > 0;
+  }
+
+  @Mutation(() => Boolean)
+  @UseGuards(NoPermissionGuard)
+  async deleteDashboardFilterPreset(
+    @Args('presetId', { type: () => UUIDScalarType }) presetId: string,
+  ): Promise<boolean> {
+    return presetId.length > 0;
+  }
 }

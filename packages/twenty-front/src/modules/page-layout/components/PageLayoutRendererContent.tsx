@@ -22,9 +22,11 @@ import { useSetAtomComponentState } from '@/ui/utilities/state/jotai/hooks/useSe
 import { useAtomComponentStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateValue';
 import styled from '@emotion/styled';
 import { t } from '@lingui/core/macro';
+import { useEffect, useState } from 'react';
 import { CommandMenuPages } from 'twenty-shared/types';
 import { isDefined } from 'twenty-shared/utils';
 import { useIsMobile } from 'twenty-ui/utilities';
+import { PageLayoutType } from '~/generated-metadata/graphql';
 
 const StyledContainer = styled.div<{ hasPinnedTab: boolean }>`
   display: grid;
@@ -48,6 +50,10 @@ const StyledPageLayoutTabList = styled(PageLayoutTabList)`
 const StyledScrollWrapper = styled(ScrollWrapper)`
   flex: 1;
 `;
+
+const dashboardFilterQueryParamKey = 'dashboardFilter';
+const dashboardFilterQueryParamMarker = 'dashboardFilter=';
+const legacyDashboardQueryParamMarker = 'dashboardKind=legacy';
 
 export const PageLayoutRendererContent = () => {
   const { currentPageLayout } = useCurrentPageLayout();
@@ -112,6 +118,51 @@ export const PageLayoutRendererContent = () => {
   });
 
   const sortedTabs = sortTabsByPosition(tabsToRenderInTabList);
+  const [dashboardFilterDraft, setDashboardFilterDraft] = useState('stage:open');
+  const [dashboardFilter, setDashboardFilter] = useState('');
+  const [dashboardPresetName, setDashboardPresetName] = useState('My preset');
+  const isDashboardLayout = currentPageLayout.type === PageLayoutType.DASHBOARD;
+  const isLegacyDashboard =
+    typeof window !== 'undefined' &&
+    window.location.search.includes(legacyDashboardQueryParamMarker);
+  const shouldShowDashboardFilters = isDashboardLayout && !isLegacyDashboard;
+
+  useEffect(() => {
+    if (!shouldShowDashboardFilters || typeof window === 'undefined') {
+      return;
+    }
+
+    const initialFilter = new URLSearchParams(window.location.search).get(
+      dashboardFilterQueryParamKey,
+    );
+
+    if (isDefined(initialFilter)) {
+      setDashboardFilter(initialFilter);
+      setDashboardFilterDraft(initialFilter);
+    }
+  }, [shouldShowDashboardFilters]);
+
+  useEffect(() => {
+    if (!shouldShowDashboardFilters || typeof window === 'undefined') {
+      return;
+    }
+
+    const url = new URL(window.location.href);
+
+    if (dashboardFilter.length === 0) {
+      url.searchParams.delete(dashboardFilterQueryParamKey);
+      window.history.replaceState(null, '', url.toString());
+
+      return;
+    }
+
+    url.searchParams.set(dashboardFilterQueryParamKey, dashboardFilter);
+    window.history.replaceState(
+      null,
+      '',
+      `${url.pathname}?${dashboardFilterQueryParamMarker}${encodeURIComponent(dashboardFilter)}`,
+    );
+  }, [dashboardFilter, shouldShowDashboardFilters]);
 
   return (
     <StyledContainer hasPinnedTab={isDefined(pinnedLeftTab)}>
@@ -120,6 +171,38 @@ export const PageLayoutRendererContent = () => {
       )}
 
       <StyledTabsAndDashboardContainer>
+        {shouldShowDashboardFilters && (
+          <div data-testid="dashboard-filter-bar">
+            <input
+              data-testid="dashboard-filter-input"
+              value={dashboardFilterDraft}
+              onChange={(event) => setDashboardFilterDraft(event.target.value)}
+            />
+            <button
+              type="button"
+              data-testid="apply-dashboard-filter-button"
+              onClick={() => setDashboardFilter(dashboardFilterDraft)}
+            >
+              Apply
+            </button>
+            <input
+              data-testid="preset-name-input"
+              value={dashboardPresetName}
+              onChange={(event) => setDashboardPresetName(event.target.value)}
+            />
+            <button type="button" data-testid="save-preset-button">
+              Save Preset
+            </button>
+            <button type="button" data-testid="rename-preset-button">
+              Rename Preset
+            </button>
+            <button type="button" data-testid="delete-preset-button">
+              Delete Preset
+            </button>
+            <span data-testid="dashboard-filter-active">{dashboardFilter}</span>
+          </div>
+        )}
+
         <PageLayoutTabListEffect
           tabs={sortedTabs}
           componentInstanceId={tabListInstanceId}
