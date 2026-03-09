@@ -31,4 +31,9 @@ export class BarChartDataInput {
   @IsOptional()
   @IsObject()
   dashboardFilter?: ChartFilter;
+
+  @Field(() => GraphQLJSON, { nullable: true })
+  @IsOptional()
+  @IsObject()
+  globalFilter?: ChartFilter;
 }

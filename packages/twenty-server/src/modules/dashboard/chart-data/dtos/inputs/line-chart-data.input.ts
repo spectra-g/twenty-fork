@@ -31,4 +31,9 @@ export class LineChartDataInput {
   @IsOptional()
   @IsObject()
   dashboardFilter?: ChartFilter;
+
+  @Field(() => GraphQLJSON, { nullable: true })
+  @IsOptional()
+  @IsObject()
+  globalFilter?: ChartFilter;
 }

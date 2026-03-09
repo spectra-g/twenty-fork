@@ -2,7 +2,7 @@ import { LineChartDataResolver } from 'src/modules/dashboard/chart-data/resolver
 import { LineChartDataService } from 'src/modules/dashboard/chart-data/services/line-chart-data.service';
 
 describe('LineChartDataResolver', () => {
-  it('forwards optional dashboardFilter to service', async () => {
+  it('forwards optional globalFilter to service', async () => {
     const getLineChartData = jest.fn().mockResolvedValue({});
     const resolver = new LineChartDataResolver({
       getLineChartData,
@@ -11,7 +11,7 @@ describe('LineChartDataResolver', () => {
     const input = {
       objectMetadataId: 'f92d76e8-a577-43f6-a5f1-31fe455de6f5',
       configuration: { aggregateOperation: 'count' },
-      dashboardFilter: {
+      globalFilter: {
         recordFilters: [
           {
             fieldMetadataId: 'account:status',
@@ -34,12 +34,12 @@ describe('LineChartDataResolver', () => {
       expect.objectContaining({
         objectMetadataId: input.objectMetadataId,
         configuration: input.configuration,
-        dashboardFilter: input.dashboardFilter,
+        dashboardFilter: input.globalFilter,
       }),
     );
   });
 
-  it('keeps compatibility when dashboardFilter is omitted', async () => {
+  it('keeps compatibility when globalFilter is omitted', async () => {
     const getLineChartData = jest.fn().mockResolvedValue({});
     const resolver = new LineChartDataResolver({
       getLineChartData,
