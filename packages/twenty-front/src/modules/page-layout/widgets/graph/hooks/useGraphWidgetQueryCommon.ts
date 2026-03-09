@@ -1,4 +1,6 @@
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
+import { useEffectiveFilters } from '@/page-layout/hooks/useEffectiveFilters';
+import { useLayoutRenderingContext } from '@/ui/layout/contexts/LayoutRenderingContext';
 import { useUserTimezone } from '@/ui/input/components/internal/date/hooks/useUserTimezone';
 import {
   computeRecordGqlOperationFilter,
@@ -22,6 +24,8 @@ export const useGraphWidgetQueryCommon = ({
     | LineChartConfiguration
     | PieChartConfiguration;
 }) => {
+  const { dashboardFilterState } = useLayoutRenderingContext();
+
   const { objectMetadataItem } = useObjectMetadataItemById({
     objectId: objectMetadataItemId,
   });
@@ -38,13 +42,18 @@ export const useGraphWidgetQueryCommon = ({
 
   const { userTimezone } = useUserTimezone();
 
+  const effectiveFilters = useEffectiveFilters({
+    localFilters: configuration.filter,
+    dashboardFilterState,
+  });
+
   const gqlOperationFilter = computeRecordGqlOperationFilter({
     fields: objectMetadataItem.fields,
     filterValueDependencies: {
       timeZone: userTimezone,
     },
-    recordFilters: configuration.filter?.recordFilters ?? [],
-    recordFilterGroups: configuration.filter?.recordFilterGroups ?? [],
+    recordFilters: effectiveFilters.recordFilters ?? [],
+    recordFilterGroups: effectiveFilters.recordFilterGroups ?? [],
   });
 
   return {

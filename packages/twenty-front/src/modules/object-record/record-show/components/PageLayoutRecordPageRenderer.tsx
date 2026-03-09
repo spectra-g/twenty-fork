@@ -6,6 +6,8 @@ import { RecordShowContainerContextStoreTargetedRecordsEffect } from '@/object-r
 import { RecordShowEffect } from '@/object-record/record-show/components/RecordShowEffect';
 import { recordStoreFamilySelector } from '@/object-record/record-store/states/selectors/recordStoreFamilySelector';
 import { PageLayoutRenderer } from '@/page-layout/components/PageLayoutRenderer';
+import { useDashboardFilterUrlSync } from '@/page-layout/hooks/useDashboardFilterUrlSync';
+import { useDashboardFilters } from '@/page-layout/hooks/useDashboardFilters';
 import { usePageLayoutIdForRecord } from '@/page-layout/hooks/usePageLayoutIdForRecord';
 import { LayoutRenderingProvider } from '@/ui/layout/contexts/LayoutRenderingContext';
 import { type TargetRecordIdentifier } from '@/ui/layout/contexts/TargetRecordIdentifier';
@@ -43,6 +45,19 @@ export const PageLayoutRecordPageRenderer = ({
   targetRecordIdentifier: TargetRecordIdentifier;
   isInRightDrawer: boolean;
 }) => {
+  const isDashboardLayout =
+    targetRecordIdentifier.targetObjectNameSingular ===
+    CoreObjectNameSingular.Dashboard;
+
+  const { dashboardFilterState, setDashboardFilterState } =
+    useDashboardFilters();
+
+  useDashboardFilterUrlSync({
+    dashboardFilterState,
+    setDashboardFilterState,
+    enabled: isDashboardLayout,
+  });
+
   const recordDeletedAt = useAtomFamilySelectorValue(
     recordStoreFamilySelector,
     {
@@ -91,6 +106,9 @@ export const PageLayoutRecordPageRenderer = ({
                   ? PageLayoutType.DASHBOARD
                   : PageLayoutType.RECORD_PAGE,
               isInRightDrawer,
+              dashboardFilterState: isDashboardLayout
+                ? dashboardFilterState
+                : undefined,
             }}
           >
             {isDefined(pageLayoutId) && (

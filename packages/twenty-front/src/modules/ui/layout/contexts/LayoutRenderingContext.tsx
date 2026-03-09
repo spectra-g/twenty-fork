@@ -1,5 +1,6 @@
 import { type PageLayoutType } from '~/generated-metadata/graphql';
 import { createRequiredContext } from '~/utils/createRequiredContext';
+import { type DashboardFilterState } from '@/page-layout/types/DashboardFilterState';
 import { type TargetRecordIdentifier } from './TargetRecordIdentifier';
 
 export type LayoutRenderingContextType = {
@@ -11,6 +12,8 @@ export type LayoutRenderingContextType = {
   layoutType: PageLayoutType;
 
   isInRightDrawer: boolean;
+
+  dashboardFilterState?: DashboardFilterState;
 };
 
 export const [LayoutRenderingProvider, useLayoutRenderingContext] =

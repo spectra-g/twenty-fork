@@ -1,5 +1,7 @@
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
 import { type ObjectMetadataItem } from '@/object-metadata/types/ObjectMetadataItem';
+import { useEffectiveFilters } from '@/page-layout/hooks/useEffectiveFilters';
+import { useLayoutRenderingContext } from '@/ui/layout/contexts/LayoutRenderingContext';
 import { LINE_CHART_DATA } from '@/page-layout/widgets/graph/graphql/queries/lineChartData';
 import { type LineChartSeriesWithColor } from '@/page-layout/widgets/graph/graphWidgetLineChart/types/LineChartSeriesWithColor';
 import { type GraphColorMode } from '@/page-layout/widgets/graph/types/GraphColorMode';
@@ -10,6 +12,7 @@ import { extractLineChartDataConfiguration } from '@/page-layout/widgets/graph/u
 import { parseGraphColor } from '@/page-layout/widgets/graph/utils/parseGraphColor';
 import { useQuery } from '@apollo/client';
 import { isString } from '@sniptt/guards';
+import { useMemo } from 'react';
 import { FieldMetadataType } from 'twenty-shared/types';
 import { isDefined } from 'twenty-shared/utils';
 import {
@@ -41,11 +44,33 @@ export const useGraphLineChartWidgetData = ({
   objectMetadataItemId,
   configuration,
 }: UseGraphLineChartWidgetDataProps): UseGraphLineChartWidgetDataResult => {
+  const { dashboardFilterState } = useLayoutRenderingContext();
+
   const { objectMetadataItem } = useObjectMetadataItemById({
     objectId: objectMetadataItemId,
   });
 
   const dataConfiguration = extractLineChartDataConfiguration(configuration);
+
+  const effectiveFilters = useEffectiveFilters({
+    localFilters: dataConfiguration.filter,
+    dashboardFilterState,
+  });
+
+  const effectiveDataConfiguration = useMemo(() => {
+    const hasEffectiveFilters =
+      effectiveFilters.recordFilters?.length > 0 ||
+      effectiveFilters.recordFilterGroups?.length > 0;
+
+    if (!hasEffectiveFilters && !isDefined(dataConfiguration.filter)) {
+      return dataConfiguration;
+    }
+
+    return {
+      ...dataConfiguration,
+      filter: effectiveFilters,
+    };
+  }, [dataConfiguration, effectiveFilters]);
 
   const {
     data: queryData,
@@ -55,7 +80,7 @@ export const useGraphLineChartWidgetData = ({
     variables: {
       input: {
         objectMetadataId: objectMetadataItemId,
-        configuration: dataConfiguration,
+        configuration: effectiveDataConfiguration,
       },
     },
   });

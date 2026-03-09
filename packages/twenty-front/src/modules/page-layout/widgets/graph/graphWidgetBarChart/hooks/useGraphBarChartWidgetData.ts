@@ -1,4 +1,6 @@
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
+import { useEffectiveFilters } from '@/page-layout/hooks/useEffectiveFilters';
+import { useLayoutRenderingContext } from '@/ui/layout/contexts/LayoutRenderingContext';
 import { type FieldMetadataItemOption } from '@/object-metadata/types/FieldMetadataItem';
 import { BAR_CHART_DATA } from '@/page-layout/widgets/graph/graphql/queries/barChartData';
 import { type BarChartSeriesWithColor } from '@/page-layout/widgets/graph/graphWidgetBarChart/types/BarChartSeries';
@@ -52,6 +54,8 @@ export const useGraphBarChartWidgetData = ({
   objectMetadataItemId,
   configuration,
 }: UseGraphBarChartWidgetDataProps): UseGraphBarChartWidgetDataResult => {
+  const { dashboardFilterState } = useLayoutRenderingContext();
+
   const { objectMetadataItem } = useObjectMetadataItemById({
     objectId: objectMetadataItemId,
   });
@@ -60,6 +64,26 @@ export const useGraphBarChartWidgetData = ({
     () => extractBarChartDataConfiguration(configuration),
     [configuration],
   );
+
+  const effectiveFilters = useEffectiveFilters({
+    localFilters: dataConfiguration.filter,
+    dashboardFilterState,
+  });
+
+  const effectiveDataConfiguration = useMemo(() => {
+    const hasEffectiveFilters =
+      effectiveFilters.recordFilters?.length > 0 ||
+      effectiveFilters.recordFilterGroups?.length > 0;
+
+    if (!hasEffectiveFilters && !isDefined(dataConfiguration.filter)) {
+      return dataConfiguration;
+    }
+
+    return {
+      ...dataConfiguration,
+      filter: effectiveFilters,
+    };
+  }, [dataConfiguration, effectiveFilters]);
 
   const {
     data: queryData,
@@ -70,7 +94,7 @@ export const useGraphBarChartWidgetData = ({
     variables: {
       input: {
         objectMetadataId: objectMetadataItemId,
-        configuration: dataConfiguration,
+        configuration: effectiveDataConfiguration,
       },
     },
   });
