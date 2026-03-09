@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { isNumber } from '@sniptt/guards';
 import { CalendarStartDay } from 'twenty-shared/constants';
-import { FirstDayOfTheWeek } from 'twenty-shared/types';
+import { ChartFilter, FirstDayOfTheWeek } from 'twenty-shared/types';
 import {
   convertCalendarStartDayNonIsoNumberToFirstDayOfTheWeek,
   isDefined,
@@ -44,6 +44,7 @@ type GetBarChartDataParams = {
   workspaceId: string;
   objectMetadataId: string;
   configuration: BarChartConfigurationDTO;
+  dashboardFilter?: ChartFilter;
   authContext: AuthContext;
 };
 
@@ -58,9 +59,12 @@ export class BarChartDataService {
     workspaceId,
     objectMetadataId,
     configuration,
+    dashboardFilter,
     authContext,
   }: GetBarChartDataParams): Promise<BarChartDataOutputDTO> {
     try {
+      void dashboardFilter;
+
       const { flatObjectMetadataMaps, flatFieldMetadataMaps } =
         await this.workspaceManyOrAllFlatEntityMapsCacheService.getOrRecomputeManyOrAllFlatEntityMaps(
           {
