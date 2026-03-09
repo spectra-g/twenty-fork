@@ -31,4 +31,9 @@ export class PieChartDataInput {
   @IsOptional()
   @IsObject()
   dashboardFilter?: ChartFilter;
+
+  @Field(() => GraphQLJSON, { nullable: true })
+  @IsOptional()
+  @IsObject()
+  globalFilter?: ChartFilter;
 }

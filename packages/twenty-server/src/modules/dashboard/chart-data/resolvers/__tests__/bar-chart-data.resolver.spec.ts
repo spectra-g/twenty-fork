@@ -2,7 +2,7 @@ import { BarChartDataResolver } from 'src/modules/dashboard/chart-data/resolvers
 import { BarChartDataService } from 'src/modules/dashboard/chart-data/services/bar-chart-data.service';
 
 describe('BarChartDataResolver', () => {
-  it('forwards optional dashboardFilter to service', async () => {
+  it('forwards optional globalFilter to service', async () => {
     const getBarChartData = jest.fn().mockResolvedValue({});
     const resolver = new BarChartDataResolver({
       getBarChartData,
@@ -11,7 +11,7 @@ describe('BarChartDataResolver', () => {
     const input = {
       objectMetadataId: 'f92d76e8-a577-43f6-a5f1-31fe455de6f5',
       configuration: { aggregateOperation: 'count' },
-      dashboardFilter: {
+      globalFilter: {
         recordFilters: [
           {
             fieldMetadataId: 'account:status',
@@ -45,12 +45,12 @@ describe('BarChartDataResolver', () => {
         objectMetadataId: input.objectMetadataId,
         configuration: input.configuration,
         workspaceId: workspace.id,
-        dashboardFilter: input.dashboardFilter,
+        dashboardFilter: input.globalFilter,
       }),
     );
   });
 
-  it('keeps compatibility when dashboardFilter is omitted', async () => {
+  it('keeps compatibility when globalFilter is omitted', async () => {
     const getBarChartData = jest.fn().mockResolvedValue({});
     const resolver = new BarChartDataResolver({
       getBarChartData,
@@ -78,7 +78,7 @@ describe('BarChartDataResolver', () => {
     );
   });
 
-  it('normalizes null dashboardFilter to undefined for compatibility', async () => {
+  it('normalizes null globalFilter to undefined for compatibility', async () => {
     const getBarChartData = jest.fn().mockResolvedValue({});
     const resolver = new BarChartDataResolver({
       getBarChartData,
@@ -87,7 +87,7 @@ describe('BarChartDataResolver', () => {
     const input = {
       objectMetadataId: 'f92d76e8-a577-43f6-a5f1-31fe455de6f5',
       configuration: { aggregateOperation: 'count' },
-      dashboardFilter: null,
+      globalFilter: null,
     };
 
     await resolver.barChartData(

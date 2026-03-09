@@ -33,6 +33,9 @@ export class BarChartDataResolver {
     @AuthWorkspaceMemberId() workspaceMemberId: string,
     @AuthUserWorkspaceId() userWorkspaceId: string,
   ): Promise<BarChartDataOutputDTO> {
+    const globalFilter =
+      input.globalFilter ?? input.dashboardFilter ?? undefined;
+
     const authContext: AuthContext = {
       user,
       workspace,
@@ -43,7 +46,7 @@ export class BarChartDataResolver {
     return this.barChartDataService.getBarChartData({
       objectMetadataId: input.objectMetadataId,
       configuration: input.configuration,
-      dashboardFilter: input.dashboardFilter ?? undefined,
+      dashboardFilter: globalFilter,
       workspaceId: workspace.id,
       authContext,
     });

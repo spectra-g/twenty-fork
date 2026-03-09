@@ -2,7 +2,7 @@ import { PieChartDataResolver } from 'src/modules/dashboard/chart-data/resolvers
 import { PieChartDataService } from 'src/modules/dashboard/chart-data/services/pie-chart-data.service';
 
 describe('PieChartDataResolver', () => {
-  it('forwards optional dashboardFilter to service', async () => {
+  it('forwards optional globalFilter to service', async () => {
     const getPieChartData = jest.fn().mockResolvedValue({});
     const resolver = new PieChartDataResolver({
       getPieChartData,
@@ -11,7 +11,7 @@ describe('PieChartDataResolver', () => {
     const input = {
       objectMetadataId: 'f92d76e8-a577-43f6-a5f1-31fe455de6f5',
       configuration: { aggregateOperation: 'count' },
-      dashboardFilter: {
+      globalFilter: {
         recordFilterGroups: [
           {
             id: 'group-1',
@@ -33,12 +33,12 @@ describe('PieChartDataResolver', () => {
       expect.objectContaining({
         objectMetadataId: input.objectMetadataId,
         configuration: input.configuration,
-        dashboardFilter: input.dashboardFilter,
+        dashboardFilter: input.globalFilter,
       }),
     );
   });
 
-  it('keeps compatibility when dashboardFilter is omitted', async () => {
+  it('keeps compatibility when globalFilter is omitted', async () => {
     const getPieChartData = jest.fn().mockResolvedValue({});
     const resolver = new PieChartDataResolver({
       getPieChartData,
