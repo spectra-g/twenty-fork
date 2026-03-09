@@ -21,5 +21,7 @@ export type ChartFilter = {
   recordFilterGroups?: ChartRecordFilterGroup[];
 };
 
+export type DashboardGlobalChartFilter = ChartFilter;
+
 export type UniversalChartFilter =
   FormatRecordSerializedRelationProperties<ChartFilter>;

@@ -146,6 +146,7 @@ export type {
   ChartRecordFilter,
   ChartRecordFilterGroup,
   ChartFilter,
+  DashboardGlobalChartFilter,
   UniversalChartFilter,
 } from './page-layout/chart-filter.type';
 export type { GridPosition } from './page-layout/grid-position.type';

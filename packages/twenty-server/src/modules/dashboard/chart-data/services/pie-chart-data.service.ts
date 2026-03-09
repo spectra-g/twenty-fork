@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { CalendarStartDay } from 'twenty-shared/constants';
-import { FirstDayOfTheWeek } from 'twenty-shared/types';
+import { ChartFilter, FirstDayOfTheWeek } from 'twenty-shared/types';
 import {
   convertCalendarStartDayNonIsoNumberToFirstDayOfTheWeek,
   isDefined,
@@ -31,6 +31,7 @@ type GetPieChartDataParams = {
   workspaceId: string;
   objectMetadataId: string;
   configuration: PieChartConfigurationDTO;
+  dashboardFilter?: ChartFilter;
   authContext: AuthContext;
 };
 
@@ -45,9 +46,12 @@ export class PieChartDataService {
     workspaceId,
     objectMetadataId,
     configuration,
+    dashboardFilter,
     authContext,
   }: GetPieChartDataParams): Promise<PieChartDataOutputDTO> {
     try {
+      void dashboardFilter;
+
       if (
         configuration.configurationType !== WidgetConfigurationType.PIE_CHART
       ) {
