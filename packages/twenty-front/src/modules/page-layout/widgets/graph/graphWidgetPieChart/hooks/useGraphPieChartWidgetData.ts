@@ -1,5 +1,7 @@
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
 import { type ObjectMetadataItem } from '@/object-metadata/types/ObjectMetadataItem';
+import { useEffectiveFilters } from '@/page-layout/hooks/useEffectiveFilters';
+import { useLayoutRenderingContext } from '@/ui/layout/contexts/LayoutRenderingContext';
 import { PIE_CHART_DATA } from '@/page-layout/widgets/graph/graphql/queries/pieChartData';
 import { type PieChartDataItemWithColor } from '@/page-layout/widgets/graph/graphWidgetPieChart/types/PieChartDataItem';
 import { type GraphColorMode } from '@/page-layout/widgets/graph/types/GraphColorMode';
@@ -37,6 +39,8 @@ export const useGraphPieChartWidgetData = ({
   objectMetadataItemId,
   configuration,
 }: UseGraphPieChartWidgetDataProps): UseGraphPieChartWidgetDataResult => {
+  const { dashboardFilterState } = useLayoutRenderingContext();
+
   const { objectMetadataItem } = useObjectMetadataItemById({
     objectId: objectMetadataItemId,
   });
@@ -46,6 +50,26 @@ export const useGraphPieChartWidgetData = ({
     [configuration],
   );
 
+  const effectiveFilters = useEffectiveFilters({
+    localFilters: dataConfiguration.filter,
+    dashboardFilterState,
+  });
+
+  const effectiveDataConfiguration = useMemo(() => {
+    const hasEffectiveFilters =
+      effectiveFilters.recordFilters?.length > 0 ||
+      effectiveFilters.recordFilterGroups?.length > 0;
+
+    if (!hasEffectiveFilters && !isDefined(dataConfiguration.filter)) {
+      return dataConfiguration;
+    }
+
+    return {
+      ...dataConfiguration,
+      filter: effectiveFilters,
+    };
+  }, [dataConfiguration, effectiveFilters]);
+
   const {
     data: queryData,
     loading,
@@ -54,7 +78,7 @@ export const useGraphPieChartWidgetData = ({
     variables: {
       input: {
         objectMetadataId: objectMetadataItemId,
-        configuration: dataConfiguration,
+        configuration: effectiveDataConfiguration,
       },
     },
   });
