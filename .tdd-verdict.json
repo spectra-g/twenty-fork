@@ -1,10 +1,10 @@
 {
-  "storyId": "STORY-013",
+  "storyId": "STORY-014",
   "tdd_followed": true,
   "tests_ran": true,
   "tests_passed": true,
   "issues": "",
   "confidence": "high",
-  "tdd_loops_completed": 3,
-  "outer_loops_completed": 2
+  "tdd_loops_completed": 6,
+  "outer_loops_completed": 3
 }

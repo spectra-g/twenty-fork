@@ -8,6 +8,8 @@ export type DashboardFilterPreset = {
   dashboardId: string;
   name: string;
   filters: DashboardFilterPresetFilters;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type CreateDashboardFilterPresetInput = {

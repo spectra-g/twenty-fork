@@ -8,7 +8,13 @@ import { WorkspaceCacheStorageModule } from 'src/engine/workspace-cache-storage/
 import { ChartDataModule } from 'src/modules/dashboard/chart-data/chart-data.module';
 import { DashboardController } from 'src/modules/dashboard/controllers/dashboard.controller';
 import { DashboardResolver } from 'src/modules/dashboard/resolvers/dashboard.resolver';
+import { DashboardFilterPresetInMemoryRepository } from 'src/modules/dashboard/repositories/dashboard-filter-preset.in-memory.repository';
 import { DashboardDuplicationService } from 'src/modules/dashboard/services/dashboard-duplication.service';
+import {
+  DASHBOARD_EXISTENCE_CHECKER,
+  DASHBOARD_FILTER_PRESET_REPOSITORY,
+  DashboardFilterPresetService,
+} from 'src/modules/dashboard/services/dashboard-filter-preset.service';
 import { DashboardService } from 'src/modules/dashboard/services/dashboard.service';
 
 @Module({
@@ -21,7 +27,22 @@ import { DashboardService } from 'src/modules/dashboard/services/dashboard.servi
     WorkspaceCacheStorageModule,
   ],
   controllers: [DashboardController],
-  providers: [DashboardDuplicationService, DashboardService, DashboardResolver],
+  providers: [
+    DashboardDuplicationService,
+    {
+      provide: DASHBOARD_FILTER_PRESET_REPOSITORY,
+      useClass: DashboardFilterPresetInMemoryRepository,
+    },
+    {
+      provide: DASHBOARD_EXISTENCE_CHECKER,
+      useValue: {
+        existsById: async () => true,
+      },
+    },
+    DashboardFilterPresetService,
+    DashboardService,
+    DashboardResolver,
+  ],
   exports: [DashboardDuplicationService, DashboardService],
 })
 export class DashboardModule {}
