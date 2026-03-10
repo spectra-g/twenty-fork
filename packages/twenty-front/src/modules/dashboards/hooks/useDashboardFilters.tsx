@@ -5,7 +5,13 @@ import { type RecordFilter } from '@/object-record/record-filter/types/RecordFil
 type DashboardFiltersState = {
   recordFilters: RecordFilter[];
   recordFilterGroups: RecordFilterGroup[];
+  selectedPresetId: string | null;
   isPresetModified: boolean;
+  activatePreset: (params: {
+    presetId: string;
+    recordFilters: RecordFilter[];
+    recordFilterGroups: RecordFilterGroup[];
+  }) => void;
   addFilter: (filter: RecordFilter) => void;
   removeFilter: (recordFilterId: string) => void;
   updateFilter: (
@@ -26,7 +32,9 @@ const noop = () => {
 const defaultState: DashboardFiltersState = {
   recordFilters: [],
   recordFilterGroups: [],
+  selectedPresetId: null,
   isPresetModified: false,
+  activatePreset: noop,
   addFilter: noop,
   removeFilter: noop,
   updateFilter: noop,
@@ -39,22 +47,51 @@ const DashboardFiltersContext = createContext<DashboardFiltersState>(defaultStat
 export const DashboardFiltersProvider = ({ children }: PropsWithChildren) => {
   const [recordFilters, setRecordFilters] = useState<RecordFilter[]>([]);
   const [recordFilterGroups, setRecordFilterGroups] = useState<RecordFilterGroup[]>([]);
-  const [isPresetModified, setIsPresetModified] = useState(false);
+  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
+  const [presetBaseline, setPresetBaseline] = useState<{
+    recordFilters: RecordFilter[];
+    recordFilterGroups: RecordFilterGroup[];
+  } | null>(null);
+
+  const isPresetModified = useMemo(() => {
+    if (presetBaseline === null) {
+      return false;
+    }
+
+    return (
+      JSON.stringify(presetBaseline.recordFilters) !==
+        JSON.stringify(recordFilters) ||
+      JSON.stringify(presetBaseline.recordFilterGroups) !==
+        JSON.stringify(recordFilterGroups)
+    );
+  }, [presetBaseline, recordFilterGroups, recordFilters]);
 
   const value = useMemo<DashboardFiltersState>(
     () => ({
       recordFilters,
       recordFilterGroups,
+      selectedPresetId,
       isPresetModified,
+      activatePreset: ({
+        presetId,
+        recordFilters: presetRecordFilters,
+        recordFilterGroups: presetRecordFilterGroups,
+      }) => {
+        setSelectedPresetId(presetId);
+        setPresetBaseline({
+          recordFilters: presetRecordFilters,
+          recordFilterGroups: presetRecordFilterGroups,
+        });
+        setRecordFilters(presetRecordFilters);
+        setRecordFilterGroups(presetRecordFilterGroups);
+      },
       addFilter: (filter) => {
         setRecordFilters((current) => [...current, filter]);
-        setIsPresetModified(true);
       },
       removeFilter: (recordFilterId) => {
         setRecordFilters((current) =>
           current.filter((filter) => filter.id !== recordFilterId),
         );
-        setIsPresetModified(true);
       },
       updateFilter: (recordFilterId, updates) => {
         setRecordFilters((current) =>
@@ -62,12 +99,12 @@ export const DashboardFiltersProvider = ({ children }: PropsWithChildren) => {
             filter.id === recordFilterId ? { ...filter, ...updates } : filter,
           ),
         );
-        setIsPresetModified(true);
       },
       resetFilters: () => {
         setRecordFilters([]);
         setRecordFilterGroups([]);
-        setIsPresetModified(false);
+        setSelectedPresetId(null);
+        setPresetBaseline(null);
       },
       replaceAllFilters: ({
         recordFilters: nextRecordFilters,
@@ -75,10 +112,11 @@ export const DashboardFiltersProvider = ({ children }: PropsWithChildren) => {
       }) => {
         setRecordFilters(nextRecordFilters);
         setRecordFilterGroups(nextRecordFilterGroups);
-        setIsPresetModified(false);
+        setSelectedPresetId(null);
+        setPresetBaseline(null);
       },
     }),
-    [isPresetModified, recordFilterGroups, recordFilters],
+    [isPresetModified, recordFilterGroups, recordFilters, selectedPresetId],
   );
 
   return (

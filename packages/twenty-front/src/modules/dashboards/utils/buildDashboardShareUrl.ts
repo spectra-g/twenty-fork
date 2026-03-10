@@ -30,5 +30,7 @@ export const buildDashboardShareUrl = ({
     return baseUrl;
   }
 
-  return `${baseUrl}?${queryString}`;
+  const separator = baseUrl.includes('?') ? '&' : '?';
+
+  return `${baseUrl}${separator}${queryString}`;
 };

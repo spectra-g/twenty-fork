@@ -44,14 +44,14 @@ describe('useDashboardFilters', () => {
     expect(result.current.recordFilters).toEqual([]);
   });
 
-  it('marks state as modified and supports reset', () => {
+  it('keeps modified state false without an active preset and supports reset', () => {
     const { result } = renderHook(() => useDashboardFilters(), { wrapper });
 
     act(() => {
       result.current.addFilter(createFilter('f1', 'status', 'won'));
     });
 
-    expect(result.current.isPresetModified).toBe(true);
+    expect(result.current.isPresetModified).toBe(false);
 
     act(() => {
       result.current.resetFilters();
@@ -60,5 +60,31 @@ describe('useDashboardFilters', () => {
     expect(result.current.recordFilters).toEqual([]);
     expect(result.current.recordFilterGroups).toEqual([]);
     expect(result.current.isPresetModified).toBe(false);
+  });
+
+  it('tracks modified state against an active preset baseline', () => {
+    const { result } = renderHook(() => useDashboardFilters(), { wrapper });
+
+    const presetFilter = createFilter('preset-1', 'status', 'won');
+
+    act(() => {
+      result.current.activatePreset({
+        presetId: 'baseline',
+        recordFilters: [presetFilter],
+        recordFilterGroups: [],
+      });
+    });
+
+    expect(result.current.selectedPresetId).toBe('baseline');
+    expect(result.current.isPresetModified).toBe(false);
+
+    act(() => {
+      result.current.updateFilter('preset-1', {
+        value: 'open',
+        displayValue: 'open',
+      });
+    });
+
+    expect(result.current.isPresetModified).toBe(true);
   });
 });
