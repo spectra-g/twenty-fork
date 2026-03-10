@@ -20,6 +20,7 @@ export class DashboardFilterPresetInMemoryRepository
   }
 
   async save(input: CreateDashboardFilterPresetInput): Promise<DashboardFilterPreset> {
+    const timestamp = new Date().toISOString();
     const preset: DashboardFilterPreset = {
       id: crypto.randomUUID(),
       dashboardId: input.dashboardId,
@@ -28,6 +29,8 @@ export class DashboardFilterPresetInMemoryRepository
         recordFilters: [...(input.filters.recordFilters ?? [])],
         recordFilterGroups: [...(input.filters.recordFilterGroups ?? [])],
       },
+      createdAt: timestamp,
+      updatedAt: timestamp,
     };
 
     this.presets.push(preset);

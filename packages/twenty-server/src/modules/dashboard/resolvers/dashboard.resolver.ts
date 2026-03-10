@@ -15,7 +15,10 @@ import { NoPermissionGuard } from 'src/engine/guards/no-permission.guard';
 import { WorkspaceAuthGuard } from 'src/engine/guards/workspace-auth.guard';
 import { PageLayoutGraphqlApiExceptionFilter } from 'src/engine/metadata-modules/page-layout/utils/page-layout-graphql-api-exception.filter';
 import { DuplicatedDashboardDTO } from 'src/modules/dashboard/dtos/duplicated-dashboard.dto';
+import { DashboardFilterPresetDTO } from 'src/modules/dashboard/dtos/dashboard-filter-preset.dto';
+import { CreateDashboardFilterPresetInput } from 'src/modules/dashboard/dtos/inputs/create-dashboard-filter-preset.input';
 import { DashboardDuplicationService } from 'src/modules/dashboard/services/dashboard-duplication.service';
+import { DashboardFilterPresetService } from 'src/modules/dashboard/services/dashboard-filter-preset.service';
 import { DashboardService } from 'src/modules/dashboard/services/dashboard.service';
 import { DashboardGraphqlApiExceptionFilter } from 'src/modules/dashboard/utils/dashboard-graphql-api-exception.filter';
 
@@ -30,6 +33,7 @@ export class DashboardResolver {
   constructor(
     private readonly dashboardDuplicationService: DashboardDuplicationService,
     private readonly dashboardService: DashboardService,
+    private readonly dashboardFilterPresetService: DashboardFilterPresetService,
   ) {}
 
   @Query(() => String)
@@ -59,5 +63,13 @@ export class DashboardResolver {
     };
 
     return this.dashboardDuplicationService.duplicateDashboard(id, authContext);
+  }
+
+  @Mutation(() => DashboardFilterPresetDTO)
+  @UseGuards(NoPermissionGuard)
+  async createDashboardFilterPreset(
+    @Args('input') input: CreateDashboardFilterPresetInput,
+  ): Promise<DashboardFilterPresetDTO> {
+    return this.dashboardFilterPresetService.createPreset(input);
   }
 }
