@@ -1,5 +1,7 @@
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
 import { useUserTimezone } from '@/ui/input/components/internal/date/hooks/useUserTimezone';
+import { useDashboardFilters } from '@/dashboards/hooks/useDashboardFilters';
+import { mergeDashboardAndWidgetChartFilters } from '@/dashboards/utils/mergeDashboardAndWidgetChartFilters';
 import {
   computeRecordGqlOperationFilter,
   isDefined,
@@ -37,14 +39,25 @@ export const useGraphWidgetQueryCommon = ({
   }
 
   const { userTimezone } = useUserTimezone();
+  const {
+    recordFilters: dashboardRecordFilters,
+    recordFilterGroups: dashboardRecordFilterGroups,
+  } = useDashboardFilters();
+
+  const mergedFilterConfig = mergeDashboardAndWidgetChartFilters({
+    dashboardRecordFilters,
+    dashboardRecordFilterGroups,
+    widgetRecordFilters: configuration.filter?.recordFilters ?? [],
+    widgetRecordFilterGroups: configuration.filter?.recordFilterGroups ?? [],
+  });
 
   const gqlOperationFilter = computeRecordGqlOperationFilter({
     fields: objectMetadataItem.fields,
     filterValueDependencies: {
       timeZone: userTimezone,
     },
-    recordFilters: configuration.filter?.recordFilters ?? [],
-    recordFilterGroups: configuration.filter?.recordFilterGroups ?? [],
+    recordFilters: mergedFilterConfig.recordFilters,
+    recordFilterGroups: mergedFilterConfig.recordFilterGroups,
   });
 
   return {

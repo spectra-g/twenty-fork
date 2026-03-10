@@ -7,6 +7,8 @@ import { RecordShowEffect } from '@/object-record/record-show/components/RecordS
 import { recordStoreFamilySelector } from '@/object-record/record-store/states/selectors/recordStoreFamilySelector';
 import { PageLayoutRenderer } from '@/page-layout/components/PageLayoutRenderer';
 import { usePageLayoutIdForRecord } from '@/page-layout/hooks/usePageLayoutIdForRecord';
+import { DashboardFiltersProvider } from '@/dashboards/hooks/useDashboardFilters';
+import { useApplyDashboardFiltersFromUrl } from '@/dashboards/hooks/useApplyDashboardFiltersFromUrl';
 import { LayoutRenderingProvider } from '@/ui/layout/contexts/LayoutRenderingContext';
 import { type TargetRecordIdentifier } from '@/ui/layout/contexts/TargetRecordIdentifier';
 import { RightDrawerFooter } from '@/ui/layout/right-drawer/components/RightDrawerFooter';
@@ -35,6 +37,12 @@ const StyledContentContainer = styled.div<{ isInRightDrawer: boolean }>`
   padding-bottom: ${({ theme, isInRightDrawer }) =>
     isInRightDrawer ? theme.spacing(16) : 0};
 `;
+
+const DashboardUrlFiltersHydrationEffect = () => {
+  useApplyDashboardFiltersFromUrl();
+
+  return null;
+};
 
 export const PageLayoutRecordPageRenderer = ({
   targetRecordIdentifier,
@@ -93,9 +101,15 @@ export const PageLayoutRecordPageRenderer = ({
               isInRightDrawer,
             }}
           >
-            {isDefined(pageLayoutId) && (
-              <PageLayoutRenderer pageLayoutId={pageLayoutId} />
-            )}
+            <DashboardFiltersProvider>
+              {targetRecordIdentifier.targetObjectNameSingular ===
+                CoreObjectNameSingular.Dashboard && (
+                <DashboardUrlFiltersHydrationEffect />
+              )}
+              {isDefined(pageLayoutId) && (
+                <PageLayoutRenderer pageLayoutId={pageLayoutId} />
+              )}
+            </DashboardFiltersProvider>
           </LayoutRenderingProvider>
         </StyledContentContainer>
 

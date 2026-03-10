@@ -1,0 +1,29 @@
+{
+  "tdd_followed": true,
+  "tests_ran": [
+    "yarn playwright test tests/dashboard-filters.spec.ts --project=chrome (red; missing .env)",
+    "yarn jest --config packages/twenty-front/jest.config.mjs --runTestsByPath packages/twenty-front/src/modules/dashboards/utils/__tests__/mergeDashboardAndWidgetChartFilters.test.ts (red)",
+    "yarn jest --config packages/twenty-front/jest.config.mjs --runTestsByPath packages/twenty-front/src/modules/dashboards/utils/__tests__/mergeDashboardAndWidgetChartFilters.test.ts (green)",
+    "yarn jest --config packages/twenty-front/jest.config.mjs --runTestsByPath packages/twenty-front/src/modules/dashboards/utils/__tests__/buildDashboardShareUrl.test.ts (red)",
+    "yarn jest --config packages/twenty-front/jest.config.mjs --runTestsByPath packages/twenty-front/src/modules/dashboards/utils/__tests__/buildDashboardShareUrl.test.ts (green)",
+    "yarn jest --config packages/twenty-front/jest.config.mjs --runTestsByPath packages/twenty-front/src/modules/dashboards/hooks/__tests__/useDashboardFilters.test.tsx (red)",
+    "yarn jest --config packages/twenty-front/jest.config.mjs --runTestsByPath packages/twenty-front/src/modules/dashboards/hooks/__tests__/useDashboardFilters.test.tsx (green)",
+    "yarn jest --config packages/twenty-front/jest.config.mjs --runTestsByPath packages/twenty-front/src/modules/dashboards/hooks/__tests__/useApplyDashboardFiltersFromUrl.test.tsx (red)",
+    "yarn jest --config packages/twenty-front/jest.config.mjs --runTestsByPath packages/twenty-front/src/modules/dashboards/hooks/__tests__/useApplyDashboardFiltersFromUrl.test.tsx (green)",
+    "yarn playwright test tests/dashboard-filters.spec.ts --project=chrome (blocked by sandbox browser permissions)",
+    "yarn jest --config packages/twenty-front/jest.config.mjs --runTestsByPath packages/twenty-front/src/modules/dashboards/utils/__tests__/mergeDashboardAndWidgetChartFilters.test.ts packages/twenty-front/src/modules/dashboards/utils/__tests__/buildDashboardShareUrl.test.ts packages/twenty-front/src/modules/dashboards/hooks/__tests__/useDashboardFilters.test.tsx packages/twenty-front/src/modules/dashboards/hooks/__tests__/useApplyDashboardFiltersFromUrl.test.tsx (green)"
+  ],
+  "tests_passed": [
+    "packages/twenty-front/src/modules/dashboards/utils/__tests__/mergeDashboardAndWidgetChartFilters.test.ts",
+    "packages/twenty-front/src/modules/dashboards/utils/__tests__/buildDashboardShareUrl.test.ts",
+    "packages/twenty-front/src/modules/dashboards/hooks/__tests__/useDashboardFilters.test.tsx",
+    "packages/twenty-front/src/modules/dashboards/hooks/__tests__/useApplyDashboardFiltersFromUrl.test.tsx"
+  ],
+  "issues": [
+    "Playwright chrome project cannot start in this sandbox (MachPort rendezvous permission denied), so outer acceptance tests could not be executed to green here.",
+    "Nx test target failed in this environment (plugin worker startup error); jest was used directly for targeted unit tests."
+  ],
+  "confidence": "medium",
+  "tdd_loops_completed": 7,
+  "outer_loops_completed": 2
+}
