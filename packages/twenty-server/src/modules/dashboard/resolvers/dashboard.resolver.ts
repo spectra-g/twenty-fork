@@ -1,5 +1,5 @@
 import { UseFilters, UseGuards, UsePipes } from '@nestjs/common';
-import { Args, Mutation } from '@nestjs/graphql';
+import { Args, Mutation, Query } from '@nestjs/graphql';
 
 import { UUIDScalarType } from 'src/engine/api/graphql/workspace-schema-builder/graphql-types/scalars';
 import { MetadataResolver } from 'src/engine/api/graphql/graphql-config/decorators/metadata-resolver.decorator';
@@ -16,6 +16,7 @@ import { WorkspaceAuthGuard } from 'src/engine/guards/workspace-auth.guard';
 import { PageLayoutGraphqlApiExceptionFilter } from 'src/engine/metadata-modules/page-layout/utils/page-layout-graphql-api-exception.filter';
 import { DuplicatedDashboardDTO } from 'src/modules/dashboard/dtos/duplicated-dashboard.dto';
 import { DashboardDuplicationService } from 'src/modules/dashboard/services/dashboard-duplication.service';
+import { DashboardService } from 'src/modules/dashboard/services/dashboard.service';
 import { DashboardGraphqlApiExceptionFilter } from 'src/modules/dashboard/utils/dashboard-graphql-api-exception.filter';
 
 @MetadataResolver()
@@ -28,7 +29,18 @@ import { DashboardGraphqlApiExceptionFilter } from 'src/modules/dashboard/utils/
 export class DashboardResolver {
   constructor(
     private readonly dashboardDuplicationService: DashboardDuplicationService,
+    private readonly dashboardService: DashboardService,
   ) {}
+
+  @Query(() => String)
+  dashboardStubStatus(): string {
+    return this.dashboardService.getStubStatus();
+  }
+
+  @Query(() => String)
+  dashboardStubVersion(): string {
+    return this.dashboardService.getStubVersion();
+  }
 
   @Mutation(() => DuplicatedDashboardDTO)
   @UseGuards(NoPermissionGuard)

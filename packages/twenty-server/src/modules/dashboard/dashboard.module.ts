@@ -9,6 +9,7 @@ import { ChartDataModule } from 'src/modules/dashboard/chart-data/chart-data.mod
 import { DashboardController } from 'src/modules/dashboard/controllers/dashboard.controller';
 import { DashboardResolver } from 'src/modules/dashboard/resolvers/dashboard.resolver';
 import { DashboardDuplicationService } from 'src/modules/dashboard/services/dashboard-duplication.service';
+import { DashboardService } from 'src/modules/dashboard/services/dashboard.service';
 
 @Module({
   imports: [
@@ -20,7 +21,7 @@ import { DashboardDuplicationService } from 'src/modules/dashboard/services/dash
     WorkspaceCacheStorageModule,
   ],
   controllers: [DashboardController],
-  providers: [DashboardDuplicationService, DashboardResolver],
-  exports: [DashboardDuplicationService],
+  providers: [DashboardDuplicationService, DashboardService, DashboardResolver],
+  exports: [DashboardDuplicationService, DashboardService],
 })
 export class DashboardModule {}
