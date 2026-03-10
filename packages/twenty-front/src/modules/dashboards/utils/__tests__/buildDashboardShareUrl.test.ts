@@ -41,4 +41,16 @@ describe('buildDashboardShareUrl', () => {
 
     expect(url).toBe('https://app.example.com/dashboards/1');
   });
+
+  it('appends filters to an existing query string', () => {
+    const url = buildDashboardShareUrl({
+      baseUrl: 'https://app.example.com/dashboards/1?tab=main',
+      recordFilters: [createFilter('f1', 'status', 'won')],
+      recordFilterGroups: [],
+    });
+
+    expect(url).toBe(
+      'https://app.example.com/dashboards/1?tab=main&filter%5Bstatus%5D%5Bis%5D=won',
+    );
+  });
 });

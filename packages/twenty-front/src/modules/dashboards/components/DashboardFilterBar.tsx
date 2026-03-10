@@ -73,6 +73,7 @@ export const DashboardFilterBar = () => {
     });
 
     setLatestShareUrl(shareUrl);
+    window.history.pushState({}, '', shareUrl);
 
     await navigator.clipboard?.writeText(shareUrl);
   };
