@@ -1,3 +1,7 @@
+import {
+  mergeDashboardFiltersWithChartFilter,
+  useDashboardFilterState,
+} from '@/dashboard/hooks/useDashboardFilterState';
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
 import { type ObjectMetadataItem } from '@/object-metadata/types/ObjectMetadataItem';
 import { PIE_CHART_DATA } from '@/page-layout/widgets/graph/graphql/queries/pieChartData';
@@ -45,6 +49,24 @@ export const useGraphPieChartWidgetData = ({
     () => extractPieChartDataConfiguration(configuration),
     [configuration],
   );
+  const { filters: dashboardFilters } = useDashboardFilterState();
+
+  const mergedFilter = useMemo(
+    () =>
+      mergeDashboardFiltersWithChartFilter({
+        chartFilter: dataConfiguration.filter,
+        dashboardFilters,
+      }),
+    [dashboardFilters, dataConfiguration.filter],
+  );
+
+  const finalDataConfiguration = useMemo(
+    () => ({
+      ...dataConfiguration,
+      filter: mergedFilter,
+    }),
+    [dataConfiguration, mergedFilter],
+  );
 
   const {
     data: queryData,
@@ -54,7 +76,7 @@ export const useGraphPieChartWidgetData = ({
     variables: {
       input: {
         objectMetadataId: objectMetadataItemId,
-        configuration: dataConfiguration,
+        configuration: finalDataConfiguration,
       },
     },
   });

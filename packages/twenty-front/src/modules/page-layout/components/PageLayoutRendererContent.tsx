@@ -1,4 +1,5 @@
 import { useNavigatePageLayoutCommandMenu } from '@/command-menu/pages/page-layout/hooks/useNavigatePageLayoutCommandMenu';
+import { DashboardFilterPanel } from '@/dashboard/components/DashboardFilterPanel';
 import { PageLayoutLeftPanel } from '@/page-layout/components/PageLayoutLeftPanel';
 import { PageLayoutTabList } from '@/page-layout/components/PageLayoutTabList';
 import { PageLayoutTabListEffect } from '@/page-layout/components/PageLayoutTabListEffect';
@@ -25,6 +26,7 @@ import { t } from '@lingui/core/macro';
 import { CommandMenuPages } from 'twenty-shared/types';
 import { isDefined } from 'twenty-shared/utils';
 import { useIsMobile } from 'twenty-ui/utilities';
+import { PageLayoutType } from '~/generated-metadata/graphql';
 
 const StyledContainer = styled.div<{ hasPinnedTab: boolean }>`
   display: grid;
@@ -138,6 +140,10 @@ export const PageLayoutRendererContent = () => {
             onReorder={canEnableTabEditing ? reorderTabs : undefined}
             pageLayoutType={currentPageLayout.type}
           />
+        )}
+
+        {currentPageLayout.type === PageLayoutType.DASHBOARD && (
+          <DashboardFilterPanel />
         )}
 
         <StyledScrollWrapper
