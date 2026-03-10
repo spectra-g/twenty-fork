@@ -1,3 +1,7 @@
+import {
+  mergeDashboardFiltersWithChartFilter,
+  useDashboardFilterState,
+} from '@/dashboard/hooks/useDashboardFilterState';
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
 import { type FieldMetadataItemOption } from '@/object-metadata/types/FieldMetadataItem';
 import { BAR_CHART_DATA } from '@/page-layout/widgets/graph/graphql/queries/barChartData';
@@ -60,6 +64,24 @@ export const useGraphBarChartWidgetData = ({
     () => extractBarChartDataConfiguration(configuration),
     [configuration],
   );
+  const { filters: dashboardFilters } = useDashboardFilterState();
+
+  const mergedFilter = useMemo(
+    () =>
+      mergeDashboardFiltersWithChartFilter({
+        chartFilter: dataConfiguration.filter,
+        dashboardFilters,
+      }),
+    [dashboardFilters, dataConfiguration.filter],
+  );
+
+  const finalDataConfiguration = useMemo(
+    () => ({
+      ...dataConfiguration,
+      filter: mergedFilter,
+    }),
+    [dataConfiguration, mergedFilter],
+  );
 
   const {
     data: queryData,
@@ -70,7 +92,7 @@ export const useGraphBarChartWidgetData = ({
     variables: {
       input: {
         objectMetadataId: objectMetadataItemId,
-        configuration: dataConfiguration,
+        configuration: finalDataConfiguration,
       },
     },
   });

@@ -1,3 +1,7 @@
+import {
+  mergeDashboardFiltersWithChartFilter,
+  useDashboardFilterState,
+} from '@/dashboard/hooks/useDashboardFilterState';
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
 import { type ObjectMetadataItem } from '@/object-metadata/types/ObjectMetadataItem';
 import { LINE_CHART_DATA } from '@/page-layout/widgets/graph/graphql/queries/lineChartData';
@@ -10,6 +14,7 @@ import { extractLineChartDataConfiguration } from '@/page-layout/widgets/graph/u
 import { parseGraphColor } from '@/page-layout/widgets/graph/utils/parseGraphColor';
 import { useQuery } from '@apollo/client';
 import { isString } from '@sniptt/guards';
+import { useMemo } from 'react';
 import { FieldMetadataType } from 'twenty-shared/types';
 import { isDefined } from 'twenty-shared/utils';
 import {
@@ -45,7 +50,28 @@ export const useGraphLineChartWidgetData = ({
     objectId: objectMetadataItemId,
   });
 
-  const dataConfiguration = extractLineChartDataConfiguration(configuration);
+  const dataConfiguration = useMemo(
+    () => extractLineChartDataConfiguration(configuration),
+    [configuration],
+  );
+  const { filters: dashboardFilters } = useDashboardFilterState();
+
+  const mergedFilter = useMemo(
+    () =>
+      mergeDashboardFiltersWithChartFilter({
+        chartFilter: dataConfiguration.filter,
+        dashboardFilters,
+      }),
+    [dashboardFilters, dataConfiguration.filter],
+  );
+
+  const finalDataConfiguration = useMemo(
+    () => ({
+      ...dataConfiguration,
+      filter: mergedFilter,
+    }),
+    [dataConfiguration, mergedFilter],
+  );
 
   const {
     data: queryData,
@@ -55,7 +81,7 @@ export const useGraphLineChartWidgetData = ({
     variables: {
       input: {
         objectMetadataId: objectMetadataItemId,
-        configuration: dataConfiguration,
+        configuration: finalDataConfiguration,
       },
     },
   });
