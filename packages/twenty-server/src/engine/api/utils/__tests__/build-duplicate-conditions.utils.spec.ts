@@ -212,7 +212,7 @@ describe('buildDuplicateConditions', () => {
     });
   });
 
-  it('should build company name conditions with case-insensitive exact matching', () => {
+  it('should build company name conditions with trigram matching', () => {
     const duplicateConditions = buildDuplicateConditions(
       mockCompanyFlatObjectMetadata(),
       mockCompanyFlatObjectMetadataMaps(),
@@ -223,59 +223,28 @@ describe('buildDuplicateConditions', () => {
     expect(duplicateConditions).toEqual({
       or: [
         {
-          or: expect.arrayContaining([
-            {
-              name: {
-                ilike: 'acme corporation',
-              },
-            },
-          ]),
+          name: {
+            trigramSimilar: 'acme corporation',
+          },
         },
       ],
     });
   });
 
-  it('should build company name conditions that tolerate spacing variation', () => {
+  it('should normalize company name whitespace before trigram matching', () => {
     const duplicateConditions = buildDuplicateConditions(
       mockCompanyFlatObjectMetadata(),
       mockCompanyFlatObjectMetadataMaps(),
       mockCompanyFlatFieldMetadataMaps(),
-      [{ name: 'Beta Corp' }],
+      [{ name: '  Beta   Corp  ' }],
     );
 
     expect(duplicateConditions).toEqual({
       or: [
         {
-          or: expect.arrayContaining([
-            {
-              name: {
-                ilike: 'Beta%Corp',
-              },
-            },
-          ]),
-        },
-      ],
-    });
-  });
-
-  it('should build company name conditions that tolerate common suffix expansion', () => {
-    const duplicateConditions = buildDuplicateConditions(
-      mockCompanyFlatObjectMetadata(),
-      mockCompanyFlatObjectMetadataMaps(),
-      mockCompanyFlatFieldMetadataMaps(),
-      [{ name: 'GAMMA Corp' }],
-    );
-
-    expect(duplicateConditions).toEqual({
-      or: [
-        {
-          or: expect.arrayContaining([
-            {
-              name: {
-                ilike: 'GAMMA%corporation',
-              },
-            },
-          ]),
+          name: {
+            trigramSimilar: 'Beta Corp',
+          },
         },
       ],
     });

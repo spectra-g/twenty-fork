@@ -12,6 +12,7 @@ const ALLOWED_INDEX_TYPES = new Set([
   'GIN',
   'BRIN',
 ]);
+const ALLOWED_OPERATOR_CLASS = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 
 export class WorkspaceSchemaIndexManagerService {
   async createIndex({
@@ -25,9 +26,19 @@ export class WorkspaceSchemaIndexManagerService {
     tableName: string;
     index: WorkspaceSchemaIndexDefinition;
   }): Promise<void> {
-    const quotedColumns = index.columns.map((column) =>
-      escapeIdentifier(column),
-    );
+    const quotedColumns = index.columns.map((column, indexPosition) => {
+      const operatorClass = index.columnOperatorClasses?.[indexPosition];
+
+      if (!operatorClass) {
+        return escapeIdentifier(column);
+      }
+
+      if (!ALLOWED_OPERATOR_CLASS.test(operatorClass)) {
+        throw new Error(`Unsupported operator class: ${operatorClass}`);
+      }
+
+      return `${escapeIdentifier(column)} ${operatorClass}`;
+    });
     const isUnique = index.isUnique ? 'UNIQUE' : '';
 
     let indexType = '';

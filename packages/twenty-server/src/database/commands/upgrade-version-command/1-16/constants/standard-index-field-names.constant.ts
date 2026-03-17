@@ -70,6 +70,9 @@ export const STANDARD_INDEX_FIELD_UNIVERSAL_IDENTIFIERS: Record<
     domainNameUniqueIndex: [
       STANDARD_OBJECTS.company.fields.domainName.universalIdentifier,
     ],
+    nameTrigramGinIndex: [
+      STANDARD_OBJECTS.company.fields.name.universalIdentifier,
+    ],
     searchVectorGinIndex: [
       STANDARD_OBJECTS.company.fields.searchVector.universalIdentifier,
     ],

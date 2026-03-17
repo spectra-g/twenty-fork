@@ -1,3 +1,6 @@
+import { generateDeterministicIndexNameV2 } from 'src/engine/metadata-modules/index-metadata/utils/generate-deterministic-index-name-v2';
+import { SEED_APPLE_WORKSPACE_ID } from 'src/engine/workspace-manager/dev-seeder/core/constants/seeder-workspaces.constant';
+import { getWorkspaceSchemaName } from 'src/engine/workspace-datasource/utils/get-workspace-schema-name.util';
 import { TEST_COMPANY_1_ID } from 'test/integration/constants/test-company-ids.constants';
 import {
   TEST_PERSON_1_ID,
@@ -7,6 +10,64 @@ import {
 import { TEST_PRIMARY_LINK_URL } from 'test/integration/constants/test-primary-link-url.constant';
 import { makeRestAPIRequest } from 'test/integration/rest/utils/make-rest-api-request.util';
 import { deleteAllRecords } from 'test/integration/utils/delete-all-records';
+
+const TEST_WORKSPACE_SCHEMA_NAME = getWorkspaceSchemaName(SEED_APPLE_WORKSPACE_ID);
+const COMPANY_NAME_TRIGRAM_INDEX_NAME = generateDeterministicIndexNameV2({
+  flatObjectMetadata: {
+    nameSingular: 'company',
+    isCustom: false,
+  },
+  orderedIndexColumnNames: ['name'],
+});
+
+const seedCompanyPerformanceFixtures = async (count: number) => {
+  await global.testDataSource.query(
+    `
+      INSERT INTO "${TEST_WORKSPACE_SCHEMA_NAME}"."company" (
+        "id",
+        "name",
+        "domainNamePrimaryLinkUrl",
+        "addressAddressStreet1",
+        "addressAddressStreet2",
+        "addressAddressCity",
+        "addressAddressState",
+        "addressAddressPostcode",
+        "addressAddressCountry",
+        "employees",
+        "position",
+        "createdBySource",
+        "createdByWorkspaceMemberId",
+        "createdByName",
+        "updatedBySource",
+        "updatedByWorkspaceMemberId",
+        "updatedByName"
+      )
+      SELECT
+        uuid_generate_v4(),
+        CASE
+          WHEN value = 1 THEN 'Acme Corporation'
+          ELSE 'Load Test Company ' || value::text
+        END,
+        'https://load-test-company-' || value::text || '.example.com',
+        '1 Market Street',
+        NULL,
+        'San Francisco',
+        'CA',
+        '94105',
+        'United States',
+        10,
+        1000 + value,
+        'SYSTEM',
+        NULL,
+        'System',
+        'SYSTEM',
+        NULL,
+        'System'
+      FROM generate_series(1, $1) AS value
+    `,
+    [count],
+  );
+};
 
 describe('Core REST API Find Duplicates endpoint', () => {
   beforeAll(async () => {
@@ -354,6 +415,51 @@ describe('Core REST API Find Duplicates endpoint', () => {
     expect(data[0].totalCount).toBe(1);
     expect(data[0].companyDuplicates).toHaveLength(1);
     expect(data[0].companyDuplicates[0].name).toBe('Gamma Corporation');
+  });
+
+  it('should retrieve company duplicates for ACME Corp within 1 second on 10000 companies', async () => {
+    await deleteAllRecords('company');
+    await seedCompanyPerformanceFixtures(10000);
+
+    const startedAt = performance.now();
+
+    const response = await makeRestAPIRequest({
+      method: 'post',
+      path: '/companies/duplicates',
+      body: {
+        data: [
+          {
+            name: 'ACME Corp',
+          },
+        ],
+      },
+    }).expect(200);
+
+    const elapsedMs = performance.now() - startedAt;
+    const data = response.body.data;
+
+    expect(data).toHaveLength(1);
+    expect(data[0].companyDuplicates.some(({ name }) => name === 'Acme Corporation')).toBe(true);
+    expect(elapsedMs).toBeLessThan(1000);
+  });
+
+  it('should use the company name trigram index for tolerant duplicate lookup', async () => {
+    const explainResult = await global.testDataSource.query(
+      `
+        EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)
+        SELECT "id"
+        FROM "${TEST_WORKSPACE_SCHEMA_NAME}"."company"
+        WHERE "name" % $1
+      `,
+      ['ACME Corp'],
+    );
+
+    const plan = explainResult[0]['QUERY PLAN'][0].Plan;
+    const serializedPlan = JSON.stringify(plan);
+
+    expect(serializedPlan).toContain('Index');
+    expect(serializedPlan).toContain(COMPANY_NAME_TRIGRAM_INDEX_NAME);
+    expect(serializedPlan).not.toContain('Seq Scan');
   });
 
   it('should keep domain duplicate matching exact after normalization', async () => {

@@ -76,6 +76,28 @@ export const computeFlatIndexFieldColumnNames = ({
   });
 };
 
+const computeFlatIndexFieldOperatorClasses = ({
+  flatIndexMetadata,
+  flatObjectMetadata,
+  columns,
+}: {
+  flatIndexMetadata: FlatIndexMetadata;
+  flatObjectMetadata: FlatObjectMetadata;
+  columns: string[];
+}): Array<string | undefined> | undefined => {
+  if (
+    flatObjectMetadata.nameSingular === 'company' &&
+    flatIndexMetadata.universalIdentifier ===
+      '79b0e7d3-5f87-4aa3-9f0a-d5cba8f205b1'
+  ) {
+    return columns.map((column) =>
+      column === 'name' ? 'gin_trgm_ops' : undefined,
+    );
+  }
+
+  return undefined;
+};
+
 export const deleteIndexMetadata = async ({
   entityId,
   queryRunner,
@@ -122,6 +144,11 @@ export const createIndexInWorkspaceSchema = async ({
   await workspaceSchemaManagerService.indexManager.createIndex({
     index: {
       columns,
+      columnOperatorClasses: computeFlatIndexFieldOperatorClasses({
+        flatIndexMetadata,
+        flatObjectMetadata,
+        columns,
+      }),
       name: flatIndexMetadata.name,
       isUnique: flatIndexMetadata.isUnique,
       type: flatIndexMetadata.indexType,
