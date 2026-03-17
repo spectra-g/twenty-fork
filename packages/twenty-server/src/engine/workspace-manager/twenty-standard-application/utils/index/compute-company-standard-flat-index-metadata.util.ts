@@ -42,6 +42,19 @@ export const buildCompanyStandardFlatIndexMetadatas = ({
     twentyStandardApplicationId,
     now,
   }),
+  nameTrigramGinIndex: createStandardIndexFlatMetadata({
+    objectName,
+    workspaceId,
+    context: {
+      indexName: 'nameTrigramGinIndex',
+      relatedFieldNames: ['name'],
+      indexType: IndexType.GIN,
+    },
+    standardObjectMetadataRelatedEntityIds,
+    dependencyFlatEntityMaps,
+    twentyStandardApplicationId,
+    now,
+  }),
   searchVectorGinIndex: createStandardIndexFlatMetadata({
     objectName,
     workspaceId,

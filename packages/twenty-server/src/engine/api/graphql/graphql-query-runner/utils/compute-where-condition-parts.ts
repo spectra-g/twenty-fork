@@ -110,6 +110,11 @@ export const computeWhereConditionParts = ({
         sql: `${fieldReference}::text ILIKE :${key}${paramSuffix}${hasNullEquivalentFieldValue ? ` OR ${fieldReference} IS NULL` : ''}`,
         params: { [`${key}${paramSuffix}`]: `${value}` },
       };
+    case 'trigramSimilar':
+      return {
+        sql: `${fieldReference} % :${key}${paramSuffix}`,
+        params: { [`${key}${paramSuffix}`]: `${value}` },
+      };
     case 'startsWith':
       return {
         sql: `${fieldReference}::text ^@ :${key}${paramSuffix}`,

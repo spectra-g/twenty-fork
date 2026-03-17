@@ -14,38 +14,9 @@ import { getCompositeFieldMetadataMap } from 'src/engine/twenty-orm/utils/format
 const COMPANY_OBJECT_NAME = 'company';
 const COMPANY_NAME_FIELD = 'name';
 const COMPANY_DOMAIN_FIELD = 'domainNamePrimaryLinkUrl';
-const COMPANY_SUFFIX_EXPANSIONS: Record<string, string[]> = {
-  corp: ['corp', 'corporation'],
-  corporation: ['corporation', 'corp'],
-};
 
 const normalizeCompanyName = (value: string): string =>
   value.trim().replaceAll(/\s+/g, ' ');
-
-const buildCompanyNameVariants = (value: string): string[] => {
-  const normalizedValue = normalizeCompanyName(value);
-  const variants = new Set<string>([normalizedValue]);
-  const tokens = normalizedValue
-    .split(/[^a-zA-Z0-9]+/)
-    .filter((token) => token.length > 0);
-
-  if (tokens.length > 1) {
-    variants.add(tokens.join('%'));
-  }
-
-  const lastToken = tokens.at(-1)?.toLowerCase();
-
-  if (lastToken && COMPANY_SUFFIX_EXPANSIONS[lastToken]) {
-    for (const suffixVariant of COMPANY_SUFFIX_EXPANSIONS[lastToken]) {
-      const updatedTokens = [...tokens];
-
-      updatedTokens[updatedTokens.length - 1] = suffixVariant;
-      variants.add(updatedTokens.join('%'));
-    }
-  }
-
-  return [...variants];
-};
 
 const buildDuplicateOperator = ({
   objectNameSingular,
@@ -57,19 +28,12 @@ const buildDuplicateOperator = ({
   value: string;
 }):
   | { eq: string }
-  | { ilike: string }
-  | {
-      or: Array<Record<string, { ilike: string }>>;
-    } => {
+  | { trigramSimilar: string } => {
   if (
     objectNameSingular === COMPANY_OBJECT_NAME &&
     columnName === COMPANY_NAME_FIELD
   ) {
-    return {
-      or: buildCompanyNameVariants(value).map((variant) => ({
-        [columnName]: { ilike: variant },
-      })),
-    };
+    return { trigramSimilar: normalizeCompanyName(value) };
   }
 
   if (
@@ -145,13 +109,6 @@ export const buildDuplicateConditions = (
             columnName,
             value: record[columnName] as string,
           });
-
-          if ('or' in operator) {
-            // @ts-expect-error legacy noImplicitAny
-            condition.or = operator.or;
-
-            return;
-          }
 
           // @ts-expect-error legacy noImplicitAny
           condition[columnName] = operator;

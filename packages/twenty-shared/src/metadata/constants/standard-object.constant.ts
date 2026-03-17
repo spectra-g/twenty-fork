@@ -512,6 +512,9 @@ export const STANDARD_OBJECTS = {
       domainNameUniqueIndex: {
         universalIdentifier: 'dd300c61-f422-467a-91f4-de4f83c4175b',
       },
+      nameTrigramGinIndex: {
+        universalIdentifier: '79b0e7d3-5f87-4aa3-9f0a-d5cba8f205b1',
+      },
       searchVectorGinIndex: {
         universalIdentifier: 'c3eb62df-2cc1-4cc3-b7aa-e96a4d65c633',
       },
