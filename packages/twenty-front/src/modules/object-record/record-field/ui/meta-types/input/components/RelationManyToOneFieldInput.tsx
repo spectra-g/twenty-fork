@@ -66,7 +66,7 @@ export const RelationManyToOneFieldInput = () => {
     );
   }
 
-  const { createNewRecordAndOpenRightDrawer } =
+  const { createNewRecordAndOpenRightDrawer, duplicateWarningDialog } =
     useAddNewRecordAndOpenRightDrawer({
       fieldMetadataItem,
       objectMetadataItem,
@@ -105,27 +105,30 @@ export const RelationManyToOneFieldInput = () => {
   const fieldLabel = fieldDefinition.label;
 
   return (
-    <SingleRecordPicker
-      focusId={instanceId}
-      componentInstanceId={instanceId}
-      EmptyIcon={IconForbid}
-      emptyLabel={t`No ${fieldLabel}`}
-      onCancel={onCancel}
-      onCreate={
-        isDefined(createNewRecordAndOpenRightDrawer)
-          ? handleCreateNew
-          : undefined
-      }
-      onMorphItemSelected={handleMorphItemSelected}
-      objectNameSingulars={[
-        fieldDefinition.metadata.relationObjectMetadataNameSingular,
-      ]}
-      recordPickerInstanceId={instanceId}
-      layoutDirection={
-        recordFieldInputLayoutDirection === 'downward'
-          ? 'search-bar-on-top'
-          : 'search-bar-on-bottom'
-      }
-    />
+    <>
+      <SingleRecordPicker
+        focusId={instanceId}
+        componentInstanceId={instanceId}
+        EmptyIcon={IconForbid}
+        emptyLabel={t`No ${fieldLabel}`}
+        onCancel={onCancel}
+        onCreate={
+          isDefined(createNewRecordAndOpenRightDrawer)
+            ? handleCreateNew
+            : undefined
+        }
+        onMorphItemSelected={handleMorphItemSelected}
+        objectNameSingulars={[
+          fieldDefinition.metadata.relationObjectMetadataNameSingular,
+        ]}
+        recordPickerInstanceId={instanceId}
+        layoutDirection={
+          recordFieldInputLayoutDirection === 'downward'
+            ? 'search-bar-on-top'
+            : 'search-bar-on-bottom'
+        }
+      />
+      {duplicateWarningDialog}
+    </>
   );
 };

@@ -136,7 +136,7 @@ export const RelationOneToManyFieldInput = () => {
     );
   }
 
-  const { createNewRecordAndOpenRightDrawer } =
+  const { createNewRecordAndOpenRightDrawer, duplicateWarningDialog } =
     useAddNewRecordAndOpenRightDrawer({
       fieldMetadataItem,
       objectMetadataItem,
@@ -306,33 +306,36 @@ export const RelationOneToManyFieldInput = () => {
       : relationObjectMetadataItem.id;
 
   return (
-    <MultipleRecordPicker
-      focusId={instanceId}
-      componentInstanceId={instanceId}
-      onSubmit={handleSubmit}
-      onChange={(morphItem) => {
-        if (isRelationFromActivityTargets) {
-          updateActivityTargetFromCell({
-            morphItem,
-            activityTargetWithTargetRecords: activityTargetObjectRecords,
-            recordPickerInstanceId: instanceId,
-          });
-        } else if (isJunctionRelation && isJunctionConfigValid) {
-          updateJunctionRelationFromCell({
-            morphItem,
-          });
-        } else {
-          updateRelation(morphItem);
+    <>
+      <MultipleRecordPicker
+        focusId={instanceId}
+        componentInstanceId={instanceId}
+        onSubmit={handleSubmit}
+        onChange={(morphItem) => {
+          if (isRelationFromActivityTargets) {
+            updateActivityTargetFromCell({
+              morphItem,
+              activityTargetWithTargetRecords: activityTargetObjectRecords,
+              recordPickerInstanceId: instanceId,
+            });
+          } else if (isJunctionRelation && isJunctionConfigValid) {
+            updateJunctionRelationFromCell({
+              morphItem,
+            });
+          } else {
+            updateRelation(morphItem);
+          }
+        }}
+        onCreate={canCreateNew ? handleCreateNew : undefined}
+        objectMetadataItemIdForCreate={objectMetadataItemIdForCreate}
+        onClickOutside={handleSubmit}
+        layoutDirection={
+          recordFieldInputLayoutDirection === 'downward'
+            ? 'search-bar-on-top'
+            : 'search-bar-on-bottom'
         }
-      }}
-      onCreate={canCreateNew ? handleCreateNew : undefined}
-      objectMetadataItemIdForCreate={objectMetadataItemIdForCreate}
-      onClickOutside={handleSubmit}
-      layoutDirection={
-        recordFieldInputLayoutDirection === 'downward'
-          ? 'search-bar-on-top'
-          : 'search-bar-on-bottom'
-      }
-    />
+      />
+      {duplicateWarningDialog}
+    </>
   );
 };

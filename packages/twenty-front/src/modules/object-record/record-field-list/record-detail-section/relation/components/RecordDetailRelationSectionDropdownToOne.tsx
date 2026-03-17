@@ -129,7 +129,7 @@ export const RecordDetailRelationSectionDropdownToOne = ({
     onSubmit?.({ newValue: { id: selectedMorphItem.recordId } });
   };
 
-  const { createNewRecordAndOpenRightDrawer } =
+  const { createNewRecordAndOpenRightDrawer, duplicateWarningDialog } =
     useAddNewRecordAndOpenRightDrawer({
       fieldMetadataItem,
       objectMetadataItem,
@@ -161,37 +161,40 @@ export const RecordDetailRelationSectionDropdownToOne = ({
     CoreObjectNameSingular.WorkspaceMember;
 
   return (
-    <Dropdown
-      dropdownId={dropdownId}
-      dropdownPlacement="left-start"
-      onClose={handleCloseRelationPickerDropdown}
-      onOpen={handleOpenRelationPickerDropdown}
-      clickableComponent={
-        dropdownTriggerClickableComponent ?? (
-          <LightIconButton
-            className="displayOnHover"
-            Icon={IconPencil}
-            accent="tertiary"
+    <>
+      <Dropdown
+        dropdownId={dropdownId}
+        dropdownPlacement="left-start"
+        onClose={handleCloseRelationPickerDropdown}
+        onOpen={handleOpenRelationPickerDropdown}
+        clickableComponent={
+          dropdownTriggerClickableComponent ?? (
+            <LightIconButton
+              className="displayOnHover"
+              Icon={IconPencil}
+              accent="tertiary"
+            />
+          )
+        }
+        dropdownComponents={
+          <SingleRecordPicker
+            focusId={dropdownId}
+            componentInstanceId={dropdownId}
+            EmptyIcon={IconForbid}
+            onMorphItemSelected={handleRelationPickerEntitySelected}
+            objectNameSingulars={[relationObjectMetadataNameSingular]}
+            recordPickerInstanceId={dropdownId}
+            onCancel={() => closeDropdown(dropdownId)}
+            onCreate={shouldAllowCreateNew ? handleCreateNew : undefined}
+            layoutDirection={
+              dropdownPlacement?.includes('end')
+                ? 'search-bar-on-bottom'
+                : 'search-bar-on-top'
+            }
           />
-        )
-      }
-      dropdownComponents={
-        <SingleRecordPicker
-          focusId={dropdownId}
-          componentInstanceId={dropdownId}
-          EmptyIcon={IconForbid}
-          onMorphItemSelected={handleRelationPickerEntitySelected}
-          objectNameSingulars={[relationObjectMetadataNameSingular]}
-          recordPickerInstanceId={dropdownId}
-          onCancel={() => closeDropdown(dropdownId)}
-          onCreate={shouldAllowCreateNew ? handleCreateNew : undefined}
-          layoutDirection={
-            dropdownPlacement?.includes('end')
-              ? 'search-bar-on-bottom'
-              : 'search-bar-on-top'
-          }
-        />
-      }
-    />
+        }
+      />
+      {duplicateWarningDialog}
+    </>
   );
 };
