@@ -24,9 +24,10 @@ export const RecordTableRecordGroupSectionAddNew = () => {
     recordIndexGroupFieldMetadataItemComponentState,
   );
 
-  const { createNewIndexRecord } = useCreateNewIndexRecord({
-    objectMetadataItem,
-  });
+  const { createNewIndexRecord, duplicateWarningDialog } =
+    useCreateNewIndexRecord({
+      objectMetadataItem,
+    });
 
   const fieldMetadataItem = objectMetadataItem.fields.find(
     (field) => field.id === recordIndexGroupFieldMetadataItem?.id,
@@ -43,19 +44,22 @@ export const RecordTableRecordGroupSectionAddNew = () => {
   }
 
   return (
-    <RecordTableActionRow
-      LeftIcon={IconPlus}
-      text={t`Add new`}
-      onClick={() => {
-        if (!fieldMetadataItem) {
-          return;
-        }
+    <>
+      <RecordTableActionRow
+        LeftIcon={IconPlus}
+        text={t`Add new`}
+        onClick={() => {
+          if (!fieldMetadataItem) {
+            return;
+          }
 
-        createNewIndexRecord({
-          position: 'last',
-          [fieldMetadataItem.name]: recordGroupDefinition?.value,
-        });
-      }}
-    />
+          createNewIndexRecord({
+            position: 'last',
+            [fieldMetadataItem.name]: recordGroupDefinition?.value,
+          });
+        }}
+      />
+      {duplicateWarningDialog}
+    </>
   );
 };

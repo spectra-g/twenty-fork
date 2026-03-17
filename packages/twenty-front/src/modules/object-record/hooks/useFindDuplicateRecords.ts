@@ -14,11 +14,13 @@ import { useSnackBar } from '@/ui/feedback/snack-bar-manager/hooks/useSnackBar';
 import { logError } from '~/utils/logError';
 
 export const useFindDuplicateRecords = <T extends ObjectRecord = ObjectRecord>({
+  data: duplicateData,
   objectRecordIds = [],
   objectNameSingular,
   onCompleted,
   skip,
 }: ObjectMetadataItemIdentifier & {
+  data?: Partial<ObjectRecord>[];
   objectRecordIds: string[] | undefined;
   onCompleted?: (data: RecordGqlConnectionEdgesRequired[]) => void;
   skip?: boolean;
@@ -47,6 +49,7 @@ export const useFindDuplicateRecords = <T extends ObjectRecord = ObjectRecord>({
       {
         skip: !!skip,
         variables: {
+          data: duplicateData,
           ids: objectRecordIds,
         },
         client: apolloCoreClient,

@@ -9,9 +9,10 @@ import { IconPlus } from 'twenty-ui/display';
 export const RecordTableEmptyStateNoGroupNoRecordAtAll = () => {
   const { objectMetadataItem } = useRecordTableContextOrThrow();
 
-  const { createNewIndexRecord } = useCreateNewIndexRecord({
-    objectMetadataItem,
-  });
+  const { createNewIndexRecord, duplicateWarningDialog } =
+    useCreateNewIndexRecord({
+      objectMetadataItem,
+    });
 
   const handleButtonClick = () => {
     createNewIndexRecord();
@@ -32,13 +33,16 @@ export const RecordTableEmptyStateNoGroupNoRecordAtAll = () => {
   );
 
   return (
-    <RecordTableEmptyStateDisplay
-      buttonTitle={buttonTitle}
-      subTitle={subTitle}
-      title={title}
-      ButtonIcon={IconPlus}
-      animatedPlaceholderType="noRecord"
-      onClick={handleButtonClick}
-    />
+    <>
+      <RecordTableEmptyStateDisplay
+        buttonTitle={buttonTitle}
+        subTitle={subTitle}
+        title={title}
+        ButtonIcon={IconPlus}
+        animatedPlaceholderType="noRecord"
+        onClick={handleButtonClick}
+      />
+      {duplicateWarningDialog}
+    </>
   );
 };

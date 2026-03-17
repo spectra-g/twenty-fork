@@ -5,8 +5,8 @@ import { getPeopleRecordConnectionMock } from '~/testing/mock-data/people';
 const peopleMock = getPeopleRecordConnectionMock();
 
 export const query = gql`
-  query FindDuplicatePerson($ids: [UUID!]!) {
-    personDuplicates(ids: $ids) {
+  query FindDuplicatePerson($ids: [UUID!], $data: [PersonCreateInput!]) {
+    personDuplicates(ids: $ids, data: $data) {
       edges {
         node {
           ${PERSON_FRAGMENT_WITH_DEPTH_ZERO_RELATIONS}
@@ -23,6 +23,7 @@ export const query = gql`
 `;
 
 export const variables = {
+  data: undefined,
   ids: ['6205681e-7c11-40b4-9e32-f523dbe54590'],
 };
 

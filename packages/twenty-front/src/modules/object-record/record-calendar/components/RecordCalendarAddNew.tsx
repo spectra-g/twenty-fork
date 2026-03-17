@@ -30,9 +30,10 @@ export const RecordCalendarAddNew = ({
   const { objectMetadataItem } = useRecordCalendarContextOrThrow();
   const theme = useTheme();
 
-  const { createNewIndexRecord } = useCreateNewIndexRecord({
-    objectMetadataItem,
-  });
+  const { createNewIndexRecord, duplicateWarningDialog } =
+    useCreateNewIndexRecord({
+      objectMetadataItem,
+    });
 
   const objectPermissions = useObjectPermissionsForObject(
     objectMetadataItem.id,
@@ -69,17 +70,20 @@ export const RecordCalendarAddNew = ({
   }
 
   return (
-    <StyledButton
-      onClick={async () => {
-        await createNewIndexRecord({
-          [calendarFieldMetadataItem.name]: cardDate
-            .toZonedDateTime(userTimezone)
-            .toInstant()
-            .toString(),
-        });
-      }}
-      variant="tertiary"
-      Icon={() => <IconPlus size={theme.icon.size.sm} />}
-    />
+    <>
+      <StyledButton
+        onClick={async () => {
+          await createNewIndexRecord({
+            [calendarFieldMetadataItem.name]: cardDate
+              .toZonedDateTime(userTimezone)
+              .toInstant()
+              .toString(),
+          });
+        }}
+        variant="tertiary"
+        Icon={() => <IconPlus size={theme.icon.size.sm} />}
+      />
+      {duplicateWarningDialog}
+    </>
   );
 };
