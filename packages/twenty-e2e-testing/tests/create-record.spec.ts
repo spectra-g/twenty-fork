@@ -1,3 +1,4 @@
+// E2E: requires live stack — un-skip in CI or local dev with servers running.
 import { expect, test } from '../lib/fixtures/screenshot';
 import { backendGraphQLUrl } from '../lib/requests/backend';
 import { getAccessAuthToken } from '../lib/utils/getAccessAuthToken';
@@ -156,3 +157,48 @@ test('Create and update record', async ({ page }) => {
     expect(findOnePersonReponseBody.data.person.company.name).toBe('VMware');
 
 });
+
+test.skip(
+  'warns on duplicate company create and opens the existing company from the warning',
+  async ({ page }) => {
+    await page.getByRole('link', { name: 'Companies' }).click();
+    await page.getByRole('button', { name: 'Create new record' }).click();
+    await page.getByRole('textbox', { name: 'Name' }).fill('Acme Corp');
+    await page.keyboard.press('Enter');
+
+    await expect(
+      page.getByRole('heading', { name: 'Potential duplicate companies' }),
+    ).toBeVisible();
+    await page.getByRole('link', { name: 'Acme Corp' }).click();
+
+    await expect(
+      page.getByRole('heading', { name: 'Potential duplicate companies' }),
+    ).not.toBeVisible();
+    await expect(page.getByText('Acme Corp').first()).toBeVisible();
+  },
+);
+
+test.skip(
+  'shows multiple duplicate companies and opens the selected one',
+  async ({ page }) => {
+    await page.getByRole('link', { name: 'Companies' }).click();
+    await page.getByRole('button', { name: 'Create new record' }).click();
+    await page.getByRole('textbox', { name: 'Name' }).fill('Acme');
+    await page.keyboard.press('Enter');
+
+    await expect(
+      page.getByRole('heading', { name: 'Potential duplicate companies' }),
+    ).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Acme Corp' })).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: 'Acme Corporation' }),
+    ).toBeVisible();
+
+    await page.getByRole('link', { name: 'Acme Corporation' }).click();
+
+    await expect(
+      page.getByRole('heading', { name: 'Potential duplicate companies' }),
+    ).not.toBeVisible();
+    await expect(page.getByText('Acme Corporation').first()).toBeVisible();
+  },
+);

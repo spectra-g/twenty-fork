@@ -13,6 +13,7 @@ type IndexRecordDuplicateWarningDialogProps = {
   duplicateRecords: ObjectRecord[];
   onCancel: () => void;
   onConfirm: () => void;
+  onSelectDuplicate: (recordId: string) => void;
 };
 
 export const IndexRecordDuplicateWarningDialog = ({
@@ -21,6 +22,7 @@ export const IndexRecordDuplicateWarningDialog = ({
   duplicateRecords,
   onCancel,
   onConfirm,
+  onSelectDuplicate,
 }: IndexRecordDuplicateWarningDialogProps) => {
   const { closeModal, openModal } = useModal();
 
@@ -54,6 +56,7 @@ export const IndexRecordDuplicateWarningDialog = ({
               <RecordChip
                 objectNameSingular={objectMetadataItem.nameSingular}
                 record={duplicateRecord}
+                onClick={() => onSelectDuplicate(duplicateRecord.id)}
               />
             </div>
           ))}
