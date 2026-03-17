@@ -1,5 +1,6 @@
 import isEmpty from 'lodash.isempty';
 import { type ObjectRecord } from 'twenty-shared/types';
+import { lowercaseUrlOriginAndRemoveTrailingSlash } from 'twenty-shared/utils';
 
 import { type ObjectRecordFilter } from 'src/engine/api/graphql/workspace-query-builder/interfaces/object-record.interface';
 
@@ -9,6 +10,79 @@ import { type FlatFieldMetadata } from 'src/engine/metadata-modules/flat-field-m
 import { type FlatObjectMetadata } from 'src/engine/metadata-modules/flat-object-metadata/types/flat-object-metadata.type';
 import { formatData } from 'src/engine/twenty-orm/utils/format-data.util';
 import { getCompositeFieldMetadataMap } from 'src/engine/twenty-orm/utils/format-result.util';
+
+const COMPANY_OBJECT_NAME = 'company';
+const COMPANY_NAME_FIELD = 'name';
+const COMPANY_DOMAIN_FIELD = 'domainNamePrimaryLinkUrl';
+const COMPANY_SUFFIX_EXPANSIONS: Record<string, string[]> = {
+  corp: ['corp', 'corporation'],
+  corporation: ['corporation', 'corp'],
+};
+
+const normalizeCompanyName = (value: string): string =>
+  value.trim().replaceAll(/\s+/g, ' ');
+
+const buildCompanyNameVariants = (value: string): string[] => {
+  const normalizedValue = normalizeCompanyName(value);
+  const variants = new Set<string>([normalizedValue]);
+  const tokens = normalizedValue
+    .split(/[^a-zA-Z0-9]+/)
+    .filter((token) => token.length > 0);
+
+  if (tokens.length > 1) {
+    variants.add(tokens.join('%'));
+  }
+
+  const lastToken = tokens.at(-1)?.toLowerCase();
+
+  if (lastToken && COMPANY_SUFFIX_EXPANSIONS[lastToken]) {
+    for (const suffixVariant of COMPANY_SUFFIX_EXPANSIONS[lastToken]) {
+      const updatedTokens = [...tokens];
+
+      updatedTokens[updatedTokens.length - 1] = suffixVariant;
+      variants.add(updatedTokens.join('%'));
+    }
+  }
+
+  return [...variants];
+};
+
+const buildDuplicateOperator = ({
+  objectNameSingular,
+  columnName,
+  value,
+}: {
+  objectNameSingular: string;
+  columnName: string;
+  value: string;
+}):
+  | { eq: string }
+  | { ilike: string }
+  | {
+      or: Array<Record<string, { ilike: string }>>;
+    } => {
+  if (
+    objectNameSingular === COMPANY_OBJECT_NAME &&
+    columnName === COMPANY_NAME_FIELD
+  ) {
+    return {
+      or: buildCompanyNameVariants(value).map((variant) => ({
+        [columnName]: { ilike: variant },
+      })),
+    };
+  }
+
+  if (
+    objectNameSingular === COMPANY_OBJECT_NAME &&
+    columnName === COMPANY_DOMAIN_FIELD
+  ) {
+    return {
+      eq: lowercaseUrlOriginAndRemoveTrailingSlash(value),
+    };
+  }
+
+  return { eq: value };
+};
 
 export const buildDuplicateConditions = (
   flatObjectMetadata: FlatObjectMetadata,
@@ -53,15 +127,34 @@ export const buildDuplicateConditions = (
           compositeFieldMetadataMap.get(columnName);
 
         if (compositeFieldMetadata) {
+          const operator = buildDuplicateOperator({
+            objectNameSingular: flatObjectMetadata.nameSingular,
+            columnName,
+            value: record[columnName] as string,
+          });
+
           // @ts-expect-error legacy noImplicitAny
           condition[compositeFieldMetadata.parentField] = {
             // @ts-expect-error legacy noImplicitAny
             ...condition[compositeFieldMetadata.parentField],
-            [compositeFieldMetadata.name]: { eq: record[columnName] },
+            [compositeFieldMetadata.name]: operator,
           };
         } else {
+          const operator = buildDuplicateOperator({
+            objectNameSingular: flatObjectMetadata.nameSingular,
+            columnName,
+            value: record[columnName] as string,
+          });
+
+          if ('or' in operator) {
+            // @ts-expect-error legacy noImplicitAny
+            condition.or = operator.or;
+
+            return;
+          }
+
           // @ts-expect-error legacy noImplicitAny
-          condition[columnName] = { eq: record[columnName] };
+          condition[columnName] = operator;
         }
       });
 
