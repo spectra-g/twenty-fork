@@ -118,7 +118,7 @@ export const RecordDetailRelationSectionDropdownToMany = ({
 
   const { updateRelation } = useUpdateRelationOneToManyFieldInput();
 
-  const { createNewRecordAndOpenRightDrawer } =
+  const { createNewRecordAndOpenRightDrawer, duplicateWarningDialog } =
     useAddNewRecordAndOpenRightDrawer({
       fieldMetadataItem,
       objectMetadataItem,
@@ -164,44 +164,47 @@ export const RecordDetailRelationSectionDropdownToMany = ({
   };
 
   return (
-    <Dropdown
-      dropdownId={dropdownId}
-      dropdownPlacement="left-start"
-      onClose={handleCloseRelationPickerDropdown}
-      onOpen={handleOpenRelationPickerDropdown}
-      clickableComponent={
-        dropdownTriggerClickableComponent ?? (
-          <LightIconButton
-            className="displayOnHover"
-            Icon={IconPlus}
-            accent="tertiary"
+    <>
+      <Dropdown
+        dropdownId={dropdownId}
+        dropdownPlacement="left-start"
+        onClose={handleCloseRelationPickerDropdown}
+        onOpen={handleOpenRelationPickerDropdown}
+        clickableComponent={
+          dropdownTriggerClickableComponent ?? (
+            <LightIconButton
+              className="displayOnHover"
+              Icon={IconPlus}
+              accent="tertiary"
+            />
+          )
+        }
+        dropdownComponents={
+          <MultipleRecordPicker
+            focusId={dropdownId}
+            componentInstanceId={dropdownId}
+            onCreate={
+              isDefined(createNewRecordAndOpenRightDrawer)
+                ? handleCreateNew
+                : undefined
+            }
+            objectMetadataItemIdForCreate={relationObjectMetadataItem.id}
+            onChange={updateRelation}
+            onSubmit={() => {
+              closeDropdown(dropdownId);
+            }}
+            onClickOutside={() => {
+              closeDropdown(dropdownId);
+            }}
+            layoutDirection={
+              dropdownPlacement?.includes('end')
+                ? 'search-bar-on-bottom'
+                : 'search-bar-on-top'
+            }
           />
-        )
-      }
-      dropdownComponents={
-        <MultipleRecordPicker
-          focusId={dropdownId}
-          componentInstanceId={dropdownId}
-          onCreate={
-            isDefined(createNewRecordAndOpenRightDrawer)
-              ? handleCreateNew
-              : undefined
-          }
-          objectMetadataItemIdForCreate={relationObjectMetadataItem.id}
-          onChange={updateRelation}
-          onSubmit={() => {
-            closeDropdown(dropdownId);
-          }}
-          onClickOutside={() => {
-            closeDropdown(dropdownId);
-          }}
-          layoutDirection={
-            dropdownPlacement?.includes('end')
-              ? 'search-bar-on-bottom'
-              : 'search-bar-on-top'
-          }
-        />
-      }
-    />
+        }
+      />
+      {duplicateWarningDialog}
+    </>
   );
 };

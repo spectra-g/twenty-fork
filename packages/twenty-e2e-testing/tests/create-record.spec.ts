@@ -202,3 +202,47 @@ test.skip(
     await expect(page.getByText('Acme Corporation').first()).toBeVisible();
   },
 );
+
+test.skip(
+  'warns on duplicate company create from the board add new flow',
+  async ({ page }) => {
+    await page.getByRole('link', { name: 'Companies' }).click();
+    await page.getByRole('button', { name: 'Board' }).click();
+    await page.getByRole('button', { name: 'New' }).first().click();
+    await page.getByRole('textbox', { name: 'Name' }).fill('Acme Corp');
+    await page.keyboard.press('Enter');
+
+    await expect(
+      page.getByRole('heading', { name: 'Potential duplicate companies' }),
+    ).toBeVisible();
+  },
+);
+
+test.skip(
+  'warns on duplicate company create from the calendar add new flow',
+  async ({ page }) => {
+    await page.getByRole('link', { name: 'Companies' }).click();
+    await page.getByRole('button', { name: 'Calendar' }).click();
+    await page.getByRole('button', { name: 'Add record' }).first().click();
+    await page.getByRole('textbox', { name: 'Name' }).fill('Acme Corp');
+    await page.keyboard.press('Enter');
+
+    await expect(
+      page.getByRole('heading', { name: 'Potential duplicate companies' }),
+    ).toBeVisible();
+  },
+);
+
+test.skip(
+  'warns on duplicate company create from the relation picker add new flow',
+  async ({ page }) => {
+    await page.getByRole('link', { name: 'People' }).click();
+    await page.getByText('Company').first().click();
+    await page.getByRole('textbox', { name: 'Search' }).fill('Acme Corp');
+    await page.getByRole('option', { name: 'Add New' }).click();
+
+    await expect(
+      page.getByRole('heading', { name: 'Potential duplicate companies' }),
+    ).toBeVisible();
+  },
+);
