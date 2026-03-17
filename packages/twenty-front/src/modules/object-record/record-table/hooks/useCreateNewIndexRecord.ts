@@ -12,6 +12,7 @@ import { recordGroupDefinitionsComponentSelector } from '@/object-record/record-
 import { recordIndexGroupFieldMetadataItemComponentState } from '@/object-record/record-index/states/recordIndexGroupFieldMetadataComponentState';
 import { recordIndexOpenRecordInState } from '@/object-record/record-index/states/recordIndexOpenRecordInState';
 import { recordIndexRecordIdsByGroupComponentFamilyState } from '@/object-record/record-index/states/recordIndexRecordIdsByGroupComponentFamilyState';
+import { useOpenRecordFromIndexView } from '@/object-record/record-index/hooks/useOpenRecordFromIndexView';
 import { useUpsertRecordsInStore } from '@/object-record/record-store/hooks/useUpsertRecordsInStore';
 import { IndexRecordDuplicateWarningDialog } from '@/object-record/record-table/components/IndexRecordDuplicateWarningDialog';
 import { useBuildRecordInputFromFilters } from '@/object-record/record-table/hooks/useBuildRecordInputFromFilters';
@@ -73,6 +74,7 @@ export const useCreateNewIndexRecord = ({
   const { openRecordInCommandMenu } = useOpenRecordInCommandMenu();
 
   const { closeCommandMenu } = useCommandMenu();
+  const { openRecordFromIndexView } = useOpenRecordFromIndexView();
 
   const { createOneRecord } = useCreateOneRecord({
     objectNameSingular: objectMetadataItem.nameSingular,
@@ -239,6 +241,21 @@ export const useCreateNewIndexRecord = ({
     }
   }, [closeModal, createRecord, duplicateWarningModalId, pendingCreateState]);
 
+  const handleSelectDuplicateWarning = useCallback(
+    (recordId: string) => {
+      closeModal(duplicateWarningModalId);
+      openRecordFromIndexView({ recordId });
+      pendingCreateState?.resolve(null);
+      setPendingCreateState(null);
+    },
+    [
+      closeModal,
+      duplicateWarningModalId,
+      openRecordFromIndexView,
+      pendingCreateState,
+    ],
+  );
+
   const createNewIndexRecord = useCallback(
     async (recordInput?: Partial<ObjectRecord>) => {
       const recordId = v4();
@@ -319,6 +336,7 @@ export const useCreateNewIndexRecord = ({
           duplicateRecords: pendingCreateState.duplicateRecords,
           onCancel: handleCancelDuplicateWarning,
           onConfirm: handleConfirmDuplicateWarning,
+          onSelectDuplicate: handleSelectDuplicateWarning,
         })
       : null,
   };

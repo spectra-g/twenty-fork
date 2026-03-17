@@ -19,6 +19,7 @@ const mockApolloQuery = jest.fn();
 const mockOpenModal = jest.fn();
 const mockStoreGet = jest.fn();
 const mockStoreSet = jest.fn();
+const mockOpenRecordFromIndexView = jest.fn();
 
 jest.mock('@/command-menu/hooks/useCommandMenu', () => ({
   useCommandMenu: () => ({
@@ -113,6 +114,12 @@ jest.mock('@/ui/layout/modal/hooks/useModal', () => ({
   }),
 }));
 
+jest.mock('@/object-record/record-index/hooks/useOpenRecordFromIndexView', () => ({
+  useOpenRecordFromIndexView: () => ({
+    openRecordFromIndexView: mockOpenRecordFromIndexView,
+  }),
+}));
+
 jest.mock('@/ui/layout/modal/components/ConfirmationModal', () => ({
   ConfirmationModal: ({
     title,
@@ -139,12 +146,14 @@ jest.mock('@/ui/layout/modal/components/ConfirmationModal', () => ({
 jest.mock('@/object-record/components/RecordChip', () => ({
   RecordChip: ({
     record,
+    onClick,
   }: {
     record: {
       id: string;
       name?: string;
     };
-  }) => <span>{record.name ?? record.id}</span>,
+    onClick?: () => void;
+  }) => <button onClick={onClick}>{record.name ?? record.id}</button>,
 }));
 
 jest.mock('~/hooks/useNavigateApp', () => ({
@@ -316,6 +325,78 @@ describe('useCreateNewIndexRecord', () => {
     });
 
     expect(mockCreateOneRecord).not.toHaveBeenCalled();
+  });
+
+  it('opens an existing duplicate company from the warning instead of creating', async () => {
+    const onResult = jest.fn();
+
+    render(
+      <TestHarness recordInput={{ name: 'Acme Corp' }} onResult={onResult} />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Acme Corp' }));
+
+    await waitFor(() => {
+      expect(mockOpenRecordFromIndexView).toHaveBeenCalledWith({
+        recordId: 'duplicate-company-id',
+      });
+    });
+
+    expect(mockCreateOneRecord).not.toHaveBeenCalled();
+    expect(onResult).toHaveBeenCalledWith(null);
+  });
+
+  it('opens the selected duplicate when multiple companies are shown', async () => {
+    const secondDuplicateCompany = getMockCompanyRecord({
+      id: 'duplicate-company-id-2',
+      name: 'Acme Corporation',
+    });
+
+    mockApolloQuery.mockResolvedValue({
+      data: {
+        companyDuplicates: [
+          {
+            edges: [
+              {
+                cursor: 'duplicate-company-cursor',
+                node: duplicateCompany,
+              },
+              {
+                cursor: 'duplicate-company-cursor-2',
+                node: secondDuplicateCompany,
+              },
+            ],
+            pageInfo: {
+              startCursor: 'duplicate-company-cursor',
+              endCursor: 'duplicate-company-cursor-2',
+              hasNextPage: false,
+            },
+          },
+        ],
+      },
+    });
+
+    const onResult = jest.fn();
+
+    render(<TestHarness recordInput={{ name: 'Acme' }} onResult={onResult} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create' }));
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Acme Corporation' }),
+    );
+
+    await waitFor(() => {
+      expect(mockOpenRecordFromIndexView).toHaveBeenCalledWith({
+        recordId: 'duplicate-company-id-2',
+      });
+    });
+
+    expect(mockOpenRecordFromIndexView).not.toHaveBeenCalledWith({
+      recordId: 'duplicate-company-id',
+    });
+    expect(mockCreateOneRecord).not.toHaveBeenCalled();
+    expect(onResult).toHaveBeenCalledWith(null);
   });
 
   it('creates the company after create anyway is confirmed', async () => {
