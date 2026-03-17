@@ -18,10 +18,46 @@ describe('Core REST API Find Duplicates endpoint', () => {
       path: '/companies',
       body: {
         id: TEST_COMPANY_1_ID,
+        name: 'Rest Harness Company',
         domainName: {
           primaryLinkUrl: TEST_PRIMARY_LINK_URL,
         },
       },
+    }).expect(201);
+
+    await makeRestAPIRequest({
+      method: 'post',
+      path: '/batch/companies',
+      body: [
+        {
+          id: '00000000-0000-4000-8000-000000000101',
+          name: 'Acme Corporation',
+          domainName: {
+            primaryLinkUrl: 'https://acme.example.com',
+          },
+        },
+        {
+          id: '00000000-0000-4000-8000-000000000102',
+          name: 'BetaCorp',
+          domainName: {
+            primaryLinkUrl: 'https://betacorp.example.com',
+          },
+        },
+        {
+          id: '00000000-0000-4000-8000-000000000104',
+          name: 'Gamma Corporation',
+          domainName: {
+            primaryLinkUrl: 'https://gamma.example.com',
+          },
+        },
+        {
+          id: '00000000-0000-4000-8000-000000000103',
+          name: 'Other Company',
+          domainName: {
+            primaryLinkUrl: 'https://exact-domain.example.com',
+          },
+        },
+      ],
     }).expect(201);
 
     await makeRestAPIRequest({
@@ -255,5 +291,109 @@ describe('Core REST API Find Duplicates endpoint', () => {
         ],
       },
     }).expect(400);
+  });
+
+  it('should retrieve company duplicates by case-insensitive name', async () => {
+    const response = await makeRestAPIRequest({
+      method: 'post',
+      path: '/companies/duplicates',
+      body: {
+        data: [
+          {
+            name: 'acme corporation',
+          },
+        ],
+      },
+    }).expect(200);
+
+    const data = response.body.data;
+
+    expect(data).toHaveLength(1);
+    expect(data[0].totalCount).toBe(1);
+    expect(data[0].companyDuplicates).toHaveLength(1);
+    expect(data[0].companyDuplicates[0].name).toBe('Acme Corporation');
+  });
+
+  it('should retrieve company duplicates despite spacing variations', async () => {
+    const response = await makeRestAPIRequest({
+      method: 'post',
+      path: '/companies/duplicates',
+      body: {
+        data: [
+          {
+            name: 'Beta Corp',
+          },
+        ],
+      },
+    }).expect(200);
+
+    const data = response.body.data;
+
+    expect(data).toHaveLength(1);
+    expect(data[0].totalCount).toBe(1);
+    expect(data[0].companyDuplicates).toHaveLength(1);
+    expect(data[0].companyDuplicates[0].name).toBe('BetaCorp');
+  });
+
+  it('should retrieve company duplicates despite minor suffix variation', async () => {
+    const response = await makeRestAPIRequest({
+      method: 'post',
+      path: '/companies/duplicates',
+      body: {
+        data: [
+          {
+            name: 'GAMMA Corp',
+          },
+        ],
+      },
+    }).expect(200);
+
+    const data = response.body.data;
+
+    expect(data).toHaveLength(1);
+    expect(data[0].totalCount).toBe(1);
+    expect(data[0].companyDuplicates).toHaveLength(1);
+    expect(data[0].companyDuplicates[0].name).toBe('Gamma Corporation');
+  });
+
+  it('should keep domain duplicate matching exact after normalization', async () => {
+    const exactResponse = await makeRestAPIRequest({
+      method: 'post',
+      path: '/companies/duplicates',
+      body: {
+        data: [
+          {
+            domainName: {
+              primaryLinkUrl: 'https://EXACT-DOMAIN.EXAMPLE.COM',
+            },
+          },
+        ],
+      },
+    }).expect(200);
+
+    expect(exactResponse.body.data).toHaveLength(1);
+    expect(exactResponse.body.data[0].totalCount).toBe(1);
+    expect(exactResponse.body.data[0].companyDuplicates).toHaveLength(1);
+    expect(exactResponse.body.data[0].companyDuplicates[0].name).toBe(
+      'Other Company',
+    );
+
+    const fuzzyResponse = await makeRestAPIRequest({
+      method: 'post',
+      path: '/companies/duplicates',
+      body: {
+        data: [
+          {
+            domainName: {
+              primaryLinkUrl: 'https://exact-domains.example.com',
+            },
+          },
+        ],
+      },
+    }).expect(200);
+
+    expect(fuzzyResponse.body.data).toHaveLength(1);
+    expect(fuzzyResponse.body.data[0].totalCount).toBe(0);
+    expect(fuzzyResponse.body.data[0].companyDuplicates).toHaveLength(0);
   });
 });
