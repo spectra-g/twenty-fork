@@ -18,9 +18,10 @@ export const RecordTableHeaderLabelIdentifierCellPlusButton = () => {
 
   const isMobile = useIsMobile();
 
-  const { createNewIndexRecord } = useCreateNewIndexRecord({
-    objectMetadataItem,
-  });
+  const { createNewIndexRecord, duplicateWarningDialog } =
+    useCreateNewIndexRecord({
+      objectMetadataItem,
+    });
 
   const handlePlusButtonClick = () => {
     createNewIndexRecord({
@@ -44,14 +45,17 @@ export const RecordTableHeaderLabelIdentifierCellPlusButton = () => {
     !isReadOnly &&
     hasObjectUpdatePermissions &&
     !hasAnySoftDeleteFilterOnView && (
-      <StyledHeaderIcon>
-        <LightIconButton
-          Icon={IconPlus}
-          size="small"
-          accent="tertiary"
-          onClick={handlePlusButtonClick}
-        />
-      </StyledHeaderIcon>
+      <>
+        <StyledHeaderIcon>
+          <LightIconButton
+            Icon={IconPlus}
+            size="small"
+            accent="tertiary"
+            onClick={handlePlusButtonClick}
+          />
+        </StyledHeaderIcon>
+        {duplicateWarningDialog}
+      </>
     )
   );
 };

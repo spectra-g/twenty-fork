@@ -8,9 +8,10 @@ import { IconPlus } from 'twenty-ui/display';
 export const RecordTableEmptyStateNoRecordFoundForFilter = () => {
   const { objectMetadataItem } = useRecordTableContextOrThrow();
 
-  const { createNewIndexRecord } = useCreateNewIndexRecord({
-    objectMetadataItem,
-  });
+  const { createNewIndexRecord, duplicateWarningDialog } =
+    useCreateNewIndexRecord({
+      objectMetadataItem,
+    });
 
   const handleButtonClick = () => {
     createNewIndexRecord();
@@ -25,13 +26,16 @@ export const RecordTableEmptyStateNoRecordFoundForFilter = () => {
   const subTitle = t`No records matching the filter criteria were found.`;
 
   return (
-    <RecordTableEmptyStateDisplay
-      buttonTitle={buttonTitle}
-      subTitle={subTitle}
-      title={title}
-      ButtonIcon={IconPlus}
-      animatedPlaceholderType="noMatchRecord"
-      onClick={handleButtonClick}
-    />
+    <>
+      <RecordTableEmptyStateDisplay
+        buttonTitle={buttonTitle}
+        subTitle={subTitle}
+        title={title}
+        ButtonIcon={IconPlus}
+        animatedPlaceholderType="noMatchRecord"
+        onClick={handleButtonClick}
+      />
+      {duplicateWarningDialog}
+    </>
   );
 };

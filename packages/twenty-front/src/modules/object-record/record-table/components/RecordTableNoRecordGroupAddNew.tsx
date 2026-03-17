@@ -16,9 +16,10 @@ import { IconPlus } from 'twenty-ui/display';
 export const RecordTableNoRecordGroupAddNew = () => {
   const { objectMetadataItem } = useRecordTableContextOrThrow();
 
-  const { createNewIndexRecord } = useCreateNewIndexRecord({
-    objectMetadataItem,
-  });
+  const { createNewIndexRecord, duplicateWarningDialog } =
+    useCreateNewIndexRecord({
+      objectMetadataItem,
+    });
 
   const objectPermissions = useObjectPermissionsForObject(
     objectMetadataItem.id,
@@ -41,6 +42,10 @@ export const RecordTableNoRecordGroupAddNew = () => {
     const createdRecord = await createNewIndexRecord({
       position: 'last',
     });
+
+    if (!isDefined(createdRecord)) {
+      return;
+    }
 
     upsertRecordsInStore({ partialRecords: [createdRecord] });
 
@@ -66,10 +71,13 @@ export const RecordTableNoRecordGroupAddNew = () => {
   }
 
   return (
-    <RecordTableActionRow
-      onClick={handleButtonClick}
-      LeftIcon={IconPlus}
-      text={t`Add New`}
-    />
+    <>
+      <RecordTableActionRow
+        onClick={handleButtonClick}
+        LeftIcon={IconPlus}
+        text={t`Add New`}
+      />
+      {duplicateWarningDialog}
+    </>
   );
 };
