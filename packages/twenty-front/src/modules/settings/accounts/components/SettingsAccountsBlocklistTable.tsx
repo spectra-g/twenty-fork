@@ -1,14 +1,20 @@
 import { type BlocklistItem } from '@/accounts/types/BlocklistItem';
 import { SettingsAccountsBlocklistTableRow } from '@/settings/accounts/components/SettingsAccountsBlocklistTableRow';
+import { normalizeBlocklistDescription } from '@/settings/accounts/utils/normalizeBlocklistDescription';
 import { Table } from '@/ui/layout/table/components/Table';
 import { TableBody } from '@/ui/layout/table/components/TableBody';
 import { TableHeader } from '@/ui/layout/table/components/TableHeader';
 import { TableRow } from '@/ui/layout/table/components/TableRow';
 import styled from '@emotion/styled';
 import { t } from '@lingui/core/macro';
+import { useEffect, useState } from 'react';
 
 type SettingsAccountsBlocklistTableProps = {
   blocklist: BlocklistItem[];
+  handleBlockedEmailDescriptionUpdate?: (
+    id: string,
+    description: string | null,
+  ) => Promise<void> | void;
   handleBlockedEmailRemove: (id: string) => void;
 };
 
@@ -20,28 +26,105 @@ const StyledTableBody = styled(TableBody)`
   border-bottom: 1px solid ${({ theme }) => theme.border.color.light};
 `;
 
+const BLOCKLIST_DESCRIPTION_MAX_LENGTH = 255;
+
 export const SettingsAccountsBlocklistTable = ({
   blocklist,
+  handleBlockedEmailDescriptionUpdate,
   handleBlockedEmailRemove,
 }: SettingsAccountsBlocklistTableProps) => {
+  const [blocklistState, setBlocklistState] = useState(blocklist);
+  const [descriptionError, setDescriptionError] = useState('');
+  const [editedDescription, setEditedDescription] = useState('');
+  const [editingBlocklistItemId, setEditingBlocklistItemId] = useState<
+    string | null
+  >(null);
+
+  useEffect(() => {
+    setBlocklistState(blocklist);
+  }, [blocklist]);
+
+  const handleDescriptionEdit = (blocklistItem: BlocklistItem) => {
+    setEditingBlocklistItemId(blocklistItem.id);
+    setEditedDescription(blocklistItem.description ?? '');
+    setDescriptionError('');
+  };
+
+  const handleDescriptionCancel = () => {
+    setEditingBlocklistItemId(null);
+    setEditedDescription('');
+    setDescriptionError('');
+  };
+
+  const handleDescriptionChange = (description: string) => {
+    setEditedDescription(description);
+
+    if (description.length > BLOCKLIST_DESCRIPTION_MAX_LENGTH) {
+      setDescriptionError(t`Description must be 255 characters or less`);
+      return;
+    }
+
+    setDescriptionError('');
+  };
+
+  const handleDescriptionSave = async () => {
+    if (editingBlocklistItemId === null) {
+      return;
+    }
+
+    if (editedDescription.length > BLOCKLIST_DESCRIPTION_MAX_LENGTH) {
+      setDescriptionError(t`Description must be 255 characters or less`);
+      return;
+    }
+
+    const normalizedDescription =
+      normalizeBlocklistDescription(editedDescription);
+
+    // Backend support for description persistence is pending in STORY-051.
+    await handleBlockedEmailDescriptionUpdate?.(
+      editingBlocklistItemId,
+      normalizedDescription,
+    );
+
+    setBlocklistState((currentBlocklist) =>
+      currentBlocklist.map((blocklistItem) =>
+        blocklistItem.id === editingBlocklistItemId
+          ? { ...blocklistItem, description: normalizedDescription }
+          : blocklistItem,
+      ),
+    );
+
+    handleDescriptionCancel();
+  };
+
   return (
     <>
-      {blocklist.length > 0 && (
+      {blocklistState.length > 0 && (
         <StyledTable>
           <TableRow
-            gridAutoColumns="200px 1fr 20px"
-            mobileGridAutoColumns="120px 1fr 20px"
+            gridAutoColumns="200px 1fr 140px 168px"
+            mobileGridAutoColumns="120px 1fr 100px 168px"
           >
             <TableHeader>{t`Email/Domain`}</TableHeader>
+            <TableHeader>{t`Description`}</TableHeader>
             <TableHeader>{t`Added to blocklist`}</TableHeader>
             <TableHeader></TableHeader>
           </TableRow>
           <StyledTableBody>
-            {blocklist.map((blocklistItem) => (
+            {blocklistState.map((blocklistItem) => (
               <SettingsAccountsBlocklistTableRow
                 key={blocklistItem.id}
                 blocklistItem={blocklistItem}
+                descriptionError={descriptionError}
+                editedDescription={editedDescription}
+                isEditingDescription={
+                  editingBlocklistItemId === blocklistItem.id
+                }
+                onCancelDescription={handleDescriptionCancel}
+                onDescriptionChange={handleDescriptionChange}
+                onEditDescription={handleDescriptionEdit}
                 onRemove={handleBlockedEmailRemove}
+                onSaveDescription={handleDescriptionSave}
               />
             ))}
           </StyledTableBody>

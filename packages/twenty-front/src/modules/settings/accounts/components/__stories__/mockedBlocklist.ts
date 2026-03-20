@@ -6,6 +6,7 @@ export const mockedBlocklist: BlocklistItem[] = [
   {
     id: '1',
     handle: 'test1@twenty.com',
+    description: 'Block the finance follow-up thread',
     workspaceMemberId: '1',
     createdAt:
       formatISO(subHours(parseISO('2023-04-26T10:12:42.33625+00:00'), 2)) ?? '',
@@ -14,6 +15,7 @@ export const mockedBlocklist: BlocklistItem[] = [
   {
     id: '2',
     handle: 'test2@twenty.com',
+    description: 'Skip personal replies from this contact',
     workspaceMemberId: '1',
     createdAt:
       formatISO(subDays(parseISO('2023-04-26T10:12:42.33625+00:00'), 2)) ?? '',
@@ -22,6 +24,7 @@ export const mockedBlocklist: BlocklistItem[] = [
   {
     id: '3',
     handle: 'test3@twenty.com',
+    description: null,
     workspaceMemberId: '1',
     createdAt:
       formatISO(subDays(parseISO('2023-04-26T10:12:42.33625+00:00'), 3)) ?? '',
@@ -30,6 +33,7 @@ export const mockedBlocklist: BlocklistItem[] = [
   {
     id: '4',
     handle: '@twenty.com',
+    description: 'Ignore internal company traffic',
     workspaceMemberId: '1',
     createdAt:
       formatISO(subDays(parseISO('2023-04-26T10:12:42.33625+00:00'), 4)) ?? '',

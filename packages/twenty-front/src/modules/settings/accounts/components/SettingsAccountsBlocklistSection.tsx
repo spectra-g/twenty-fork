@@ -8,8 +8,11 @@ import { useFindManyRecords } from '@/object-record/hooks/useFindManyRecords';
 import { SettingsAccountsBlocklistInput } from '@/settings/accounts/components/SettingsAccountsBlocklistInput';
 import { SettingsAccountsBlocklistTable } from '@/settings/accounts/components/SettingsAccountsBlocklistTable';
 import { useLingui } from '@lingui/react/macro';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import { isDefined } from 'twenty-shared/utils';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import { H2Title } from 'twenty-ui/display';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import { Section } from 'twenty-ui/layout';
 
 export const SettingsAccountsBlocklistSection = () => {
@@ -49,6 +52,11 @@ export const SettingsAccountsBlocklistSection = () => {
     });
   };
 
+  const handleBlockedEmailDescriptionUpdate = async () => {
+    // Backend support for blocklist descriptions is pending in STORY-051.
+    return Promise.resolve();
+  };
+
   return (
     <Section>
       <H2Title
@@ -61,6 +69,9 @@ export const SettingsAccountsBlocklistSection = () => {
       />
       <SettingsAccountsBlocklistTable
         blocklist={blocklist}
+        handleBlockedEmailDescriptionUpdate={
+          handleBlockedEmailDescriptionUpdate
+        }
         handleBlockedEmailRemove={handleBlockedEmailRemove}
       />
     </Section>
