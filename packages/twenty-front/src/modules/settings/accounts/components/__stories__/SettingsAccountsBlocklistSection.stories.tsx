@@ -1,12 +1,12 @@
 import { type Meta, type StoryObj } from '@storybook/react-vite';
 
-import { SettingsAccountsBlocklistInput } from '@/settings/accounts/components/SettingsAccountsBlocklistInput';
-import { type SettingsAccountsBlocklistSection } from '@/settings/accounts/components/SettingsAccountsBlocklistSection';
+import { SettingsAccountsBlocklistSection } from '@/settings/accounts/components/SettingsAccountsBlocklistSection';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import { ComponentDecorator } from 'twenty-ui/testing';
 
 const meta: Meta<typeof SettingsAccountsBlocklistSection> = {
   title: 'Modules/Settings/Accounts/Blocklist/SettingsAccountsBlocklistSection',
-  component: SettingsAccountsBlocklistInput,
+  component: SettingsAccountsBlocklistSection,
   decorators: [ComponentDecorator],
 };
 

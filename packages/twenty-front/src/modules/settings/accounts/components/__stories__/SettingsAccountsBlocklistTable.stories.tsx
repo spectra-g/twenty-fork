@@ -7,6 +7,7 @@ import { expect, fn, userEvent, within } from 'storybook/test';
 
 import { mockedBlocklist } from '@/settings/accounts/components/__stories__/mockedBlocklist';
 import { SettingsAccountsBlocklistTable } from '@/settings/accounts/components/SettingsAccountsBlocklistTable';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import { ComponentDecorator } from 'twenty-ui/testing';
 import { formatToHumanReadableDate } from '~/utils/date-utils';
 
@@ -45,6 +46,15 @@ export const Default: Story = {
 
     for (const blocklistItem of mockedBlocklist) {
       expect(await canvas.findByText(blocklistItem.handle)).toBeInTheDocument();
+      if (
+        blocklistItem.description !== null &&
+        blocklistItem.description !== undefined &&
+        blocklistItem.description !== ''
+      ) {
+        expect(
+          await canvas.findByText(blocklistItem.description),
+        ).toBeInTheDocument();
+      }
       expect(
         await canvas.findByText(
           formatToHumanReadableDate(blocklistItem.createdAt),
@@ -60,7 +70,9 @@ export const DeleteFirstElementFromBlocklist: Story = {
 
     expect(handleBlockedEmailRemoveJestFn).toHaveBeenCalledTimes(0);
 
-    const removeFromBlocklistButton = canvas.getAllByRole('button')[0];
+    const removeFromBlocklistButton = canvas.getAllByRole('button', {
+      name: 'Remove from blocklist',
+    })[0];
 
     await userEvent.click(removeFromBlocklistButton);
 

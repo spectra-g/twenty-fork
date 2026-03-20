@@ -1,27 +1,83 @@
 import { type BlocklistItem } from '@/accounts/types/BlocklistItem';
+import { TextArea } from '@/ui/input/components/TextArea';
 import { TableCell } from '@/ui/layout/table/components/TableCell';
 import { TableRow } from '@/ui/layout/table/components/TableRow';
+import { t } from '@lingui/core/macro';
+import styled from '@emotion/styled';
 import { formatToHumanReadableDate } from '~/utils/date-utils';
-import { IconButton } from 'twenty-ui/input';
+// eslint-disable-next-line @nx/enforce-module-boundaries
+import { Button, IconButton } from 'twenty-ui/input';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import { IconX, OverflowingTextWithTooltip } from 'twenty-ui/display';
 
 type SettingsAccountsBlocklistTableRowProps = {
   blocklistItem: BlocklistItem;
+  descriptionError?: string;
+  editedDescription?: string;
+  isEditingDescription?: boolean;
+  onCancelDescription?: () => void;
+  onDescriptionChange?: (description: string) => void;
+  onEditDescription?: (blocklistItem: BlocklistItem) => void;
   onRemove: (id: string) => void;
+  onSaveDescription?: () => void;
 };
+
+const StyledActions = styled.div`
+  align-items: center;
+  display: flex;
+  gap: ${({ theme }) => theme.spacing(1)};
+  justify-content: flex-end;
+`;
+
+const StyledDescriptionEditor = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing(1)};
+`;
+
+const StyledDescriptionError = styled.div`
+  color: ${({ theme }) => theme.color.red};
+  font-size: ${({ theme }) => theme.font.size.xs};
+`;
 
 export const SettingsAccountsBlocklistTableRow = ({
   blocklistItem,
+  descriptionError,
+  editedDescription,
+  isEditingDescription = false,
+  onCancelDescription,
+  onDescriptionChange,
+  onEditDescription,
   onRemove,
+  onSaveDescription,
 }: SettingsAccountsBlocklistTableRowProps) => {
   return (
     <TableRow
       key={blocklistItem.id}
-      gridAutoColumns="200px 1fr 20px"
-      mobileGridAutoColumns="120px 1fr 20px"
+      gridAutoColumns="200px 1fr 140px 168px"
+      mobileGridAutoColumns="120px 1fr 100px 168px"
     >
       <TableCell>
         <OverflowingTextWithTooltip text={blocklistItem.handle} />
+      </TableCell>
+      <TableCell>
+        {isEditingDescription ? (
+          <StyledDescriptionEditor>
+            <TextArea
+              textAreaId={`blocklist-description-${blocklistItem.id}`}
+              placeholder={t`Add a description`}
+              value={editedDescription ?? ''}
+              onChange={onDescriptionChange}
+            />
+            {descriptionError ? (
+              <StyledDescriptionError>
+                {descriptionError}
+              </StyledDescriptionError>
+            ) : null}
+          </StyledDescriptionEditor>
+        ) : (
+          blocklistItem.description || t`No description`
+        )}
       </TableCell>
       <TableCell>
         {blocklistItem.createdAt
@@ -29,14 +85,45 @@ export const SettingsAccountsBlocklistTableRow = ({
           : ''}
       </TableCell>
       <TableCell align="right">
-        <IconButton
-          onClick={() => {
-            onRemove(blocklistItem.id);
-          }}
-          variant="tertiary"
-          size="small"
-          Icon={IconX}
-        />
+        <StyledActions>
+          {isEditingDescription ? (
+            <>
+              <Button
+                title={t`Cancel`}
+                ariaLabel={t`Cancel`}
+                variant="tertiary"
+                size="small"
+                onClick={onCancelDescription}
+              />
+              <Button
+                title={t`Save`}
+                ariaLabel={t`Save`}
+                variant="secondary"
+                size="small"
+                onClick={onSaveDescription}
+              />
+            </>
+          ) : (
+            <>
+              <Button
+                title={t`Edit`}
+                ariaLabel={t`Edit`}
+                variant="tertiary"
+                size="small"
+                onClick={() => onEditDescription?.(blocklistItem)}
+              />
+              <IconButton
+                onClick={() => {
+                  onRemove(blocklistItem.id);
+                }}
+                ariaLabel={t`Remove from blocklist`}
+                variant="tertiary"
+                size="small"
+                Icon={IconX}
+              />
+            </>
+          )}
+        </StyledActions>
       </TableCell>
     </TableRow>
   );
