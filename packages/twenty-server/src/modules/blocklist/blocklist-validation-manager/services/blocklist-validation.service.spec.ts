@@ -3,6 +3,9 @@ import { BadRequestException } from '@nestjs/common';
 import { BlocklistValidationService } from 'src/modules/blocklist/blocklist-validation-manager/services/blocklist-validation.service';
 
 describe('BlocklistValidationService', () => {
+  const VALID_DESCRIPTION = 'a'.repeat(255);
+  const TOO_LONG_DESCRIPTION = 'a'.repeat(256);
+
   const blocklistRepository = {
     getById: jest.fn(),
     getByWorkspaceMemberId: jest.fn(),
@@ -115,6 +118,40 @@ describe('BlocklistValidationService', () => {
     ).rejects.toThrow('Blocklist description must be a string or null');
   });
 
+  it('should reject createMany payloads with descriptions longer than 255 characters', async () => {
+    await expect(
+      service.validateBlocklistForCreateMany(
+        {
+          data: [
+            {
+              handle: 'typed@example.dev',
+              description: TOO_LONG_DESCRIPTION,
+            },
+          ],
+        },
+        'user-id',
+        'workspace-id',
+      ),
+    ).rejects.toThrow('Blocklist description must not exceed 255 characters');
+  });
+
+  it('should accept createMany payloads with descriptions exactly 255 characters long', async () => {
+    await expect(
+      service.validateBlocklistForCreateMany(
+        {
+          data: [
+            {
+              handle: 'typed@example.dev',
+              description: VALID_DESCRIPTION,
+            },
+          ],
+        },
+        'user-id',
+        'workspace-id',
+      ),
+    ).resolves.toBeUndefined();
+  });
+
   it('should reject duplicate handles inside the same createMany payload', async () => {
     await expect(
       service.validateBlocklistForCreateMany(
@@ -180,6 +217,21 @@ describe('BlocklistValidationService', () => {
         'workspace-id',
       ),
     ).rejects.toThrow('Blocklist description must be a string or null');
+  });
+
+  it('should reject updateOne payloads with descriptions longer than 255 characters', async () => {
+    await expect(
+      service.validateBlocklistForUpdateOne(
+        {
+          id: 'blocklist-id',
+          data: {
+            description: TOO_LONG_DESCRIPTION,
+          },
+        },
+        'user-id',
+        'workspace-id',
+      ),
+    ).rejects.toThrow('Blocklist description must not exceed 255 characters');
   });
 
   it('should skip duplicate lookups when updateOne does not modify the handle', async () => {
