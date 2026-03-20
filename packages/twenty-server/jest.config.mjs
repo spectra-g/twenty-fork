@@ -40,6 +40,9 @@ const jestConfig = {
     ],
   },
   moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/../twenty-shared/src/$1',
+    '^twenty-shared$': '<rootDir>/../twenty-shared/src/index.ts',
+    '^twenty-shared/(.*)$': '<rootDir>/../twenty-shared/src/$1',
     '^src/(.*)': '<rootDir>/src/$1',
     '^test/(.*)': '<rootDir>/test/$1',
   },

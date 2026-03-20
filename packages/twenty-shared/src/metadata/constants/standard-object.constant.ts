@@ -141,6 +141,9 @@ export const STANDARD_OBJECTS = {
         universalIdentifier: '20202020-b01d-4014-9e14-8dcff5affef9',
       },
       handle: { universalIdentifier: '20202020-eef3-44ed-aa32-4641d7fd4a3e' },
+      description: {
+        universalIdentifier: '20202020-4be3-44a7-9871-5f5e5d3c0d51',
+      },
       workspaceMember: {
         universalIdentifier: '20202020-548d-4084-a947-fa20a39f7c06',
       },
