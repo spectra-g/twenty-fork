@@ -9,10 +9,12 @@ const HANDLE_FIELD_NAME = 'handle';
 
 export const SEARCH_FIELDS_FOR_BLOCKLIST: FieldTypeAndNameMetadata[] = [
   { name: HANDLE_FIELD_NAME, type: FieldMetadataType.TEXT },
+  { name: 'description', type: FieldMetadataType.TEXT },
 ];
 
 export class BlocklistWorkspaceEntity extends BaseWorkspaceEntity {
   handle: string | null;
+  description: string | null;
   workspaceMember: EntityRelation<WorkspaceMemberWorkspaceEntity>;
   workspaceMemberId: string;
 }
