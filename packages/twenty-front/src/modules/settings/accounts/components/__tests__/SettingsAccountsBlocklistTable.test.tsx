@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { I18nProvider } from '@lingui/react';
 import { i18n } from '@lingui/core';
 import userEvent from '@testing-library/user-event';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import {
   THEME_LIGHT,
   ThemeContextProvider,
@@ -89,21 +90,69 @@ describe('SettingsAccountsBlocklistTable', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('should prevent saving descriptions longer than 255 characters', async () => {
+  it('should save a 255-character description', async () => {
     renderSettingsAccountsBlocklistTable();
 
     await userEvent.click(screen.getAllByRole('button', { name: 'Edit' })[0]);
 
     const descriptionInput = screen.getByPlaceholderText('Add a description');
-    const longDescription = 'a'.repeat(256);
+    const maxLengthDescription = 'a'.repeat(255);
 
     await userEvent.clear(descriptionInput);
-    await userEvent.type(descriptionInput, longDescription);
+    await userEvent.type(descriptionInput, maxLengthDescription);
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
+    await waitFor(() => {
+      expect(handleBlockedEmailDescriptionUpdate).toHaveBeenCalledWith(
+        '1',
+        maxLengthDescription,
+      );
+    });
+  });
+
+  it('should block the 256th description character and show the max counter', async () => {
+    renderSettingsAccountsBlocklistTable();
+
+    await userEvent.click(screen.getAllByRole('button', { name: 'Edit' })[0]);
+
+    const descriptionInput = screen.getByPlaceholderText('Add a description');
+    const maxLengthDescription = 'a'.repeat(255);
+
+    await userEvent.clear(descriptionInput);
+    await userEvent.type(descriptionInput, `${maxLengthDescription}b`);
+
+    expect(descriptionInput).toHaveValue(maxLengthDescription);
+    expect(screen.getByText('255/255')).toBeInTheDocument();
     expect(
-      screen.getByText('Description must be 255 characters or less'),
-    ).toBeInTheDocument();
-    expect(handleBlockedEmailDescriptionUpdate).not.toHaveBeenCalled();
+      screen.queryByText('Description must be 255 characters or less'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('should show the backend validation error when saving fails', async () => {
+    handleBlockedEmailDescriptionUpdate.mockRejectedValueOnce(
+      new Error('Description must be 255 characters or less'),
+    );
+
+    renderSettingsAccountsBlocklistTable();
+
+    await userEvent.click(screen.getAllByRole('button', { name: 'Edit' })[0]);
+
+    const descriptionInput = screen.getByPlaceholderText('Add a description');
+
+    await userEvent.clear(descriptionInput);
+    await userEvent.type(descriptionInput, 'Valid description');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Description must be 255 characters or less'),
+      ).toBeInTheDocument();
+    });
+
+    expect(handleBlockedEmailDescriptionUpdate).toHaveBeenCalledWith(
+      '1',
+      'Valid description',
+    );
+    expect(descriptionInput).toHaveValue('Valid description');
   });
 });

@@ -32,6 +32,8 @@ export type BlocklistUpdateInput = Partial<
   Pick<BlocklistItem, 'description' | 'handle' | 'workspaceMemberId'>
 >;
 
+const BLOCKLIST_DESCRIPTION_MAX_LENGTH = 255;
+
 @Injectable()
 export class BlocklistValidationService {
   constructor(
@@ -50,6 +52,7 @@ export class BlocklistValidationService {
       description: this.normalizeDescription(blocklistItem.description),
     }));
 
+    this.validateDescriptions(payload.data);
     await this.validateSchema(payload.data);
     await this.validateUniquenessForCreateMany(payload, userId, workspaceId);
   }
@@ -63,6 +66,7 @@ export class BlocklistValidationService {
       payload.data.description = this.normalizeDescription(
         payload.data.description,
       );
+      this.validateDescriptions([payload.data]);
     }
 
     if (payload.data.handle) {
@@ -79,6 +83,22 @@ export class BlocklistValidationService {
     }
 
     return trimmedDescription;
+  }
+
+  private validateDescriptions(
+    blocklist: Array<Partial<Pick<BlocklistCreateInput, 'description'>>>,
+  ) {
+    for (const { description } of blocklist) {
+      if (
+        description !== undefined &&
+        description !== null &&
+        description.length > BLOCKLIST_DESCRIPTION_MAX_LENGTH
+      ) {
+        throw new BadRequestException(
+          'Description must be 255 characters or less',
+        );
+      }
+    }
   }
 
   public async validateSchema(
