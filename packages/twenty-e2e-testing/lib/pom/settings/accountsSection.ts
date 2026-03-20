@@ -4,6 +4,7 @@ export class AccountsSection {
   private readonly addAccountButton: Locator;
   private readonly deleteAccountButton: Locator;
   private readonly addBlocklistField: Locator;
+  private readonly addBlocklistDescriptionField: Locator;
   private readonly addBlocklistButton: Locator;
   private readonly connectWithGoogleButton: Locator;
   private readonly connectWithMicrosoftButton: Locator;
@@ -17,8 +18,11 @@ export class AccountsSection {
     this.addBlocklistField = page.getByPlaceholder(
       'eddy@gmail.com, @apple.com',
     );
+    this.addBlocklistDescriptionField = page.getByRole('textbox', {
+      name: 'Description',
+    });
     this.addBlocklistButton = page.getByRole('button', {
-      name: 'Add to blocklist',
+      name: /Add to blocklist/i,
     });
     this.connectWithGoogleButton = page.getByRole('button', {
       name: 'Connect with Google',
@@ -39,8 +43,13 @@ export class AccountsSection {
     await this.deleteAccountButton.click();
   }
 
-  async addToBlockList(domain: string) {
-    await this.addBlocklistField.fill(domain);
+  async addToBlockList(handle: string, description?: string) {
+    await this.addBlocklistField.fill(handle);
+
+    if (description !== undefined) {
+      await this.addBlocklistDescriptionField.fill(description);
+    }
+
     await this.addBlocklistButton.click();
   }
 

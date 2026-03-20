@@ -6,27 +6,37 @@ import { Key } from 'ts-key-enum';
 import { z } from 'zod';
 
 import { SettingsTextInput } from '@/ui/input/components/SettingsTextInput';
+import { TextArea } from '@/ui/input/components/TextArea';
 import { useLingui } from '@lingui/react/macro';
 import { isValidHostname } from 'twenty-shared/utils';
 import { Button } from 'twenty-ui/input';
 
 const StyledContainer = styled.div`
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing(3)};
 `;
 
 const StyledLinkContainer = styled.div`
+  display: flex;
   flex: 1;
-  margin-right: ${({ theme }) => theme.spacing(2)};
+  gap: ${({ theme }) => theme.spacing(2)};
 `;
 
 type SettingsAccountsBlocklistInputProps = {
-  updateBlockedEmailList: (email: string) => void;
+  updateBlockedEmailList: ({
+    handle,
+    description,
+  }: {
+    handle: string;
+    description: string;
+  }) => void;
   blockedEmailOrDomainList: string[];
 };
 
 type FormInput = {
   emailOrDomain: string;
+  description: string;
 };
 
 export const SettingsAccountsBlocklistInput = ({
@@ -45,8 +55,12 @@ export const SettingsAccountsBlocklistInput = ({
           .or(
             z.string().refine(
               (value) =>
-                value.startsWith('@') &&
-                isValidHostname(value.slice(1), {
+                (value.startsWith('@') &&
+                  isValidHostname(value.slice(1), {
+                    allowIp: false,
+                    allowLocalhost: false,
+                  })) ||
+                isValidHostname(value, {
                   allowIp: false,
                   allowLocalhost: false,
                 }),
@@ -57,6 +71,7 @@ export const SettingsAccountsBlocklistInput = ({
             (value) => !blockedEmailOrDomainList.includes(value),
             t`Email or domain is already in blocklist`,
           ),
+        description: z.string(),
       })
       .required();
 
@@ -65,11 +80,15 @@ export const SettingsAccountsBlocklistInput = ({
     resolver: zodResolver(validationSchema(blockedEmailOrDomainList)),
     defaultValues: {
       emailOrDomain: '',
+      description: '',
     },
   });
 
   const submit = handleSubmit((data) => {
-    updateBlockedEmailList(data.emailOrDomain);
+    updateBlockedEmailList({
+      handle: data.emailOrDomain,
+      description: data.description,
+    });
   });
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -102,6 +121,20 @@ export const SettingsAccountsBlocklistInput = ({
                 error={error?.message}
                 onKeyDown={handleKeyDown}
                 fullWidth
+              />
+            )}
+          />
+          <Controller
+            name="description"
+            control={control}
+            render={({ field: { value, onChange } }) => (
+              <TextArea
+                textAreaId="settings-accounts-blocklist-description"
+                label={t`Description`}
+                placeholder={t`Add context for this blocked sender or domain`}
+                value={value}
+                onChange={onChange}
+                minRows={2}
               />
             )}
           />
