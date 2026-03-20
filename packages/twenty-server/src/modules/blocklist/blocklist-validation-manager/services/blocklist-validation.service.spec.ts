@@ -4,6 +4,7 @@ import {
   type CreateManyResolverArgs,
   type UpdateOneResolverArgs,
 } from 'src/engine/api/graphql/workspace-resolver-builder/interfaces/workspace-resolvers-builder.interface';
+
 import {
   type BlocklistCreateInput,
   type BlocklistUpdateInput,
@@ -11,6 +12,37 @@ import {
 } from 'src/modules/blocklist/blocklist-validation-manager/services/blocklist-validation.service';
 
 describe('BlocklistValidationService', () => {
+  it('should normalize an omitted description to null on create', async () => {
+    const service = new BlocklistValidationService(
+      {
+        getByWorkspaceMemberId: jest.fn().mockResolvedValue([]),
+      } as never,
+      {
+        executeInWorkspaceContext: jest
+          .fn()
+          .mockResolvedValue({ id: 'workspace-member-id' }),
+        getRepository: jest.fn(),
+      } as never,
+    );
+    const payload: CreateManyResolverArgs<BlocklistCreateInput> = {
+      data: [
+        {
+          handle: 'created@example.com',
+          createdAt: '2026-03-20T12:00:00.000Z',
+          updatedAt: '2026-03-20T12:00:00.000Z',
+        },
+      ],
+    };
+
+    await service.validateBlocklistForCreateMany(
+      payload,
+      'user-id',
+      'workspace-id',
+    );
+
+    expect(payload.data[0].description).toBeNull();
+  });
+
   it('should keep handle shape validation when description is present on create', async () => {
     const service = new BlocklistValidationService({} as never, {} as never);
     const payload: CreateManyResolverArgs<BlocklistCreateInput> = {
@@ -25,7 +57,11 @@ describe('BlocklistValidationService', () => {
     };
 
     await expect(
-      service.validateBlocklistForCreateMany(payload, 'user-id', 'workspace-id'),
+      service.validateBlocklistForCreateMany(
+        payload,
+        'user-id',
+        'workspace-id',
+      ),
     ).rejects.toThrow(new BadRequestException('Invalid input'));
   });
 
@@ -107,6 +143,42 @@ describe('BlocklistValidationService', () => {
       new BadRequestException('Workspace member cannot be updated'),
     );
     expect(blocklistRepository.getByWorkspaceMemberId).not.toHaveBeenCalled();
-    expect(globalWorkspaceOrmManager.executeInWorkspaceContext).not.toHaveBeenCalled();
+    expect(
+      globalWorkspaceOrmManager.executeInWorkspaceContext,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('should normalize a whitespace-only description to null on update', async () => {
+    const blocklistRepository = {
+      getById: jest.fn().mockResolvedValue({
+        id: 'blocklist-id',
+        handle: 'existing@example.com',
+        description: 'Existing description',
+        workspaceMemberId: 'workspace-member-id',
+      }),
+      getByWorkspaceMemberId: jest.fn(),
+    };
+    const globalWorkspaceOrmManager = {
+      executeInWorkspaceContext: jest.fn(),
+      getRepository: jest.fn(),
+    };
+    const service = new BlocklistValidationService(
+      blocklistRepository as never,
+      globalWorkspaceOrmManager as never,
+    );
+    const payload: UpdateOneResolverArgs<BlocklistUpdateInput> = {
+      id: 'blocklist-id',
+      data: {
+        description: '   ',
+      },
+    };
+
+    await service.validateBlocklistForUpdateOne(
+      payload,
+      'user-id',
+      'workspace-id',
+    );
+
+    expect(payload.data.description).toBeNull();
   });
 });
