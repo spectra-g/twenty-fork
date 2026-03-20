@@ -59,6 +59,19 @@ export class MessagingBlocklistListener {
       ObjectRecordUpdateEvent<BlocklistWorkspaceEntity>
     >,
   ) {
+    const shouldReprocessBlocklist = payload.events.some((event) => {
+      const updatedFields = event.properties.updatedFields ?? [];
+
+      return (
+        updatedFields.includes('handle') ||
+        event.properties.diff?.handle !== undefined
+      );
+    });
+
+    if (!shouldReprocessBlocklist) {
+      return;
+    }
+
     await this.messageQueueService.add<BlocklistItemDeleteMessagesJobData>(
       BlocklistItemDeleteMessagesJob.name,
       payload,
