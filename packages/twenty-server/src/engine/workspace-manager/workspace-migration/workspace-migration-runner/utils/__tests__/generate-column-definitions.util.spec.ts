@@ -1,8 +1,17 @@
 import { FieldMetadataType, RelationType } from 'twenty-shared/types';
 
+jest.mock('twenty-shared/metadata', () => ({
+  STANDARD_OBJECTS: jest.requireActual(
+    '../../../../../../../../twenty-shared/src/metadata/constants/standard-object.constant',
+  ).STANDARD_OBJECTS,
+}));
+
 import { getFlatFieldMetadataMock } from 'src/engine/metadata-modules/flat-field-metadata/__mocks__/get-flat-field-metadata.mock';
 import { getFlatObjectMetadataMock } from 'src/engine/metadata-modules/flat-object-metadata/__mocks__/get-flat-object-metadata.mock';
 import { getWorkspaceSchemaName } from 'src/engine/workspace-datasource/utils/get-workspace-schema-name.util';
+import { buildBlocklistStandardFlatFieldMetadatas } from 'src/engine/workspace-manager/twenty-standard-application/utils/field-metadata/compute-blocklist-standard-flat-field-metadata.util';
+import { getStandardObjectMetadataRelatedEntityIds } from 'src/engine/workspace-manager/twenty-standard-application/utils/get-standard-object-metadata-related-entity-ids.util';
+import { buildStandardFlatObjectMetadataMaps } from 'src/engine/workspace-manager/twenty-standard-application/utils/object-metadata/build-standard-flat-object-metadata-maps.util';
 import { generateColumnDefinitions } from 'src/engine/workspace-manager/workspace-migration/workspace-migration-runner/utils/generate-column-definitions.util';
 
 describe('Generate Column Definitions', () => {
@@ -307,6 +316,57 @@ describe('Generate Column Definitions', () => {
   });
 
   describe('Field Definition Generation', () => {
+    it('should map the standard blocklist description field to a nullable text column', () => {
+      const standardObjectMetadataRelatedEntityIds =
+        getStandardObjectMetadataRelatedEntityIds();
+      const flatObjectMetadataMaps = buildStandardFlatObjectMetadataMaps({
+        now: '2026-03-20T00:00:00.000Z',
+        workspaceId,
+        standardObjectMetadataRelatedEntityIds,
+        twentyStandardApplicationId: 'twenty-standard-application-id',
+        dependencyFlatEntityMaps: {
+          flatFieldMetadataMaps: {
+            byId: {},
+            idByUniversalIdentifier: {},
+            universalIdentifierById: {},
+            byUniversalIdentifier: {},
+          },
+        },
+      });
+      const descriptionFieldMetadata = buildBlocklistStandardFlatFieldMetadatas({
+        now: '2026-03-20T00:00:00.000Z',
+        objectName: 'blocklist',
+        workspaceId,
+        standardObjectMetadataRelatedEntityIds,
+        dependencyFlatEntityMaps: {
+          flatObjectMetadataMaps,
+        },
+        twentyStandardApplicationId: 'twenty-standard-application-id',
+      }).description;
+      const blocklistObjectMetadata =
+        flatObjectMetadataMaps.byUniversalIdentifier[
+          '20202020-0408-4f38-b8a8-4d5e3e26e24d'
+        ];
+
+      const columns = generateColumnDefinitions({
+        flatFieldMetadata: descriptionFieldMetadata,
+        flatObjectMetadata: blocklistObjectMetadata,
+        workspaceId,
+      });
+
+      expect(columns).toStrictEqual([
+        {
+          name: 'description',
+          type: 'text',
+          isNullable: true,
+          isPrimary: false,
+          isUnique: false,
+          default: 'NULL',
+          isArray: false,
+        },
+      ]);
+    });
+
     it('should handle text fields without crashing', () => {
       const textField = getFlatFieldMetadataMock({
         universalIdentifier: 'content',

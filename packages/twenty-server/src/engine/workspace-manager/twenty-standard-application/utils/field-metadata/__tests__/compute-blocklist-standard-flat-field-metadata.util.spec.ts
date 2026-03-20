@@ -45,6 +45,10 @@ describe('buildBlocklistStandardFlatFieldMetadatas', () => {
       label: 'Description',
       type: FieldMetadataType.TEXT,
       isNullable: true,
+      icon: 'IconFileDescription',
+      isUIReadOnly: true,
     });
+
+    expect(result.searchVector.settings?.asExpression).toContain('description');
   });
 });
