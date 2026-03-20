@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/modules/blocklist/blocklist-validation-manager/services/blocklist-validation.service.ts",
+    "src/modules/blocklist/query-hooks/blocklist-create-many.pre-query.hook.ts",
+    "src/modules/blocklist/query-hooks/blocklist-description.contract.ts",
+    "src/modules/blocklist/query-hooks/blocklist-description.pre-query-hook.spec.ts",
+    "src/modules/blocklist/query-hooks/blocklist-update-one.pre-query.hook.ts"
+  ]
+}

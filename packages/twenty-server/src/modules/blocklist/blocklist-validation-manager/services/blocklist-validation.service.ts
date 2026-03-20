@@ -2,16 +2,16 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 
 import { z } from 'zod';
 
-import {
-  type CreateManyResolverArgs,
-  type UpdateOneResolverArgs,
+import type {
+  CreateManyResolverArgs,
+  UpdateOneResolverArgs,
 } from 'src/engine/api/graphql/workspace-resolver-builder/interfaces/workspace-resolvers-builder.interface';
 
 import { InjectObjectMetadataRepository } from 'src/engine/object-metadata-repository/object-metadata-repository.decorator';
-import { GlobalWorkspaceOrmManager } from 'src/engine/twenty-orm/global-workspace-datasource/global-workspace-orm.manager';
+import type { GlobalWorkspaceOrmManager } from 'src/engine/twenty-orm/global-workspace-datasource/global-workspace-orm.manager';
 import { buildSystemAuthContext } from 'src/engine/twenty-orm/utils/build-system-auth-context.util';
 import { isDomain } from 'src/engine/utils/is-domain';
-import { BlocklistRepository } from 'src/modules/blocklist/repositories/blocklist.repository';
+import type { BlocklistRepository } from 'src/modules/blocklist/repositories/blocklist.repository';
 import { BlocklistWorkspaceEntity } from 'src/modules/blocklist/standard-objects/blocklist.workspace-entity';
 import { WorkspaceMemberWorkspaceEntity } from 'src/modules/workspace-member/standard-objects/workspace-member.workspace-entity';
 
@@ -24,6 +24,14 @@ export type BlocklistItem = Omit<
   workspaceMemberId: string;
 };
 
+export type BlocklistCreateInput = Pick<BlocklistItem, 'handle'> &
+  Partial<Pick<BlocklistItem, 'description'>> &
+  Pick<BlocklistItem, 'createdAt' | 'updatedAt'>;
+
+export type BlocklistUpdateInput = Partial<
+  Pick<BlocklistItem, 'description' | 'handle' | 'workspaceMemberId'>
+>;
+
 @Injectable()
 export class BlocklistValidationService {
   constructor(
@@ -33,7 +41,7 @@ export class BlocklistValidationService {
   ) {}
 
   public async validateBlocklistForCreateMany(
-    payload: CreateManyResolverArgs<BlocklistItem>,
+    payload: CreateManyResolverArgs<BlocklistCreateInput>,
     userId: string,
     workspaceId: string,
   ) {
@@ -42,7 +50,7 @@ export class BlocklistValidationService {
   }
 
   public async validateBlocklistForUpdateOne(
-    payload: UpdateOneResolverArgs<BlocklistItem>,
+    payload: UpdateOneResolverArgs<BlocklistUpdateInput>,
     userId: string,
     workspaceId: string,
   ) {
@@ -52,7 +60,9 @@ export class BlocklistValidationService {
     await this.validateUniquenessForUpdateOne(payload, userId, workspaceId);
   }
 
-  public async validateSchema(blocklist: BlocklistItem[]) {
+  public async validateSchema(
+    blocklist: Array<Pick<BlocklistCreateInput, 'handle'>>,
+  ) {
     const emailOrDomainSchema = z
       .string()
       .trim()
@@ -80,7 +90,7 @@ export class BlocklistValidationService {
   }
 
   public async validateUniquenessForCreateMany(
-    payload: CreateManyResolverArgs<BlocklistItem>,
+    payload: CreateManyResolverArgs<BlocklistCreateInput>,
     userId: string,
     workspaceId: string,
   ) {
@@ -120,7 +130,7 @@ export class BlocklistValidationService {
   }
 
   public async validateUniquenessForUpdateOne(
-    payload: UpdateOneResolverArgs<BlocklistItem>,
+    payload: UpdateOneResolverArgs<BlocklistUpdateInput>,
     userId: string,
     workspaceId: string,
   ) {
@@ -133,8 +143,15 @@ export class BlocklistValidationService {
       throw new BadRequestException('Blocklist item not found');
     }
 
-    if (existingRecord.workspaceMemberId !== payload.data.workspaceMemberId) {
+    if (
+      payload.data.workspaceMemberId !== undefined &&
+      existingRecord.workspaceMemberId !== payload.data.workspaceMemberId
+    ) {
       throw new BadRequestException('Workspace member cannot be updated');
+    }
+
+    if (payload.data.handle === undefined) {
+      return;
     }
 
     if (existingRecord.handle === payload.data.handle) {
