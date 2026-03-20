@@ -42,9 +42,18 @@ export const SettingsAccountsBlocklistSection = () => {
     deleteBlocklistItem(id);
   };
 
-  const updateBlockedEmailList = (handle: string) => {
+  const updateBlockedEmailList = ({
+    handle,
+    description,
+  }: {
+    handle: string;
+    description: string;
+  }) => {
+    const trimmedDescription = description.trim();
+
     createBlocklistItem({
       handle,
+      description: trimmedDescription === '' ? null : trimmedDescription,
       workspaceMemberId: currentWorkspaceMember?.id,
     });
   };

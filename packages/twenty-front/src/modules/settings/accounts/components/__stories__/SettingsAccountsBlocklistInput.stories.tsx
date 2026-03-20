@@ -44,7 +44,9 @@ export const AddToBlocklist: Story = {
 
     expect(updateBlockedEmailListJestFn).toHaveBeenCalledTimes(0);
 
-    const addToBlocklistInput = canvas.getByRole('textbox');
+    const addToBlocklistInput = canvas.getByPlaceholderText(
+      'eddy@gmail.com, @apple.com',
+    );
 
     await userEvent.type(addToBlocklistInput, 'test@twenty.com');
 
@@ -55,8 +57,34 @@ export const AddToBlocklist: Story = {
     await userEvent.click(addToBlocklistButton);
 
     expect(updateBlockedEmailListJestFn).toHaveBeenCalledTimes(1);
-    expect(updateBlockedEmailListJestFn).toHaveBeenCalledWith(
-      'test@twenty.com',
+    expect(updateBlockedEmailListJestFn).toHaveBeenCalledWith({
+      handle: 'test@twenty.com',
+      description: '',
+    });
+  },
+};
+
+export const AddToBlocklistWithDescription: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    expect(updateBlockedEmailListJestFn).toHaveBeenCalledTimes(0);
+
+    await userEvent.type(
+      canvas.getByPlaceholderText('eddy@gmail.com, @apple.com'),
+      'spam@example.com',
     );
+    await userEvent.type(
+      canvas.getByRole('textbox', { name: 'Description' }),
+      'Known spam source',
+    );
+    await userEvent.click(
+      canvas.getByRole('button', { name: /add to blocklist/i }),
+    );
+
+    expect(updateBlockedEmailListJestFn).toHaveBeenCalledWith({
+      handle: 'spam@example.com',
+      description: 'Known spam source',
+    });
   },
 };
