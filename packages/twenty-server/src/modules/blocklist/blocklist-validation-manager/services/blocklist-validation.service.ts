@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import {
   type CreateManyResolverArgs,
+  type CreateOneResolverArgs,
   type UpdateOneResolverArgs,
 } from 'src/engine/api/graphql/workspace-resolver-builder/interfaces/workspace-resolvers-builder.interface';
 
@@ -41,12 +42,27 @@ export class BlocklistValidationService {
     await this.validateUniquenessForCreateMany(payload, userId, workspaceId);
   }
 
+  public async validateBlocklistForCreateOne(
+    payload: CreateOneResolverArgs<BlocklistItem>,
+    userId: string,
+    workspaceId: string,
+  ) {
+    await this.validateBlocklistForCreateMany(
+      {
+        data: [payload.data],
+        upsert: payload.upsert,
+      },
+      userId,
+      workspaceId,
+    );
+  }
+
   public async validateBlocklistForUpdateOne(
     payload: UpdateOneResolverArgs<BlocklistItem>,
     userId: string,
     workspaceId: string,
   ) {
-    if (payload.data.handle) {
+    if (payload.data.handle !== undefined) {
       await this.validateSchema([payload.data]);
     }
     await this.validateUniquenessForUpdateOne(payload, userId, workspaceId);
@@ -133,8 +149,15 @@ export class BlocklistValidationService {
       throw new BadRequestException('Blocklist item not found');
     }
 
-    if (existingRecord.workspaceMemberId !== payload.data.workspaceMemberId) {
+    if (
+      payload.data.workspaceMemberId &&
+      existingRecord.workspaceMemberId !== payload.data.workspaceMemberId
+    ) {
       throw new BadRequestException('Workspace member cannot be updated');
+    }
+
+    if (payload.data.handle === undefined) {
+      return;
     }
 
     if (existingRecord.handle === payload.data.handle) {

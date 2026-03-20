@@ -1,0 +1,67 @@
+import { renderHook } from '@testing-library/react';
+import { Provider as JotaiProvider } from 'jotai';
+import { act } from 'react';
+
+import { DropdownComponentInstanceContext } from '@/ui/layout/dropdown/contexts/DropdownComponentInstanceContext';
+import { useCloseAnyOpenDropdown } from '@/ui/layout/dropdown/hooks/useCloseAnyOpenDropdown';
+import { useOpenDropdown } from '@/ui/layout/dropdown/hooks/useOpenDropdown';
+import { isDropdownOpenComponentState } from '@/ui/layout/dropdown/states/isDropdownOpenComponentState';
+import { useAtomComponentStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateValue';
+import { jotaiStore } from '@/ui/utilities/state/jotai/jotaiStore';
+
+const dropdownId = 'test-dropdown-id';
+
+const Wrapper = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <JotaiProvider store={jotaiStore}>
+      <DropdownComponentInstanceContext.Provider
+        value={{ instanceId: dropdownId }}
+      >
+        {children}
+      </DropdownComponentInstanceContext.Provider>
+    </JotaiProvider>
+  );
+};
+
+describe('useCloseAnyOpenDropdown', () => {
+  beforeEach(() => {
+    jotaiStore.set(
+      isDropdownOpenComponentState.atomFamily({ instanceId: dropdownId }),
+      false,
+    );
+  });
+
+  it('should open dropdown and then close it with closeAnyOpenDropdown', async () => {
+    const { result } = renderHook(
+      () => {
+        const isDropdownOpen = useAtomComponentStateValue(
+          isDropdownOpenComponentState,
+          dropdownId,
+        );
+
+        const { openDropdown } = useOpenDropdown();
+
+        const { closeAnyOpenDropdown } = useCloseAnyOpenDropdown();
+
+        return { closeAnyOpenDropdown, isDropdownOpen, openDropdown };
+      },
+      {
+        wrapper: Wrapper,
+      },
+    );
+
+    expect(result.current.isDropdownOpen).toBe(false);
+
+    act(() => {
+      result.current.openDropdown();
+    });
+
+    expect(result.current.isDropdownOpen).toBe(true);
+
+    act(() => {
+      result.current.closeAnyOpenDropdown();
+    });
+
+    expect(result.current.isDropdownOpen).toBe(false);
+  });
+});
