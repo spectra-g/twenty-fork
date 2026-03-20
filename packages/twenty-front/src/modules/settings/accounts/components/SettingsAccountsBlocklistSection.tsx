@@ -5,6 +5,7 @@ import { CoreObjectNameSingular } from '@/object-metadata/types/CoreObjectNameSi
 import { useCreateOneRecord } from '@/object-record/hooks/useCreateOneRecord';
 import { useDeleteOneRecord } from '@/object-record/hooks/useDeleteOneRecord';
 import { useFindManyRecords } from '@/object-record/hooks/useFindManyRecords';
+import { useUpdateOneRecord } from '@/object-record/hooks/useUpdateOneRecord';
 import { SettingsAccountsBlocklistInput } from '@/settings/accounts/components/SettingsAccountsBlocklistInput';
 import { SettingsAccountsBlocklistTable } from '@/settings/accounts/components/SettingsAccountsBlocklistTable';
 import { useLingui } from '@lingui/react/macro';
@@ -40,6 +41,7 @@ export const SettingsAccountsBlocklistSection = () => {
   const { deleteOneRecord: deleteBlocklistItem } = useDeleteOneRecord({
     objectNameSingular: CoreObjectNameSingular.Blocklist,
   });
+  const { updateOneRecord } = useUpdateOneRecord();
 
   const handleBlockedEmailRemove = (id: string) => {
     deleteBlocklistItem(id);
@@ -48,13 +50,22 @@ export const SettingsAccountsBlocklistSection = () => {
   const updateBlockedEmailList = (handle: string) => {
     createBlocklistItem({
       handle,
+      description: null,
       workspaceMemberId: currentWorkspaceMember?.id,
     });
   };
 
-  const handleBlockedEmailDescriptionUpdate = async () => {
-    // Backend support for blocklist descriptions is pending in STORY-051.
-    return Promise.resolve();
+  const handleBlockedEmailDescriptionUpdate = async (
+    id: string,
+    description: string | null,
+  ) => {
+    await updateOneRecord<BlocklistItem>({
+      objectNameSingular: CoreObjectNameSingular.Blocklist,
+      idToUpdate: id,
+      updateOneRecordInput: {
+        description,
+      },
+    });
   };
 
   return (

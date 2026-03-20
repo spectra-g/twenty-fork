@@ -2,6 +2,7 @@ import type {
   CreateManyResolverArgs,
   UpdateOneResolverArgs,
 } from 'src/engine/api/graphql/workspace-resolver-builder/interfaces/workspace-resolvers-builder.interface';
+
 import { type AuthContext } from 'src/engine/core-modules/auth/types/auth-context.type';
 import {
   type BlocklistCreateInput,
@@ -20,18 +21,25 @@ describe('Blocklist description pre-query hooks', () => {
     },
   } as AuthContext;
 
-  it('should pass description through createMany unchanged', async () => {
-    const blocklistValidationService = {
-      validateBlocklistForCreateMany: jest.fn(),
-    };
+  it('should normalize an omitted description to null on createMany', async () => {
+    const blocklistValidationService = new BlocklistValidationService(
+      {
+        getByWorkspaceMemberId: jest.fn().mockResolvedValue([]),
+      } as never,
+      {
+        executeInWorkspaceContext: jest
+          .fn()
+          .mockResolvedValue({ id: 'workspace-member-id' }),
+        getRepository: jest.fn(),
+      } as never,
+    );
     const hook = new BlocklistCreateManyPreQueryHook(
-      blocklistValidationService as never,
+      blocklistValidationService,
     );
     const payload = {
       data: [
         {
           handle: 'prospect@example.com',
-          description: 'Inbound lead from conference follow-up',
           createdAt: '2026-03-20T12:00:00.000Z',
           updatedAt: '2026-03-20T12:00:00.000Z',
         },
@@ -41,27 +49,32 @@ describe('Blocklist description pre-query hooks', () => {
     const result = await hook.execute(authContext, 'blocklist', payload);
 
     expect(result).toBe(payload);
-    expect(blocklistValidationService.validateBlocklistForCreateMany).toHaveBeenCalledWith(
-      payload,
-      'user-id',
-      'workspace-id',
-    );
-    expect(result.data[0].description).toBe(
-      'Inbound lead from conference follow-up',
-    );
+    expect(result.data[0].description).toBeNull();
   });
 
-  it('should pass description through updateOne unchanged', async () => {
-    const blocklistValidationService = {
-      validateBlocklistForUpdateOne: jest.fn(),
+  it('should normalize an empty description to null on updateOne', async () => {
+    const blocklistRepository = {
+      getById: jest.fn().mockResolvedValue({
+        id: 'blocklist-id',
+        handle: 'prospect@example.com',
+        description: 'Existing description',
+        workspaceMemberId: 'workspace-member-id',
+      }),
+      getByWorkspaceMemberId: jest.fn(),
     };
-    const hook = new BlocklistUpdateOnePreQueryHook(
-      blocklistValidationService as never,
+    const globalWorkspaceOrmManager = {
+      executeInWorkspaceContext: jest.fn(),
+      getRepository: jest.fn(),
+    };
+    const blocklistValidationService = new BlocklistValidationService(
+      blocklistRepository as never,
+      globalWorkspaceOrmManager as never,
     );
+    const hook = new BlocklistUpdateOnePreQueryHook(blocklistValidationService);
     const payload = {
       id: 'blocklist-id',
       data: {
-        description: 'Updated after contact requested no follow-up',
+        description: '   ',
         workspaceMemberId: 'workspace-member-id',
       },
     } as UpdateOneResolverArgs<{
@@ -72,14 +85,7 @@ describe('Blocklist description pre-query hooks', () => {
     const result = await hook.execute(authContext, 'blocklist', payload);
 
     expect(result).toBe(payload);
-    expect(blocklistValidationService.validateBlocklistForUpdateOne).toHaveBeenCalledWith(
-      payload,
-      'user-id',
-      'workspace-id',
-    );
-    expect(result.data.description).toBe(
-      'Updated after contact requested no follow-up',
-    );
+    expect(result.data.description).toBeNull();
   });
 
   it('should accept a description-only update without checking uniqueness when workspaceMemberId is unchanged', async () => {
@@ -120,7 +126,9 @@ describe('Blocklist description pre-query hooks', () => {
       'workspace-id',
     );
     expect(blocklistRepository.getByWorkspaceMemberId).not.toHaveBeenCalled();
-    expect(globalWorkspaceOrmManager.executeInWorkspaceContext).not.toHaveBeenCalled();
+    expect(
+      globalWorkspaceOrmManager.executeInWorkspaceContext,
+    ).not.toHaveBeenCalled();
   });
 
   it('should accept a description-only update when workspaceMemberId is omitted', async () => {
@@ -159,6 +167,8 @@ describe('Blocklist description pre-query hooks', () => {
       'workspace-id',
     );
     expect(blocklistRepository.getByWorkspaceMemberId).not.toHaveBeenCalled();
-    expect(globalWorkspaceOrmManager.executeInWorkspaceContext).not.toHaveBeenCalled();
+    expect(
+      globalWorkspaceOrmManager.executeInWorkspaceContext,
+    ).not.toHaveBeenCalled();
   });
 });
