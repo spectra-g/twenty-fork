@@ -27,6 +27,7 @@ import { MigrateFavoritesToNavigationMenuItemsCommand } from 'src/database/comma
 import { MigratePersonAvatarFilesCommand } from 'src/database/commands/upgrade-version-command/1-18/1-18-migrate-person-avatar-files.command';
 import { MigrateWorkflowSendEmailAttachmentsCommand } from 'src/database/commands/upgrade-version-command/1-18/1-18-migrate-workflow-send-email-attachments.command';
 import { MigrateWorkspacePicturesCommand } from 'src/database/commands/upgrade-version-command/1-18/1-18-migrate-workspace-pictures.command';
+import { AddBlocklistDescriptionFieldCommand } from 'src/database/commands/upgrade-version-command/1-19/1-19-add-blocklist-description-field.command';
 import { AddMissingSystemFieldsToStandardObjectsCommand } from 'src/database/commands/upgrade-version-command/1-19/1-19-add-missing-system-fields-to-standard-objects.command';
 import { BackfillMessageChannelMessageAssociationMessageFolderCommand } from 'src/database/commands/upgrade-version-command/1-19/1-19-backfill-message-channel-message-association-message-folder.command';
 import { BackfillPageLayoutsCommand } from 'src/database/commands/upgrade-version-command/1-19/1-19-backfill-page-layouts.command';
@@ -76,6 +77,7 @@ export class UpgradeCommand extends UpgradeCommandRunner {
     // 1.19 Commands
     protected readonly backfillSystemFieldsIsSystemCommand: BackfillSystemFieldsIsSystemCommand,
     protected readonly addMissingSystemFieldsToStandardObjectsCommand: AddMissingSystemFieldsToStandardObjectsCommand,
+    protected readonly addBlocklistDescriptionFieldCommand: AddBlocklistDescriptionFieldCommand,
     protected readonly backfillMessageChannelMessageAssociationMessageFolderCommand: BackfillMessageChannelMessageAssociationMessageFolderCommand,
     protected readonly backfillPageLayoutsCommand: BackfillPageLayoutsCommand,
     protected readonly fixRoleAndAgentUniversalIdentifiersCommand: FixInvalidStandardUniversalIdentifiersCommand,
@@ -118,6 +120,7 @@ export class UpgradeCommand extends UpgradeCommandRunner {
     const commands_1190: VersionCommands = [
       this.backfillSystemFieldsIsSystemCommand,
       this.addMissingSystemFieldsToStandardObjectsCommand,
+      this.addBlocklistDescriptionFieldCommand,
       this.backfillMessageChannelMessageAssociationMessageFolderCommand,
       this.backfillPageLayoutsCommand,
       this.fixRoleAndAgentUniversalIdentifiersCommand,
