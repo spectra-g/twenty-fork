@@ -73,6 +73,9 @@ const jestConfig: JestConfigWithTsJest = {
     ...pathsToModuleNameMapper(tsConfig.compilerOptions.paths, {
       prefix: '<rootDir>/',
     }),
+    '^@/(.*)$': '<rootDir>/../twenty-shared/src/$1',
+    '^twenty-shared$': '<rootDir>/../twenty-shared/src/index.ts',
+    '^twenty-shared/(.*)$': '<rootDir>/../twenty-shared/src/$1',
     '^test/(.*)$': '<rootDir>/test/$1',
   },
   fakeTimers: {
