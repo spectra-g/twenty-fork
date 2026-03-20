@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 
 import { z } from 'zod';
 
@@ -9,10 +9,13 @@ import {
 } from 'src/engine/api/graphql/workspace-resolver-builder/interfaces/workspace-resolvers-builder.interface';
 
 import { InjectObjectMetadataRepository } from 'src/engine/object-metadata-repository/object-metadata-repository.decorator';
-import { GlobalWorkspaceOrmManager } from 'src/engine/twenty-orm/global-workspace-datasource/global-workspace-orm.manager';
+import {
+  GlobalWorkspaceOrmManager as GlobalWorkspaceOrmManagerToken,
+  type GlobalWorkspaceOrmManager,
+} from 'src/engine/twenty-orm/global-workspace-datasource/global-workspace-orm.manager';
 import { buildSystemAuthContext } from 'src/engine/twenty-orm/utils/build-system-auth-context.util';
 import { isDomain } from 'src/engine/utils/is-domain';
-import { BlocklistRepository } from 'src/modules/blocklist/repositories/blocklist.repository';
+import type { BlocklistRepository } from 'src/modules/blocklist/repositories/blocklist.repository';
 import { BlocklistWorkspaceEntity } from 'src/modules/blocklist/standard-objects/blocklist.workspace-entity';
 import { WorkspaceMemberWorkspaceEntity } from 'src/modules/workspace-member/standard-objects/workspace-member.workspace-entity';
 
@@ -30,6 +33,7 @@ export class BlocklistValidationService {
   constructor(
     @InjectObjectMetadataRepository(BlocklistWorkspaceEntity)
     private readonly blocklistRepository: BlocklistRepository,
+    @Inject(GlobalWorkspaceOrmManagerToken)
     private readonly globalWorkspaceOrmManager: GlobalWorkspaceOrmManager,
   ) {}
 
@@ -38,6 +42,7 @@ export class BlocklistValidationService {
     userId: string,
     workspaceId: string,
   ) {
+    this.validateDescriptions(payload.data);
     await this.validateSchema(payload.data);
     await this.validateUniquenessForCreateMany(payload, userId, workspaceId);
   }
@@ -62,10 +67,30 @@ export class BlocklistValidationService {
     userId: string,
     workspaceId: string,
   ) {
+    this.validateDescriptions([payload.data]);
+
     if (payload.data.handle !== undefined) {
       await this.validateSchema([payload.data]);
     }
     await this.validateUniquenessForUpdateOne(payload, userId, workspaceId);
+  }
+
+  private validateDescriptions(
+    blocklistItems: Array<Pick<Partial<BlocklistItem>, 'description'>>,
+  ) {
+    for (const blocklistItem of blocklistItems) {
+      const { description } = blocklistItem;
+
+      if (
+        description !== undefined &&
+        description !== null &&
+        typeof description !== 'string'
+      ) {
+        throw new BadRequestException(
+          'Blocklist description must be a string or null',
+        );
+      }
+    }
   }
 
   public async validateSchema(blocklist: BlocklistItem[]) {
@@ -100,6 +125,13 @@ export class BlocklistValidationService {
     userId: string,
     workspaceId: string,
   ) {
+    const payloadHandles = payload.data.map((item) => item.handle);
+    const uniquePayloadHandles = new Set(payloadHandles);
+
+    if (uniquePayloadHandles.size !== payloadHandles.length) {
+      throw new BadRequestException('Blocklist handle already exists');
+    }
+
     const authContext = buildSystemAuthContext(workspaceId);
 
     const currentWorkspaceMember =

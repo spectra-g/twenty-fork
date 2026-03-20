@@ -98,6 +98,44 @@ describe('BlocklistValidationService', () => {
     ).rejects.toThrow('Blocklist handle already exists');
   });
 
+  it('should reject createMany payloads with non-string descriptions', async () => {
+    await expect(
+      service.validateBlocklistForCreateMany(
+        {
+          data: [
+            {
+              handle: 'typed@example.dev',
+              description: 42 as never,
+            },
+          ],
+        },
+        'user-id',
+        'workspace-id',
+      ),
+    ).rejects.toThrow('Blocklist description must be a string or null');
+  });
+
+  it('should reject duplicate handles inside the same createMany payload', async () => {
+    await expect(
+      service.validateBlocklistForCreateMany(
+        {
+          data: [
+            {
+              handle: 'duplicate@example.dev',
+              description: null,
+            },
+            {
+              handle: 'duplicate@example.dev',
+              description: 'same batch',
+            },
+          ],
+        },
+        'user-id',
+        'workspace-id',
+      ),
+    ).rejects.toThrow('Blocklist handle already exists');
+  });
+
   it('should accept updateOne payloads that only null out description', async () => {
     await expect(
       service.validateBlocklistForUpdateOne(
@@ -127,6 +165,21 @@ describe('BlocklistValidationService', () => {
         'workspace-id',
       ),
     ).rejects.toThrow('Blocklist handle is required');
+  });
+
+  it('should reject updateOne payloads with non-string descriptions', async () => {
+    await expect(
+      service.validateBlocklistForUpdateOne(
+        {
+          id: 'blocklist-id',
+          data: {
+            description: { invalid: true } as never,
+          },
+        },
+        'user-id',
+        'workspace-id',
+      ),
+    ).rejects.toThrow('Blocklist description must be a string or null');
   });
 
   it('should skip duplicate lookups when updateOne does not modify the handle', async () => {

@@ -145,6 +145,22 @@ describe('Blocklist query hooks acceptance', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
+  it('should reject invalid runtime descriptions for createOne payloads', async () => {
+    await expect(
+      workspaceQueryHookService.executePreQueryHooks(
+        authContext,
+        'blocklist',
+        'createOne',
+        {
+          data: {
+            handle: 'typed@example.dev',
+            description: 42 as never,
+          },
+        },
+      ),
+    ).rejects.toThrow('Blocklist description must be a string or null');
+  });
+
   it('should reject duplicate createOne handles when description is null', async () => {
     blocklistRepository.getByWorkspaceMemberId.mockResolvedValue([
       {
@@ -165,6 +181,32 @@ describe('Blocklist query hooks acceptance', () => {
         },
       ),
     ).rejects.toThrow('Blocklist handle already exists');
+  });
+
+  it('should run uniqueness validation for valid createOne handles when description is null', async () => {
+    const payload = {
+      data: {
+        handle: 'unique@example.dev',
+        description: null,
+      },
+    };
+
+    await expect(
+      workspaceQueryHookService.executePreQueryHooks(
+        authContext,
+        'blocklist',
+        'createOne',
+        payload,
+      ),
+    ).resolves.toEqual(payload);
+
+    expect(workspaceMemberRepository.findOneByOrFail).toHaveBeenCalledWith({
+      userId: 'user-id',
+    });
+    expect(blocklistRepository.getByWorkspaceMemberId).toHaveBeenCalledWith(
+      'workspace-member-id',
+      'workspace-id',
+    );
   });
 
   it('should accept createMany payloads when one description is null', async () => {
@@ -191,6 +233,28 @@ describe('Blocklist query hooks acceptance', () => {
     ).resolves.toEqual(payload);
   });
 
+  it('should reject duplicate handles inside the same createMany payload', async () => {
+    await expect(
+      workspaceQueryHookService.executePreQueryHooks(
+        authContext,
+        'blocklist',
+        'createMany',
+        {
+          data: [
+            {
+              handle: 'batch-duplicate@example.dev',
+              description: null,
+            },
+            {
+              handle: 'batch-duplicate@example.dev',
+              description: 'same batch',
+            },
+          ],
+        },
+      ),
+    ).rejects.toThrow('Blocklist handle already exists');
+  });
+
   it('should accept updateOne payloads when description is set to null', async () => {
     const payload = {
       id: 'blocklist-id',
@@ -207,6 +271,22 @@ describe('Blocklist query hooks acceptance', () => {
         payload,
       ),
     ).resolves.toEqual(payload);
+  });
+
+  it('should reject invalid runtime descriptions for updateOne payloads', async () => {
+    await expect(
+      workspaceQueryHookService.executePreQueryHooks(
+        authContext,
+        'blocklist',
+        'updateOne',
+        {
+          id: 'blocklist-id',
+          data: {
+            description: false as never,
+          },
+        },
+      ),
+    ).rejects.toThrow('Blocklist description must be a string or null');
   });
 
   it('should reject updateOne payloads when handle is an empty string', async () => {
