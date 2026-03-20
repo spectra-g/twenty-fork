@@ -7,8 +7,8 @@ import { type CreateManyResolverArgs } from 'src/engine/api/graphql/workspace-re
 
 import { WorkspaceQueryHook } from 'src/engine/api/graphql/workspace-query-runner/workspace-query-hook/decorators/workspace-query-hook.decorator';
 import { type AuthContext } from 'src/engine/core-modules/auth/types/auth-context.type';
-import {
-  type BlocklistItem,
+import type {
+  BlocklistCreateInput,
   BlocklistValidationService,
 } from 'src/modules/blocklist/blocklist-validation-manager/services/blocklist-validation.service';
 import { WorkspaceNotFoundDefaultError } from 'src/engine/core-modules/workspace/workspace.exception';
@@ -24,8 +24,8 @@ export class BlocklistCreateManyPreQueryHook
   async execute(
     authContext: AuthContext,
     _objectName: string,
-    payload: CreateManyResolverArgs<BlocklistItem>,
-  ): Promise<CreateManyResolverArgs<BlocklistItem>> {
+    payload: CreateManyResolverArgs<BlocklistCreateInput>,
+  ): Promise<CreateManyResolverArgs<BlocklistCreateInput>> {
     if (!authContext.user?.id) {
       throw new BadRequestException('User id is required');
     }
