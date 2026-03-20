@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { AddBlocklistDescriptionFieldCommand } from 'src/database/commands/upgrade-version-command/1-19/1-19-add-blocklist-description-field.command';
 import { AddMissingSystemFieldsToStandardObjectsCommand } from 'src/database/commands/upgrade-version-command/1-19/1-19-add-missing-system-fields-to-standard-objects.command';
 import { BackfillMessageChannelMessageAssociationMessageFolderCommand } from 'src/database/commands/upgrade-version-command/1-19/1-19-backfill-message-channel-message-association-message-folder.command';
 import { BackfillPageLayoutsCommand } from 'src/database/commands/upgrade-version-command/1-19/1-19-backfill-page-layouts.command';
@@ -31,6 +32,7 @@ import { WorkspaceMigrationModule } from 'src/engine/workspace-manager/workspace
   providers: [
     BackfillSystemFieldsIsSystemCommand,
     AddMissingSystemFieldsToStandardObjectsCommand,
+    AddBlocklistDescriptionFieldCommand,
     BackfillMessageChannelMessageAssociationMessageFolderCommand,
     BackfillPageLayoutsCommand,
     FixInvalidStandardUniversalIdentifiersCommand,
@@ -38,6 +40,7 @@ import { WorkspaceMigrationModule } from 'src/engine/workspace-manager/workspace
   exports: [
     BackfillSystemFieldsIsSystemCommand,
     AddMissingSystemFieldsToStandardObjectsCommand,
+    AddBlocklistDescriptionFieldCommand,
     BackfillMessageChannelMessageAssociationMessageFolderCommand,
     BackfillPageLayoutsCommand,
     FixInvalidStandardUniversalIdentifiersCommand,
