@@ -28,6 +28,8 @@ export type BlocklistItem = Omit<
   workspaceMemberId: string;
 };
 
+const BLOCKLIST_DESCRIPTION_MAX_LENGTH = 255;
+
 @Injectable()
 export class BlocklistValidationService {
   constructor(
@@ -88,6 +90,15 @@ export class BlocklistValidationService {
       ) {
         throw new BadRequestException(
           'Blocklist description must be a string or null',
+        );
+      }
+
+      if (
+        typeof description === 'string' &&
+        description.length > BLOCKLIST_DESCRIPTION_MAX_LENGTH
+      ) {
+        throw new BadRequestException(
+          `Blocklist description must not exceed ${BLOCKLIST_DESCRIPTION_MAX_LENGTH} characters`,
         );
       }
     }

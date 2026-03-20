@@ -1,8 +1,7 @@
-import 'reflect-metadata';
-
 import { BadRequestException } from '@nestjs/common';
 import { DiscoveryModule } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';
+import 'reflect-metadata';
 
 import { WorkspaceQueryHookMetadataAccessor } from 'src/engine/api/graphql/workspace-query-runner/workspace-query-hook/workspace-query-hook-metadata.accessor';
 import { WorkspaceQueryHookExplorer } from 'src/engine/api/graphql/workspace-query-runner/workspace-query-hook/workspace-query-hook.explorer';
@@ -24,6 +23,9 @@ const authContext = {
     id: 'workspace-id',
   },
 } as AuthContext;
+
+const VALID_DESCRIPTION = 'a'.repeat(255);
+const TOO_LONG_DESCRIPTION = 'a'.repeat(256);
 
 describe('Blocklist query hooks acceptance', () => {
   let module: TestingModule;
@@ -161,6 +163,40 @@ describe('Blocklist query hooks acceptance', () => {
     ).rejects.toThrow('Blocklist description must be a string or null');
   });
 
+  it('should reject createOne payloads when description exceeds 255 characters', async () => {
+    await expect(
+      workspaceQueryHookService.executePreQueryHooks(
+        authContext,
+        'blocklist',
+        'createOne',
+        {
+          data: {
+            handle: 'too-long@example.dev',
+            description: TOO_LONG_DESCRIPTION,
+          },
+        },
+      ),
+    ).rejects.toThrow('Blocklist description must not exceed 255 characters');
+  });
+
+  it('should accept createOne payloads when description is exactly 255 characters', async () => {
+    const payload = {
+      data: {
+        handle: 'max-length@example.dev',
+        description: VALID_DESCRIPTION,
+      },
+    };
+
+    await expect(
+      workspaceQueryHookService.executePreQueryHooks(
+        authContext,
+        'blocklist',
+        'createOne',
+        payload,
+      ),
+    ).resolves.toEqual(payload);
+  });
+
   it('should reject duplicate createOne handles when description is null', async () => {
     blocklistRepository.getByWorkspaceMemberId.mockResolvedValue([
       {
@@ -255,6 +291,28 @@ describe('Blocklist query hooks acceptance', () => {
     ).rejects.toThrow('Blocklist handle already exists');
   });
 
+  it('should reject createMany payloads when any description exceeds 255 characters', async () => {
+    await expect(
+      workspaceQueryHookService.executePreQueryHooks(
+        authContext,
+        'blocklist',
+        'createMany',
+        {
+          data: [
+            {
+              handle: 'batch-valid@example.dev',
+              description: VALID_DESCRIPTION,
+            },
+            {
+              handle: 'batch-too-long@example.dev',
+              description: TOO_LONG_DESCRIPTION,
+            },
+          ],
+        },
+      ),
+    ).rejects.toThrow('Blocklist description must not exceed 255 characters');
+  });
+
   it('should accept updateOne payloads when description is set to null', async () => {
     const payload = {
       id: 'blocklist-id',
@@ -287,6 +345,22 @@ describe('Blocklist query hooks acceptance', () => {
         },
       ),
     ).rejects.toThrow('Blocklist description must be a string or null');
+  });
+
+  it('should reject updateOne payloads when description exceeds 255 characters', async () => {
+    await expect(
+      workspaceQueryHookService.executePreQueryHooks(
+        authContext,
+        'blocklist',
+        'updateOne',
+        {
+          id: 'blocklist-id',
+          data: {
+            description: TOO_LONG_DESCRIPTION,
+          },
+        },
+      ),
+    ).rejects.toThrow('Blocklist description must not exceed 255 characters');
   });
 
   it('should reject updateOne payloads when handle is an empty string', async () => {
