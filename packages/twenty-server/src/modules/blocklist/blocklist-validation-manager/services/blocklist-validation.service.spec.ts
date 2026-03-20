@@ -181,4 +181,72 @@ describe('BlocklistValidationService', () => {
 
     expect(payload.data.description).toBeNull();
   });
+
+  it('should reject a create payload when the description exceeds 255 characters', async () => {
+    const service = new BlocklistValidationService(
+      {
+        getByWorkspaceMemberId: jest.fn().mockResolvedValue([]),
+      } as never,
+      {
+        executeInWorkspaceContext: jest
+          .fn()
+          .mockResolvedValue({ id: 'workspace-member-id' }),
+        getRepository: jest.fn(),
+      } as never,
+    );
+    const payload: CreateManyResolverArgs<BlocklistCreateInput> = {
+      data: [
+        {
+          handle: 'created@example.com',
+          description: 'a'.repeat(256),
+          createdAt: '2026-03-20T12:00:00.000Z',
+          updatedAt: '2026-03-20T12:00:00.000Z',
+        },
+      ],
+    };
+
+    await expect(
+      service.validateBlocklistForCreateMany(
+        payload,
+        'user-id',
+        'workspace-id',
+      ),
+    ).rejects.toThrow(
+      new BadRequestException('Description must be 255 characters or less'),
+    );
+  });
+
+  it('should accept a 255-character description on update', async () => {
+    const blocklistRepository = {
+      getById: jest.fn().mockResolvedValue({
+        id: 'blocklist-id',
+        handle: 'existing@example.com',
+        description: 'Existing description',
+        workspaceMemberId: 'workspace-member-id',
+      }),
+      getByWorkspaceMemberId: jest.fn(),
+    };
+    const globalWorkspaceOrmManager = {
+      executeInWorkspaceContext: jest.fn(),
+      getRepository: jest.fn(),
+    };
+    const service = new BlocklistValidationService(
+      blocklistRepository as never,
+      globalWorkspaceOrmManager as never,
+    );
+    const payload: UpdateOneResolverArgs<BlocklistUpdateInput> = {
+      id: 'blocklist-id',
+      data: {
+        description: 'a'.repeat(255),
+      },
+    };
+
+    await service.validateBlocklistForUpdateOne(
+      payload,
+      'user-id',
+      'workspace-id',
+    );
+
+    expect(payload.data.description).toBe('a'.repeat(255));
+  });
 });

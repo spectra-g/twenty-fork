@@ -13,8 +13,10 @@ import { IconX, OverflowingTextWithTooltip } from 'twenty-ui/display';
 type SettingsAccountsBlocklistTableRowProps = {
   blocklistItem: BlocklistItem;
   descriptionError?: string;
+  descriptionLength?: number;
   editedDescription?: string;
   isEditingDescription?: boolean;
+  maxDescriptionLength?: number;
   onCancelDescription?: () => void;
   onDescriptionChange?: (description: string) => void;
   onEditDescription?: (blocklistItem: BlocklistItem) => void;
@@ -40,11 +42,25 @@ const StyledDescriptionError = styled.div`
   font-size: ${({ theme }) => theme.font.size.xs};
 `;
 
+const StyledDescriptionMeta = styled.div`
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+`;
+
+const StyledDescriptionCounter = styled.div`
+  color: ${({ theme }) => theme.font.color.light};
+  font-size: ${({ theme }) => theme.font.size.xs};
+  margin-left: auto;
+`;
+
 export const SettingsAccountsBlocklistTableRow = ({
   blocklistItem,
   descriptionError,
+  descriptionLength = 0,
   editedDescription,
   isEditingDescription = false,
+  maxDescriptionLength = 255,
   onCancelDescription,
   onDescriptionChange,
   onEditDescription,
@@ -67,13 +83,21 @@ export const SettingsAccountsBlocklistTableRow = ({
               textAreaId={`blocklist-description-${blocklistItem.id}`}
               placeholder={t`Add a description`}
               value={editedDescription ?? ''}
+              maxLength={maxDescriptionLength}
               onChange={onDescriptionChange}
             />
-            {descriptionError ? (
-              <StyledDescriptionError>
-                {descriptionError}
-              </StyledDescriptionError>
-            ) : null}
+            <StyledDescriptionMeta>
+              {descriptionError ? (
+                <StyledDescriptionError>
+                  {descriptionError}
+                </StyledDescriptionError>
+              ) : (
+                <div />
+              )}
+              <StyledDescriptionCounter>
+                {descriptionLength}/{maxDescriptionLength}
+              </StyledDescriptionCounter>
+            </StyledDescriptionMeta>
           </StyledDescriptionEditor>
         ) : (
           blocklistItem.description || t`No description`

@@ -171,4 +171,68 @@ describe('Blocklist description pre-query hooks', () => {
       globalWorkspaceOrmManager.executeInWorkspaceContext,
     ).not.toHaveBeenCalled();
   });
+
+  it('should reject createMany when the description exceeds 255 characters', async () => {
+    const blocklistValidationService = new BlocklistValidationService(
+      {
+        getByWorkspaceMemberId: jest.fn().mockResolvedValue([]),
+      } as never,
+      {
+        executeInWorkspaceContext: jest
+          .fn()
+          .mockResolvedValue({ id: 'workspace-member-id' }),
+        getRepository: jest.fn(),
+      } as never,
+    );
+    const hook = new BlocklistCreateManyPreQueryHook(
+      blocklistValidationService,
+    );
+    const payload = {
+      data: [
+        {
+          handle: 'prospect@example.com',
+          description: 'a'.repeat(256),
+          createdAt: '2026-03-20T12:00:00.000Z',
+          updatedAt: '2026-03-20T12:00:00.000Z',
+        },
+      ],
+    } satisfies CreateManyResolverArgs<BlocklistCreateInput>;
+
+    await expect(
+      hook.execute(authContext, 'blocklist', payload),
+    ).rejects.toThrow('Description must be 255 characters or less');
+  });
+
+  it('should reject updateOne when the description exceeds 255 characters', async () => {
+    const blocklistRepository = {
+      getById: jest.fn().mockResolvedValue({
+        id: 'blocklist-id',
+        handle: 'prospect@example.com',
+        description: 'Existing description',
+        workspaceMemberId: 'workspace-member-id',
+      }),
+      getByWorkspaceMemberId: jest.fn(),
+    };
+    const globalWorkspaceOrmManager = {
+      executeInWorkspaceContext: jest.fn(),
+      getRepository: jest.fn(),
+    };
+    const blocklistValidationService = new BlocklistValidationService(
+      blocklistRepository as never,
+      globalWorkspaceOrmManager as never,
+    );
+    const hook = new BlocklistUpdateOnePreQueryHook(blocklistValidationService);
+    const payload = {
+      id: 'blocklist-id',
+      data: {
+        description: 'b'.repeat(256),
+      },
+    } as UpdateOneResolverArgs<{
+      description: string;
+    }>;
+
+    await expect(
+      hook.execute(authContext, 'blocklist', payload),
+    ).rejects.toThrow('Description must be 255 characters or less');
+  });
 });

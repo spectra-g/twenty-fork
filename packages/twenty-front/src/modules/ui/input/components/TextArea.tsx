@@ -15,6 +15,7 @@ export type TextAreaProps = {
   disabled?: boolean;
   minRows?: number;
   maxRows?: number;
+  maxLength?: number;
   onChange?: (value: string) => void;
   placeholder?: string;
   value?: string;
@@ -77,6 +78,7 @@ export const TextArea = ({
   placeholder,
   minRows = 1,
   maxRows = MAX_ROWS,
+  maxLength,
   value = '',
   className,
   onChange,
@@ -119,6 +121,7 @@ export const TextArea = ({
         maxRows={maxRows}
         minRows={computedMinRows}
         value={value}
+        maxLength={maxLength}
         onChange={(event) =>
           onChange?.(turnIntoEmptyStringIfWhitespacesOnly(event.target.value))
         }

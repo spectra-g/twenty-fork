@@ -1,5 +1,4 @@
-import { Locator, Page } from '@playwright/test';
-import { expect } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 export class AccountsSection {
   private readonly addAccountButton: Locator;
@@ -99,6 +98,18 @@ export class AccountsSection {
 
   async saveDescriptionEditor() {
     await this.saveDescriptionButton.click();
+  }
+
+  async expectDescriptionCounter(counter: string) {
+    await expect(this.page.getByText(counter)).toBeVisible();
+  }
+
+  async expectDescriptionEditorValue(value: string) {
+    await expect(this.descriptionEditor).toHaveValue(value);
+  }
+
+  async expectDescriptionValidationMessage(message: string) {
+    await expect(this.page.getByText(message)).toBeVisible();
   }
 
   async linkGoogleAccount() {

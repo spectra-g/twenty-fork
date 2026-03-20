@@ -5,9 +5,11 @@ import { Table } from '@/ui/layout/table/components/Table';
 import { TableBody } from '@/ui/layout/table/components/TableBody';
 import { TableHeader } from '@/ui/layout/table/components/TableHeader';
 import { TableRow } from '@/ui/layout/table/components/TableRow';
+import { ApolloError } from '@apollo/client';
 import styled from '@emotion/styled';
 import { t } from '@lingui/core/macro';
 import { useEffect, useState } from 'react';
+import { getErrorMessageFromApolloError } from '~/utils/get-error-message-from-apollo-error.util';
 
 type SettingsAccountsBlocklistTableProps = {
   blocklist: BlocklistItem[];
@@ -80,11 +82,22 @@ export const SettingsAccountsBlocklistTable = ({
     const normalizedDescription =
       normalizeBlocklistDescription(editedDescription);
 
-    // Backend support for description persistence is pending in STORY-051.
-    await handleBlockedEmailDescriptionUpdate?.(
-      editingBlocklistItemId,
-      normalizedDescription,
-    );
+    try {
+      await handleBlockedEmailDescriptionUpdate?.(
+        editingBlocklistItemId,
+        normalizedDescription,
+      );
+    } catch (error) {
+      setDescriptionError(
+        error instanceof ApolloError
+          ? getErrorMessageFromApolloError(error)
+          : error instanceof Error
+            ? error.message
+            : t`Failed to update description`,
+      );
+
+      return;
+    }
 
     setBlocklistState((currentBlocklist) =>
       currentBlocklist.map((blocklistItem) =>
@@ -116,10 +129,12 @@ export const SettingsAccountsBlocklistTable = ({
                 key={blocklistItem.id}
                 blocklistItem={blocklistItem}
                 descriptionError={descriptionError}
+                descriptionLength={editedDescription.length}
                 editedDescription={editedDescription}
                 isEditingDescription={
                   editingBlocklistItemId === blocklistItem.id
                 }
+                maxDescriptionLength={BLOCKLIST_DESCRIPTION_MAX_LENGTH}
                 onCancelDescription={handleDescriptionCancel}
                 onDescriptionChange={handleDescriptionChange}
                 onEditDescription={handleDescriptionEdit}
