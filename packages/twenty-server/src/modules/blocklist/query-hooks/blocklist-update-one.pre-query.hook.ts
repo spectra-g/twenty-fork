@@ -34,12 +34,10 @@ export class BlocklistUpdateOnePreQueryHook
 
     assertIsDefinedOrThrow(workspace, WorkspaceNotFoundDefaultError);
 
-    await this.blocklistValidationService.validateBlocklistForUpdateOne(
+    return await this.blocklistValidationService.validateBlocklistForUpdateOne(
       payload,
       authContext.user?.id,
       workspace.id,
     );
-
-    return payload;
   }
 }

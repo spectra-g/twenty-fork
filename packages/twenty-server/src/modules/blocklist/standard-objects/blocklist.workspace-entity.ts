@@ -6,9 +6,11 @@ import { type EntityRelation } from 'src/engine/workspace-manager/workspace-migr
 import { type WorkspaceMemberWorkspaceEntity } from 'src/modules/workspace-member/standard-objects/workspace-member.workspace-entity';
 
 const HANDLE_FIELD_NAME = 'handle';
+const DESCRIPTION_FIELD_NAME = 'description';
 
 export const SEARCH_FIELDS_FOR_BLOCKLIST: FieldTypeAndNameMetadata[] = [
   { name: HANDLE_FIELD_NAME, type: FieldMetadataType.TEXT },
+  { name: DESCRIPTION_FIELD_NAME, type: FieldMetadataType.TEXT },
 ];
 
 export class BlocklistWorkspaceEntity extends BaseWorkspaceEntity {
