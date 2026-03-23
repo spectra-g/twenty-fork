@@ -4,7 +4,7 @@ import request from 'supertest';
 const client = request(`http://localhost:${APP_PORT}`);
 
 describe('blocklistsResolver (e2e)', () => {
-  it.skip('AC-001 should expose nullable description on blocklists query nodes', () => {
+  it.skip('should expose nullable description on blocklists query nodes', () => {
     const queryData = {
       query: `
         query blocklists {
@@ -56,7 +56,7 @@ describe('blocklistsResolver (e2e)', () => {
       });
   });
 
-  it.skip('AC-002 should accept description in createBlocklist input', () => {
+  it.skip('AC-001 should accept description in createBlocklist input', () => {
     const mutationData = {
       query: `
         mutation createBlocklist($data: CreateBlocklistInput!) {
@@ -92,7 +92,7 @@ describe('blocklistsResolver (e2e)', () => {
       });
   });
 
-  it.skip('AC-003 should accept description in updateBlocklist input', () => {
+  it.skip('AC-002 should accept description-only updateBlocklist input and return the description unchanged', () => {
     const mutationData = {
       query: `
         mutation updateBlocklist($id: String!, $data: UpdateBlocklistInput!) {
@@ -108,7 +108,6 @@ describe('blocklistsResolver (e2e)', () => {
         id: APPLE_JANE_BLOCKLIST_ID,
         data: {
           description: 'Schema acceptance for update input',
-          workspaceMemberId: APPLE_JANE_WORKSPACE_MEMBER_ID,
         },
       },
     };
@@ -123,8 +122,96 @@ describe('blocklistsResolver (e2e)', () => {
         expect(res.body.data.updateBlocklist).toMatchObject({
           id: APPLE_JANE_BLOCKLIST_ID,
           description: 'Schema acceptance for update input',
-          workspaceMemberId: APPLE_JANE_WORKSPACE_MEMBER_ID,
         });
       });
+  });
+
+  it.skip('AC-003 should preserve handle validation rules when description is also provided', () => {
+    const invalidHandleMutationData = {
+      query: `
+        mutation createBlocklist($data: CreateBlocklistInput!) {
+          createBlocklist(data: $data) {
+            id
+            handle
+            description
+          }
+        }
+      `,
+      variables: {
+        data: {
+          handle: 'not-an-email',
+          description: 'Still invalid because the handle format is wrong',
+          workspaceMemberId: APPLE_JANE_WORKSPACE_MEMBER_ID,
+        },
+      },
+    };
+
+    const duplicateHandleMutationData = {
+      query: `
+        mutation createBlocklist($data: CreateBlocklistInput!) {
+          createBlocklist(data: $data) {
+            id
+            handle
+            description
+          }
+        }
+      `,
+      variables: {
+        data: {
+          handle: 'acceptance-duplicate@example.com',
+          description: 'First create succeeds',
+          workspaceMemberId: APPLE_JANE_WORKSPACE_MEMBER_ID,
+        },
+      },
+    };
+
+    return client
+      .post('/graphql')
+      .set('Authorization', `Bearer ${APPLE_JANE_ADMIN_ACCESS_TOKEN}`)
+      .send(invalidHandleMutationData)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.createBlocklist).toBeNull();
+        expect(res.body.errors?.[0]?.message).toContain(
+          'Invalid email or domain',
+        );
+      })
+      .then(() =>
+        client
+          .post('/graphql')
+          .set('Authorization', `Bearer ${APPLE_JANE_ADMIN_ACCESS_TOKEN}`)
+          .send(duplicateHandleMutationData)
+          .expect(200)
+          .expect((res) => {
+            expect(res.body.errors).toBeUndefined();
+            expect(res.body.data.createBlocklist).toMatchObject({
+              handle: 'acceptance-duplicate@example.com',
+              description: 'First create succeeds',
+            });
+          })
+          .then(() =>
+            client
+              .post('/graphql')
+              .set('Authorization', `Bearer ${APPLE_JANE_ADMIN_ACCESS_TOKEN}`)
+              .send({
+                ...duplicateHandleMutationData,
+                variables: {
+                  data: {
+                    handle: 'acceptance-duplicate@example.com',
+                    description:
+                      'Second create should still fail duplicate validation',
+                    workspaceMemberId: APPLE_JANE_WORKSPACE_MEMBER_ID,
+                  },
+                },
+              })
+              .expect(200)
+              .expect((res) => {
+                expect(res.body.data.createBlocklist).toBeNull();
+                expect(res.body.errors?.[0]?.message).toContain(
+                  'Blocklist handle already exists',
+                );
+              }),
+          ),
+      );
   });
 });
