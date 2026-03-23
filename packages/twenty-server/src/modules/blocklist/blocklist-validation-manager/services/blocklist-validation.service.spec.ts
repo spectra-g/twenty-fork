@@ -11,6 +11,39 @@ const createGlobalWorkspaceOrmManagerMock = () => ({
 });
 
 describe('BlocklistValidationService', () => {
+  it('should return create payload unchanged when description is omitted', async () => {
+    const blocklistRepository = createBlocklistRepositoryMock();
+    const globalWorkspaceOrmManager = createGlobalWorkspaceOrmManagerMock();
+    const service = new BlocklistValidationService(
+      blocklistRepository as never,
+      globalWorkspaceOrmManager as never,
+    );
+    const payload = {
+      data: [
+        {
+          handle: 'person@example.com',
+          workspaceMemberId: 'workspace-member-id',
+          id: 'blocklist-id',
+          createdAt: '2026-03-23T00:00:00.000Z',
+          updatedAt: '2026-03-23T00:00:00.000Z',
+        },
+      ],
+    };
+
+    jest.spyOn(service, 'validateSchema').mockResolvedValue(undefined);
+    jest
+      .spyOn(service, 'validateUniquenessForCreateMany')
+      .mockResolvedValue(undefined);
+
+    await expect(
+      service.validateBlocklistForCreateMany(
+        payload as never,
+        'user-id',
+        'workspace-id',
+      ),
+    ).resolves.toEqual(payload);
+  });
+
   it('should return create payload unchanged when description is present', async () => {
     const blocklistRepository = createBlocklistRepositoryMock();
     const globalWorkspaceOrmManager = createGlobalWorkspaceOrmManagerMock();
@@ -39,6 +72,40 @@ describe('BlocklistValidationService', () => {
     await expect(
       service.validateBlocklistForCreateMany(
         payload,
+        'user-id',
+        'workspace-id',
+      ),
+    ).resolves.toEqual(payload);
+  });
+
+  it('should return create payload unchanged when description is null', async () => {
+    const blocklistRepository = createBlocklistRepositoryMock();
+    const globalWorkspaceOrmManager = createGlobalWorkspaceOrmManagerMock();
+    const service = new BlocklistValidationService(
+      blocklistRepository as never,
+      globalWorkspaceOrmManager as never,
+    );
+    const payload = {
+      data: [
+        {
+          handle: 'person@example.com',
+          description: null,
+          workspaceMemberId: 'workspace-member-id',
+          id: 'blocklist-id',
+          createdAt: '2026-03-23T00:00:00.000Z',
+          updatedAt: '2026-03-23T00:00:00.000Z',
+        },
+      ],
+    };
+
+    jest.spyOn(service, 'validateSchema').mockResolvedValue(undefined);
+    jest
+      .spyOn(service, 'validateUniquenessForCreateMany')
+      .mockResolvedValue(undefined);
+
+    await expect(
+      service.validateBlocklistForCreateMany(
+        payload as never,
         'user-id',
         'workspace-id',
       ),
@@ -97,6 +164,46 @@ describe('BlocklistValidationService', () => {
         },
       ]),
     ).rejects.toThrow();
+  });
+
+  it('should reject create payload when description exceeds 255 characters', async () => {
+    const service = new BlocklistValidationService(
+      createBlocklistRepositoryMock() as never,
+      createGlobalWorkspaceOrmManagerMock() as never,
+    );
+
+    await expect(
+      service.validateSchema([
+        {
+          handle: 'person@example.com',
+          description: 'a'.repeat(256),
+          workspaceMemberId: 'workspace-member-id',
+          id: 'blocklist-id',
+          createdAt: '2026-03-23T00:00:00.000Z',
+          updatedAt: '2026-03-23T00:00:00.000Z',
+        },
+      ]),
+    ).rejects.toThrow('255');
+  });
+
+  it('should accept create payload when description is exactly 255 characters', async () => {
+    const service = new BlocklistValidationService(
+      createBlocklistRepositoryMock() as never,
+      createGlobalWorkspaceOrmManagerMock() as never,
+    );
+
+    await expect(
+      service.validateSchema([
+        {
+          handle: 'person@example.com',
+          description: 'b'.repeat(255),
+          workspaceMemberId: 'workspace-member-id',
+          id: 'blocklist-id',
+          createdAt: '2026-03-23T00:00:00.000Z',
+          updatedAt: '2026-03-23T00:00:00.000Z',
+        },
+      ]),
+    ).resolves.toBeUndefined();
   });
 
   it('should reject duplicate handle on create when description is present', async () => {
@@ -185,5 +292,29 @@ describe('BlocklistValidationService', () => {
         'workspace-id',
       ),
     ).rejects.toThrow('Blocklist handle is required');
+  });
+
+  it('should reject update payload when description exceeds 255 characters', async () => {
+    const blocklistRepository = createBlocklistRepositoryMock();
+    const globalWorkspaceOrmManager = createGlobalWorkspaceOrmManagerMock();
+    const service = new BlocklistValidationService(
+      blocklistRepository as never,
+      globalWorkspaceOrmManager as never,
+    );
+
+    await expect(
+      service.validateBlocklistForUpdateOne(
+        {
+          id: 'blocklist-id',
+          data: {
+            description: 'c'.repeat(256),
+          },
+        } as never,
+        'user-id',
+        'workspace-id',
+      ),
+    ).rejects.toThrow('255');
+
+    expect(blocklistRepository.getById).not.toHaveBeenCalled();
   });
 });

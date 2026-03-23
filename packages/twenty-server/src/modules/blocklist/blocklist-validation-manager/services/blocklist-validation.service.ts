@@ -24,6 +24,8 @@ export type BlocklistItem = Omit<
   workspaceMemberId: string;
 };
 
+const BLOCKLIST_DESCRIPTION_MAX_LENGTH = 255;
+
 @Injectable()
 export class BlocklistValidationService {
   constructor(
@@ -51,6 +53,9 @@ export class BlocklistValidationService {
     if (typeof payload.data.handle !== 'undefined') {
       await this.validateSchema([payload.data]);
     }
+    if ('description' in payload.data) {
+      this.validateDescription(payload.data.description);
+    }
     await this.validateUniquenessForUpdateOne(payload, userId, workspaceId);
 
     return payload;
@@ -70,16 +75,32 @@ export class BlocklistValidationService {
           ),
       );
 
-    for (const handle of blocklist.map((item) => item.handle)) {
-      if (!handle) {
+    for (const item of blocklist) {
+      if (!item.handle) {
         throw new BadRequestException('Blocklist handle is required');
       }
 
-      const result = emailOrDomainSchema.safeParse(handle);
+      const result = emailOrDomainSchema.safeParse(item.handle);
 
       if (!result.success) {
         throw new BadRequestException(result.error.issues[0].message);
       }
+
+      if ('description' in item) {
+        this.validateDescription(item.description);
+      }
+    }
+  }
+
+  public validateDescription(description: string | null | undefined) {
+    if (description === null || typeof description === 'undefined') {
+      return;
+    }
+
+    if (description.length > BLOCKLIST_DESCRIPTION_MAX_LENGTH) {
+      throw new BadRequestException(
+        `Blocklist description cannot exceed ${BLOCKLIST_DESCRIPTION_MAX_LENGTH} characters`,
+      );
     }
   }
 
