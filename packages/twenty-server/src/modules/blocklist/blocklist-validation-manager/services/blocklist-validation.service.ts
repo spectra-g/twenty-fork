@@ -48,7 +48,7 @@ export class BlocklistValidationService {
     userId: string,
     workspaceId: string,
   ) {
-    if (payload.data.handle) {
+    if (typeof payload.data.handle !== 'undefined') {
       await this.validateSchema([payload.data]);
     }
     await this.validateUniquenessForUpdateOne(payload, userId, workspaceId);
@@ -137,8 +137,15 @@ export class BlocklistValidationService {
       throw new BadRequestException('Blocklist item not found');
     }
 
-    if (existingRecord.workspaceMemberId !== payload.data.workspaceMemberId) {
+    if (
+      typeof payload.data.workspaceMemberId !== 'undefined' &&
+      existingRecord.workspaceMemberId !== payload.data.workspaceMemberId
+    ) {
       throw new BadRequestException('Workspace member cannot be updated');
+    }
+
+    if (typeof payload.data.handle === 'undefined') {
+      return;
     }
 
     if (existingRecord.handle === payload.data.handle) {
