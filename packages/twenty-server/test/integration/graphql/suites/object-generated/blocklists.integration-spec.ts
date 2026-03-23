@@ -4,7 +4,7 @@ import request from 'supertest';
 const client = request(`http://localhost:${APP_PORT}`);
 
 describe('blocklistsResolver (e2e)', () => {
-  it.skip('AC-001 should create a blocklist with description and return it from a follow-up query', async () => {
+  it.skip('AC-001 should create a blocklist without description and return null', async () => {
     const createMutationData = {
       query: `
           mutation createBlocklist($data: CreateBlocklistInput!) {
@@ -18,8 +18,7 @@ describe('blocklistsResolver (e2e)', () => {
         `,
       variables: {
         data: {
-          handle: 'acceptance-create@example.com',
-          description: 'Created through the GraphQL acceptance flow',
+          handle: 'acceptance-create-no-description@example.com',
           workspaceMemberId: APPLE_JANE_WORKSPACE_MEMBER_ID,
         },
       },
@@ -48,8 +47,8 @@ describe('blocklistsResolver (e2e)', () => {
 
     expect(createResponse.body.errors).toBeUndefined();
     expect(createResponse.body.data.createBlocklist).toMatchObject({
-      handle: 'acceptance-create@example.com',
-      description: 'Created through the GraphQL acceptance flow',
+      handle: 'acceptance-create-no-description@example.com',
+      description: null,
       workspaceMemberId: APPLE_JANE_WORKSPACE_MEMBER_ID,
     });
 
@@ -64,54 +63,13 @@ describe('blocklistsResolver (e2e)', () => {
     expect(queryResponse.body.errors).toBeUndefined();
     expect(queryResponse.body.data.blocklist).toMatchObject({
       id: createResponse.body.data.createBlocklist.id,
-      handle: 'acceptance-create@example.com',
-      description: 'Created through the GraphQL acceptance flow',
+      handle: 'acceptance-create-no-description@example.com',
+      description: null,
       workspaceMemberId: APPLE_JANE_WORKSPACE_MEMBER_ID,
     });
   });
 
-  it.skip('AC-002 should expose description on the blocklist query response', async () => {
-    const queryData = {
-      query: `
-        query blocklist($id: String!) {
-          blocklist(id: $id) {
-            id
-            handle
-            description
-            workspaceMemberId
-            createdAt
-            updatedAt
-            deletedAt
-          }
-        }
-      `,
-      variables: {
-        id: APPLE_JANE_BLOCKLIST_ID,
-      },
-    };
-
-    const response = await client
-      .post('/graphql')
-      .set('Authorization', `Bearer ${APPLE_JANE_ADMIN_ACCESS_TOKEN}`)
-      .send(queryData)
-      .expect(200);
-
-    expect(response.body.data).toBeDefined();
-    expect(response.body.errors).toBeUndefined();
-    expect(response.body.data.blocklist).toEqual(
-      expect.objectContaining({
-        id: APPLE_JANE_BLOCKLIST_ID,
-        handle: expect.any(String),
-        description: expect.anything(),
-        workspaceMemberId: APPLE_JANE_WORKSPACE_MEMBER_ID,
-        createdAt: expect.any(String),
-        updatedAt: expect.any(String),
-        deletedAt: null,
-      }),
-    );
-  });
-
-  it.skip('AC-003 should update a blocklist description and return the updated value from a follow-up query', async () => {
+  it.skip('AC-002 should create a blocklist with an explicit null description and return null', async () => {
     const createMutationData = {
       query: `
           mutation createBlocklist($data: CreateBlocklistInput!) {
@@ -125,8 +83,43 @@ describe('blocklistsResolver (e2e)', () => {
         `,
       variables: {
         data: {
-          handle: 'acceptance-update@example.com',
-          description: 'Original acceptance description',
+          handle: 'acceptance-create-null-description@example.com',
+          description: null,
+          workspaceMemberId: APPLE_JANE_WORKSPACE_MEMBER_ID,
+        },
+      },
+    };
+
+    const response = await client
+      .post('/graphql')
+      .set('Authorization', `Bearer ${APPLE_JANE_ADMIN_ACCESS_TOKEN}`)
+      .send(createMutationData)
+      .expect(200);
+
+    expect(response.body.errors).toBeUndefined();
+    expect(response.body.data.createBlocklist).toMatchObject({
+      handle: 'acceptance-create-null-description@example.com',
+      description: null,
+      workspaceMemberId: APPLE_JANE_WORKSPACE_MEMBER_ID,
+    });
+  });
+
+  it.skip('AC-003 should preserve an existing description when update omits the description field', async () => {
+    const createMutationData = {
+      query: `
+          mutation createBlocklist($data: CreateBlocklistInput!) {
+            createBlocklist(data: $data) {
+              id
+              handle
+              description
+              workspaceMemberId
+            }
+          }
+        `,
+      variables: {
+        data: {
+          handle: 'acceptance-preserve-description@example.com',
+          description: 'Original description should be preserved',
           workspaceMemberId: APPLE_JANE_WORKSPACE_MEMBER_ID,
         },
       },
@@ -145,7 +138,7 @@ describe('blocklistsResolver (e2e)', () => {
       variables: {
         id: '',
         data: {
-          description: 'Updated through the GraphQL acceptance flow',
+          handle: 'acceptance-preserve-description-renamed@example.com',
         },
       },
     };
@@ -186,8 +179,8 @@ describe('blocklistsResolver (e2e)', () => {
     expect(updateResponse.body.errors).toBeUndefined();
     expect(updateResponse.body.data.updateBlocklist).toMatchObject({
       id: createResponse.body.data.createBlocklist.id,
-      handle: 'acceptance-update@example.com',
-      description: 'Updated through the GraphQL acceptance flow',
+      handle: 'acceptance-preserve-description-renamed@example.com',
+      description: 'Original description should be preserved',
       workspaceMemberId: APPLE_JANE_WORKSPACE_MEMBER_ID,
     });
 
@@ -200,14 +193,14 @@ describe('blocklistsResolver (e2e)', () => {
     expect(queryResponse.body.errors).toBeUndefined();
     expect(queryResponse.body.data.blocklist).toMatchObject({
       id: createResponse.body.data.createBlocklist.id,
-      handle: 'acceptance-update@example.com',
-      description: 'Updated through the GraphQL acceptance flow',
+      handle: 'acceptance-preserve-description-renamed@example.com',
+      description: 'Original description should be preserved',
       workspaceMemberId: APPLE_JANE_WORKSPACE_MEMBER_ID,
     });
   });
 
-  it.skip('should preserve handle validation rules when description is also provided', () => {
-    const invalidHandleMutationData = {
+  it.skip('AC-004 should reject a 256-character description with a max-length validation error', async () => {
+    const mutationData = {
       query: `
         mutation createBlocklist($data: CreateBlocklistInput!) {
           createBlocklist(data: $data) {
@@ -219,79 +212,62 @@ describe('blocklistsResolver (e2e)', () => {
       `,
       variables: {
         data: {
-          handle: 'not-an-email',
-          description: 'Still invalid because the handle format is wrong',
+          handle: 'acceptance-too-long@example.com',
+          description: 'a'.repeat(256),
           workspaceMemberId: APPLE_JANE_WORKSPACE_MEMBER_ID,
         },
       },
     };
 
-    const duplicateHandleMutationData = {
-      query: `
-        mutation createBlocklist($data: CreateBlocklistInput!) {
-          createBlocklist(data: $data) {
-            id
-            handle
-            description
-          }
-        }
-      `,
-      variables: {
-        data: {
-          handle: 'acceptance-duplicate@example.com',
-          description: 'First create succeeds',
-          workspaceMemberId: APPLE_JANE_WORKSPACE_MEMBER_ID,
-        },
-      },
-    };
-
-    return client
+    const response = await client
       .post('/graphql')
       .set('Authorization', `Bearer ${APPLE_JANE_ADMIN_ACCESS_TOKEN}`)
-      .send(invalidHandleMutationData)
-      .expect(200)
-      .expect((res) => {
-        expect(res.body.data.createBlocklist).toBeNull();
-        expect(res.body.errors?.[0]?.message).toContain(
-          'Invalid email or domain',
-        );
-      })
-      .then(() =>
-        client
-          .post('/graphql')
-          .set('Authorization', `Bearer ${APPLE_JANE_ADMIN_ACCESS_TOKEN}`)
-          .send(duplicateHandleMutationData)
-          .expect(200)
-          .expect((res) => {
-            expect(res.body.errors).toBeUndefined();
-            expect(res.body.data.createBlocklist).toMatchObject({
-              handle: 'acceptance-duplicate@example.com',
-              description: 'First create succeeds',
-            });
-          })
-          .then(() =>
-            client
-              .post('/graphql')
-              .set('Authorization', `Bearer ${APPLE_JANE_ADMIN_ACCESS_TOKEN}`)
-              .send({
-                ...duplicateHandleMutationData,
-                variables: {
-                  data: {
-                    handle: 'acceptance-duplicate@example.com',
-                    description:
-                      'Second create should still fail duplicate validation',
-                    workspaceMemberId: APPLE_JANE_WORKSPACE_MEMBER_ID,
-                  },
-                },
-              })
-              .expect(200)
-              .expect((res) => {
-                expect(res.body.data.createBlocklist).toBeNull();
-                expect(res.body.errors?.[0]?.message).toContain(
-                  'Blocklist handle already exists',
-                );
-              }),
-          ),
-      );
+      .send(mutationData)
+      .expect(200);
+
+    expect(response.body.data.createBlocklist).toBeNull();
+    expect(response.body.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          message: expect.stringContaining('255'),
+        }),
+      ]),
+    );
+  });
+
+  it.skip('AC-005 should accept a 255-character description and persist it', async () => {
+    const maxLengthDescription = 'b'.repeat(255);
+    const createMutationData = {
+      query: `
+        mutation createBlocklist($data: CreateBlocklistInput!) {
+          createBlocklist(data: $data) {
+            id
+            handle
+            description
+            workspaceMemberId
+          }
+        }
+      `,
+      variables: {
+        data: {
+          handle: 'acceptance-max-length@example.com',
+          description: maxLengthDescription,
+          workspaceMemberId: APPLE_JANE_WORKSPACE_MEMBER_ID,
+        },
+      },
+    };
+
+    const response = await client
+      .post('/graphql')
+      .set('Authorization', `Bearer ${APPLE_JANE_ADMIN_ACCESS_TOKEN}`)
+      .send(createMutationData)
+      .expect(200);
+
+    expect(response.body.errors).toBeUndefined();
+    expect(response.body.data.createBlocklist).toMatchObject({
+      handle: 'acceptance-max-length@example.com',
+      description: maxLengthDescription,
+      workspaceMemberId: APPLE_JANE_WORKSPACE_MEMBER_ID,
+    });
   });
 });

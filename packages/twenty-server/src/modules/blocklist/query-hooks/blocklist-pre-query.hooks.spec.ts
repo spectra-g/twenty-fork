@@ -83,4 +83,42 @@ describe('Blocklist pre-query hooks', () => {
       blocklistValidationService.validateBlocklistForUpdateOne,
     ).toHaveBeenCalledWith(payload, 'user-id', 'workspace-id');
   });
+
+  it('should pass update payload without description to the validation service unchanged', async () => {
+    const validatedPayload = {
+      id: 'blocklist-id',
+      data: {
+        handle: 'person+updated@example.com',
+      },
+    };
+    const blocklistValidationService = {
+      validateBlocklistForUpdateOne: jest
+        .fn()
+        .mockResolvedValue(validatedPayload),
+    };
+    const hook = new BlocklistUpdateOnePreQueryHook(
+      blocklistValidationService as never,
+    );
+    const payload = {
+      id: 'blocklist-id',
+      data: {
+        handle: 'person+updated@example.com',
+      },
+    };
+
+    await expect(
+      hook.execute(
+        {
+          user: { id: 'user-id' },
+          workspace: { id: 'workspace-id' },
+        } as never,
+        'blocklist',
+        payload as never,
+      ),
+    ).resolves.toEqual(validatedPayload);
+
+    expect(
+      blocklistValidationService.validateBlocklistForUpdateOne,
+    ).toHaveBeenCalledWith(payload, 'user-id', 'workspace-id');
+  });
 });
