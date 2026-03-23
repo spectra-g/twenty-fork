@@ -3,8 +3,19 @@ import { BlocklistUpdateOnePreQueryHook } from 'src/modules/blocklist/query-hook
 
 describe('Blocklist pre-query hooks', () => {
   it('should pass create payload with description to the validation service', async () => {
+    const validatedPayload = {
+      data: [
+        {
+          handle: 'person@example.com',
+          description: 'Normalized description',
+          workspaceMemberId: 'workspace-member-id',
+        },
+      ],
+    };
     const blocklistValidationService = {
-      validateBlocklistForCreateMany: jest.fn().mockResolvedValue(undefined),
+      validateBlocklistForCreateMany: jest
+        .fn()
+        .mockResolvedValue(validatedPayload),
     };
     const hook = new BlocklistCreateManyPreQueryHook(
       blocklistValidationService as never,
@@ -28,7 +39,7 @@ describe('Blocklist pre-query hooks', () => {
         'blocklist',
         payload as never,
       ),
-    ).resolves.toEqual(payload);
+    ).resolves.toEqual(validatedPayload);
 
     expect(
       blocklistValidationService.validateBlocklistForCreateMany,
@@ -36,8 +47,16 @@ describe('Blocklist pre-query hooks', () => {
   });
 
   it('should pass description-only update payload to the validation service', async () => {
+    const validatedPayload = {
+      id: 'blocklist-id',
+      data: {
+        description: 'Normalized updated description',
+      },
+    };
     const blocklistValidationService = {
-      validateBlocklistForUpdateOne: jest.fn().mockResolvedValue(undefined),
+      validateBlocklistForUpdateOne: jest
+        .fn()
+        .mockResolvedValue(validatedPayload),
     };
     const hook = new BlocklistUpdateOnePreQueryHook(
       blocklistValidationService as never,
@@ -58,7 +77,7 @@ describe('Blocklist pre-query hooks', () => {
         'blocklist',
         payload as never,
       ),
-    ).resolves.toEqual(payload);
+    ).resolves.toEqual(validatedPayload);
 
     expect(
       blocklistValidationService.validateBlocklistForUpdateOne,

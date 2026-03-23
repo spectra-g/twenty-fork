@@ -34,12 +34,10 @@ export class BlocklistCreateManyPreQueryHook
 
     assertIsDefinedOrThrow(workspace, WorkspaceNotFoundDefaultError);
 
-    await this.blocklistValidationService.validateBlocklistForCreateMany(
+    return await this.blocklistValidationService.validateBlocklistForCreateMany(
       payload,
       authContext.user?.id,
       workspace.id,
     );
-
-    return payload;
   }
 }
