@@ -39,6 +39,8 @@ export class BlocklistValidationService {
   ) {
     await this.validateSchema(payload.data);
     await this.validateUniquenessForCreateMany(payload, userId, workspaceId);
+
+    return payload;
   }
 
   public async validateBlocklistForUpdateOne(
@@ -50,6 +52,8 @@ export class BlocklistValidationService {
       await this.validateSchema([payload.data]);
     }
     await this.validateUniquenessForUpdateOne(payload, userId, workspaceId);
+
+    return payload;
   }
 
   public async validateSchema(blocklist: BlocklistItem[]) {

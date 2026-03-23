@@ -13,6 +13,7 @@ export const SEARCH_FIELDS_FOR_BLOCKLIST: FieldTypeAndNameMetadata[] = [
 
 export class BlocklistWorkspaceEntity extends BaseWorkspaceEntity {
   handle: string | null;
+  description: string | null;
   workspaceMember: EntityRelation<WorkspaceMemberWorkspaceEntity>;
   workspaceMemberId: string;
 }
