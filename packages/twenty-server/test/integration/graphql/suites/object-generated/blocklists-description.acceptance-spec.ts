@@ -19,6 +19,8 @@ const TEST_BLOCKLIST_WITH_DESCRIPTION_ID =
 const TEST_BLOCKLIST_WITH_NULL_DESCRIPTION_ID =
   '55555555-5555-4555-8555-555555555555';
 const TEST_BLOCKLIST_FOR_UPDATE_ID = '66666666-6666-4666-8666-666666666666';
+const VALID_DESCRIPTION = 'a'.repeat(255);
+const TOO_LONG_DESCRIPTION = 'a'.repeat(256);
 
 describe.skip('blocklistsResolver description acceptance (e2e)', () => {
   beforeAll(async () => {
@@ -143,5 +145,86 @@ describe.skip('blocklistsResolver description acceptance (e2e)', () => {
     expect(response.body.errors?.[0]?.message).toContain(
       'Invalid email or domain',
     );
+  });
+
+  it('should reject createBlocklist when description exceeds 255 characters', async () => {
+    const response = await makeGraphqlAPIRequest(
+      createOneOperationFactory({
+        objectMetadataSingularName: 'blocklist',
+        gqlFields: BLOCKLIST_GQL_FIELDS,
+        data: {
+          id: TEST_BLOCKLIST_WITH_DESCRIPTION_ID,
+          handle: 'create-too-long-description@blocklist.dev',
+          description: TOO_LONG_DESCRIPTION,
+          workspaceMemberId: WORKSPACE_MEMBER_DATA_SEED_IDS.JANE,
+        },
+      }),
+    );
+
+    expect(response.body.data.createBlocklist).toBeNull();
+    expect(response.body.errors?.[0]?.message).toContain('255');
+  });
+
+  it('should allow updateBlocklist when description is exactly 255 characters', async () => {
+    await makeGraphqlAPIRequest(
+      createOneOperationFactory({
+        objectMetadataSingularName: 'blocklist',
+        gqlFields: BLOCKLIST_GQL_FIELDS,
+        data: {
+          id: TEST_BLOCKLIST_FOR_UPDATE_ID,
+          handle: 'valid-update-description@blocklist.dev',
+          workspaceMemberId: WORKSPACE_MEMBER_DATA_SEED_IDS.JANE,
+        },
+      }),
+    );
+
+    const response = await makeGraphqlAPIRequest(
+      updateOneOperationFactory({
+        objectMetadataSingularName: 'blocklist',
+        gqlFields: BLOCKLIST_GQL_FIELDS,
+        recordId: TEST_BLOCKLIST_FOR_UPDATE_ID,
+        data: {
+          description: VALID_DESCRIPTION,
+          workspaceMemberId: WORKSPACE_MEMBER_DATA_SEED_IDS.JANE,
+        },
+      }),
+    );
+
+    expect(response.body.errors).toBeUndefined();
+    expect(response.body.data.updateBlocklist).toMatchObject({
+      id: TEST_BLOCKLIST_FOR_UPDATE_ID,
+      handle: 'valid-update-description@blocklist.dev',
+      description: VALID_DESCRIPTION,
+      workspaceMemberId: WORKSPACE_MEMBER_DATA_SEED_IDS.JANE,
+    });
+  });
+
+  it('should reject updateBlocklist when description exceeds 255 characters', async () => {
+    await makeGraphqlAPIRequest(
+      createOneOperationFactory({
+        objectMetadataSingularName: 'blocklist',
+        gqlFields: BLOCKLIST_GQL_FIELDS,
+        data: {
+          id: TEST_BLOCKLIST_FOR_UPDATE_ID,
+          handle: 'invalid-update-description@blocklist.dev',
+          workspaceMemberId: WORKSPACE_MEMBER_DATA_SEED_IDS.JANE,
+        },
+      }),
+    );
+
+    const response = await makeGraphqlAPIRequest(
+      updateOneOperationFactory({
+        objectMetadataSingularName: 'blocklist',
+        gqlFields: BLOCKLIST_GQL_FIELDS,
+        recordId: TEST_BLOCKLIST_FOR_UPDATE_ID,
+        data: {
+          description: TOO_LONG_DESCRIPTION,
+          workspaceMemberId: WORKSPACE_MEMBER_DATA_SEED_IDS.JANE,
+        },
+      }),
+    );
+
+    expect(response.body.data.updateBlocklist).toBeNull();
+    expect(response.body.errors?.[0]?.message).toContain('255');
   });
 });
