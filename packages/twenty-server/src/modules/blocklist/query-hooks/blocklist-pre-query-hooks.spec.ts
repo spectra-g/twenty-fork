@@ -91,4 +91,60 @@ describe('Blocklist pre-query hooks', () => {
       ),
     ).rejects.toThrow(new BadRequestException('User id is required'));
   });
+
+  it('should surface createMany description validation errors from the validation service', async () => {
+    const hook = new BlocklistCreateManyPreQueryHook(
+      mockBlocklistValidationService as never,
+    );
+    const payload = {
+      data: [
+        {
+          handle: 'create@example.com',
+          description: 'a'.repeat(256),
+          workspaceMemberId: 'workspace-member-id',
+        },
+      ],
+    };
+
+    mockBlocklistValidationService.validateBlocklistForCreateMany.mockRejectedValueOnce(
+      new BadRequestException(
+        'Blocklist description cannot exceed 255 characters',
+      ),
+    );
+
+    await expect(
+      hook.execute(authContext, 'blocklist', payload as never),
+    ).rejects.toThrow(
+      new BadRequestException(
+        'Blocklist description cannot exceed 255 characters',
+      ),
+    );
+  });
+
+  it('should surface updateOne description validation errors from the validation service', async () => {
+    const hook = new BlocklistUpdateOnePreQueryHook(
+      mockBlocklistValidationService as never,
+    );
+    const payload = {
+      id: 'blocklist-id',
+      data: {
+        description: 'a'.repeat(256),
+        workspaceMemberId: 'workspace-member-id',
+      },
+    };
+
+    mockBlocklistValidationService.validateBlocklistForUpdateOne.mockRejectedValueOnce(
+      new BadRequestException(
+        'Blocklist description cannot exceed 255 characters',
+      ),
+    );
+
+    await expect(
+      hook.execute(authContext, 'blocklist', payload as never),
+    ).rejects.toThrow(
+      new BadRequestException(
+        'Blocklist description cannot exceed 255 characters',
+      ),
+    );
+  });
 });
