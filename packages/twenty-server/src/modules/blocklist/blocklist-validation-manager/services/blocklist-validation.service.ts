@@ -37,6 +37,7 @@ export class BlocklistValidationService {
     userId: string,
     workspaceId: string,
   ) {
+    this.normalizeDescriptionsForCreateMany(payload);
     await this.validateSchema(payload.data);
     await this.validateUniquenessForCreateMany(payload, userId, workspaceId);
   }
@@ -46,10 +47,29 @@ export class BlocklistValidationService {
     userId: string,
     workspaceId: string,
   ) {
+    this.normalizeDescriptionForUpdateOne(payload);
     if (payload.data.handle) {
       await this.validateSchema([payload.data]);
     }
     await this.validateUniquenessForUpdateOne(payload, userId, workspaceId);
+  }
+
+  private normalizeDescriptionsForCreateMany(
+    payload: CreateManyResolverArgs<BlocklistItem>,
+  ) {
+    payload.data = payload.data.map((item) => ({
+      ...item,
+      description: item.description ?? null,
+    }));
+  }
+
+  private normalizeDescriptionForUpdateOne(
+    payload: UpdateOneResolverArgs<BlocklistItem>,
+  ) {
+    payload.data = {
+      ...payload.data,
+      description: payload.data.description ?? null,
+    };
   }
 
   public async validateSchema(blocklist: BlocklistItem[]) {
