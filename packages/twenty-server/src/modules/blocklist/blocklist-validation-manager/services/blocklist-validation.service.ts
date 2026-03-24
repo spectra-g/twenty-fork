@@ -66,6 +66,10 @@ export class BlocklistValidationService {
   private normalizeDescriptionForUpdateOne(
     payload: UpdateOneResolverArgs<BlocklistItem>,
   ) {
+    if (!Object.hasOwn(payload.data, 'description')) {
+      return;
+    }
+
     payload.data = {
       ...payload.data,
       description: payload.data.description ?? null,
