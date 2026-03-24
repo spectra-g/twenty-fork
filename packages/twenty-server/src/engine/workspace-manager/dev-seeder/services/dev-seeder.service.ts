@@ -59,6 +59,12 @@ export class DevSeederService {
         workspaceId,
       );
 
+    await this.workspaceCacheService.flush(workspaceId, [
+      'flatApplicationMaps',
+      'featureFlagsMap',
+    ]);
+    await this.workspaceCacheStorageService.flush(workspaceId, undefined);
+
     const { featureFlagsMap } = await this.workspaceCacheService.getOrRecompute(
       workspaceId,
       ['flatApplicationMaps', 'featureFlagsMap'],
