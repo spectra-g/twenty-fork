@@ -217,6 +217,23 @@ export const buildBlocklistStandardFlatFieldMetadatas = ({
     twentyStandardApplicationId,
     now,
   }),
+  description: createStandardFieldFlatMetadata({
+    objectName,
+    workspaceId,
+    context: {
+      fieldName: 'description',
+      type: FieldMetadataType.TEXT,
+      label: 'Description',
+      description: 'Description',
+      icon: 'IconFileDescription',
+      isNullable: true,
+      isUIReadOnly: true,
+    },
+    standardObjectMetadataRelatedEntityIds,
+    dependencyFlatEntityMaps,
+    twentyStandardApplicationId,
+    now,
+  }),
 
   // Relation fields
   workspaceMember: createStandardRelationFieldFlatMetadata({
