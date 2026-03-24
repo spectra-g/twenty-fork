@@ -1,5 +1,4 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-
 import { BadRequestException } from '@nestjs/common';
 
 import { GlobalWorkspaceOrmManager } from 'src/engine/twenty-orm/global-workspace-datasource/global-workspace-orm.manager';
@@ -85,7 +84,11 @@ describe('BlocklistValidationService', () => {
       ],
     };
 
-    await service.validateBlocklistForCreateMany(payload, USER_ID, WORKSPACE_ID);
+    await service.validateBlocklistForCreateMany(
+      payload,
+      USER_ID,
+      WORKSPACE_ID,
+    );
 
     expect(payload.data[0].description).toBe(
       'Allow support agents to classify why it is blocked',
@@ -125,12 +128,38 @@ describe('BlocklistValidationService', () => {
       }),
     };
 
-    await service.validateBlocklistForUpdateOne(payload, USER_ID, WORKSPACE_ID);
+    await service.validateBlocklistForUpdateOne(
+      payload,
+      USER_ID,
+      WORKSPACE_ID,
+    );
 
     expect(payload.data).toMatchObject({
       handle: '@example.com',
       description: 'Updated block reason',
     });
+  });
+
+  it('should preserve an existing description when update payload omits it', async () => {
+    const payload = {
+      id: 'existing-blocklist-id',
+      data: {
+        handle: '@new-example.com',
+        workspaceMemberId: WORKSPACE_MEMBER_ID,
+      },
+    };
+
+    await service.validateBlocklistForUpdateOne(
+      payload as never,
+      USER_ID,
+      WORKSPACE_ID,
+    );
+
+    expect(payload.data).toMatchObject({
+      handle: '@new-example.com',
+      workspaceMemberId: WORKSPACE_MEMBER_ID,
+    });
+    expect(payload.data).not.toHaveProperty('description');
   });
 
   it('should not interfere with handle validation errors', async () => {

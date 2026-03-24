@@ -1,9 +1,10 @@
-import { WORKSPACE_MEMBER_DATA_SEED_IDS } from 'src/engine/workspace-manager/dev-seeder/data/constants/workspace-member-data-seeds.constant';
 import { createOneOperationFactory } from 'test/integration/graphql/utils/create-one-operation-factory.util';
 import { destroyManyOperationFactory } from 'test/integration/graphql/utils/destroy-many-operation-factory.util';
 import { findManyOperationFactory } from 'test/integration/graphql/utils/find-many-operation-factory.util';
 import { makeGraphqlAPIRequest } from 'test/integration/graphql/utils/make-graphql-api-request.util';
 import { updateOneOperationFactory } from 'test/integration/graphql/utils/update-one-operation-factory.util';
+
+import { WORKSPACE_MEMBER_DATA_SEED_IDS } from 'src/engine/workspace-manager/dev-seeder/data/constants/workspace-member-data-seeds.constant';
 
 const BLOCKLIST_GQL_FIELDS = `
   id
@@ -179,6 +180,41 @@ describe('blocklistsResolver (e2e)', () => {
       id: TEST_BLOCKLIST_FOR_UPDATE_ID,
       handle: 'update-description@blocklist.dev',
       description: 'Updated description',
+      workspaceMemberId: WORKSPACE_MEMBER_DATA_SEED_IDS.JANE,
+    });
+  });
+
+  it('should preserve description when updating only the handle', async () => {
+    await makeGraphqlAPIRequest(
+      createOneOperationFactory({
+        objectMetadataSingularName: 'blocklist',
+        gqlFields: BLOCKLIST_GQL_FIELDS,
+        data: {
+          id: TEST_BLOCKLIST_FOR_UPDATE_ID,
+          handle: 'before-handle-update@blocklist.dev',
+          description: 'Existing persisted description',
+          workspaceMemberId: WORKSPACE_MEMBER_DATA_SEED_IDS.JANE,
+        },
+      }),
+    );
+
+    const graphqlOperation = updateOneOperationFactory({
+      objectMetadataSingularName: 'blocklist',
+      gqlFields: BLOCKLIST_GQL_FIELDS,
+      recordId: TEST_BLOCKLIST_FOR_UPDATE_ID,
+      data: {
+        handle: '@updated-example.dev',
+        workspaceMemberId: WORKSPACE_MEMBER_DATA_SEED_IDS.JANE,
+      },
+    });
+
+    const response = await makeGraphqlAPIRequest(graphqlOperation);
+
+    expect(response.body.errors).toBeUndefined();
+    expect(response.body.data.updateBlocklist).toMatchObject({
+      id: TEST_BLOCKLIST_FOR_UPDATE_ID,
+      handle: '@updated-example.dev',
+      description: 'Existing persisted description',
       workspaceMemberId: WORKSPACE_MEMBER_DATA_SEED_IDS.JANE,
     });
   });

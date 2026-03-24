@@ -1,10 +1,11 @@
 // Acceptance: requires live stack — enable in CI or local dev with full environment running.
 
-import { WORKSPACE_MEMBER_DATA_SEED_IDS } from 'src/engine/workspace-manager/dev-seeder/data/constants/workspace-member-data-seeds.constant';
 import { createOneOperationFactory } from 'test/integration/graphql/utils/create-one-operation-factory.util';
 import { destroyManyOperationFactory } from 'test/integration/graphql/utils/destroy-many-operation-factory.util';
 import { makeGraphqlAPIRequest } from 'test/integration/graphql/utils/make-graphql-api-request.util';
 import { updateOneOperationFactory } from 'test/integration/graphql/utils/update-one-operation-factory.util';
+
+import { WORKSPACE_MEMBER_DATA_SEED_IDS } from 'src/engine/workspace-manager/dev-seeder/data/constants/workspace-member-data-seeds.constant';
 
 const BLOCKLIST_GQL_FIELDS = `
   id
@@ -51,7 +52,8 @@ describe.skip('blocklistsResolver description acceptance (e2e)', () => {
         data: {
           id: TEST_BLOCKLIST_WITH_DESCRIPTION_ID,
           handle: 'create-description@blocklist.dev',
-          description: 'Persist this description once GraphQL boundary is enabled',
+          description:
+            'Persist this description once GraphQL boundary is enabled',
           workspaceMemberId: WORKSPACE_MEMBER_DATA_SEED_IDS.JANE,
         },
       }),

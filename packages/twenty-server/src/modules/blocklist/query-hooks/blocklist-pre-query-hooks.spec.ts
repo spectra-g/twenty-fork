@@ -38,7 +38,11 @@ describe('Blocklist pre-query hooks', () => {
       ],
     };
 
-    const result = await hook.execute(authContext, 'blocklist', payload as never);
+    const result = await hook.execute(
+      authContext,
+      'blocklist',
+      payload as never,
+    );
 
     expect(
       mockBlocklistValidationService.validateBlocklistForCreateMany,
@@ -59,7 +63,11 @@ describe('Blocklist pre-query hooks', () => {
       },
     };
 
-    const result = await hook.execute(authContext, 'blocklist', payload as never);
+    const result = await hook.execute(
+      authContext,
+      'blocklist',
+      payload as never,
+    );
 
     expect(
       mockBlocklistValidationService.validateBlocklistForUpdateOne,
