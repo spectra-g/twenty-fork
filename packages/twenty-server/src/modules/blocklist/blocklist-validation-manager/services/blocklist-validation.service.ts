@@ -24,6 +24,8 @@ export type BlocklistItem = Omit<
   workspaceMemberId: string;
 };
 
+const BLOCKLIST_DESCRIPTION_MAX_LENGTH = 255;
+
 @Injectable()
 export class BlocklistValidationService {
   constructor(
@@ -37,6 +39,8 @@ export class BlocklistValidationService {
     userId: string,
     workspaceId: string,
   ) {
+    this.normalizeDescriptionsForCreateMany(payload);
+    await this.validateDescriptions(payload.data);
     await this.validateSchema(payload.data);
     await this.validateUniquenessForCreateMany(payload, userId, workspaceId);
   }
@@ -46,10 +50,46 @@ export class BlocklistValidationService {
     userId: string,
     workspaceId: string,
   ) {
-    if (payload.data.handle) {
+    this.normalizeDescriptionForUpdateOne(payload);
+    await this.validateDescription(payload.data.description);
+    if (Object.hasOwn(payload.data, 'handle')) {
       await this.validateSchema([payload.data]);
     }
     await this.validateUniquenessForUpdateOne(payload, userId, workspaceId);
+  }
+
+  public async validateDescription(description?: string | null) {
+    if (description == null) {
+      return;
+    }
+
+    if (description.length > BLOCKLIST_DESCRIPTION_MAX_LENGTH) {
+      throw new BadRequestException(
+        `Blocklist description cannot exceed ${BLOCKLIST_DESCRIPTION_MAX_LENGTH} characters`,
+      );
+    }
+  }
+
+  private normalizeDescriptionsForCreateMany(
+    payload: CreateManyResolverArgs<BlocklistItem>,
+  ) {
+    payload.data = payload.data.map((item) => ({
+      ...item,
+      description: item.description ?? null,
+    }));
+  }
+
+  private normalizeDescriptionForUpdateOne(
+    payload: UpdateOneResolverArgs<BlocklistItem>,
+  ) {
+    if (!Object.hasOwn(payload.data, 'description')) {
+      return;
+    }
+
+    payload.data = {
+      ...payload.data,
+      description: payload.data.description ?? null,
+    };
   }
 
   public async validateSchema(blocklist: BlocklistItem[]) {
@@ -76,6 +116,12 @@ export class BlocklistValidationService {
       if (!result.success) {
         throw new BadRequestException(result.error.issues[0].message);
       }
+    }
+  }
+
+  private async validateDescriptions(blocklist: BlocklistItem[]) {
+    for (const item of blocklist) {
+      await this.validateDescription(item.description);
     }
   }
 
