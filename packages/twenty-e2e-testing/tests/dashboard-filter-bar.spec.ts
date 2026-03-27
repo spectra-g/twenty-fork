@@ -29,4 +29,47 @@ test.describe.serial('Dashboard Filter Bar', () => {
       ).toBeVisible();
     },
   );
+
+  test.skip(
+    'should update dashboard charts from the intersection of global and widget stage filters',
+    async ({ page }) => {
+      await page.getByRole('link', { name: 'Dashboards' }).click();
+      await page.getByRole('link', { name: 'Pipeline dashboard' }).click();
+
+      await expect(page.getByTestId('dashboard-filter-bar')).toBeVisible();
+
+      await page.getByRole('combobox', { name: 'Stage filter' }).selectOption({
+        label: 'Qualified',
+      });
+
+      await expect(
+        page.getByRole('button', { name: /stagequalified/i }),
+      ).toBeVisible();
+      await expect(
+        page.getByTestId('dashboard-widget-chart-empty-state'),
+      ).toBeVisible();
+    },
+  );
+
+  test.skip(
+    'should ignore dashboard filters that do not apply to a widget object',
+    async ({ page }) => {
+      await page.getByRole('link', { name: 'Dashboards' }).click();
+      await page.getByRole('link', { name: 'Pipeline dashboard' }).click();
+
+      await expect(page.getByTestId('dashboard-filter-bar')).toBeVisible();
+
+      await page.getByRole('combobox', { name: 'Company filter' }).selectOption({
+        label: 'Acme',
+      });
+
+      await expect(
+        page.getByRole('button', { name: /companyacme/i }),
+      ).toBeVisible();
+      await expect(page.getByTestId('dashboard-widget-chart')).toBeVisible();
+      await expect(
+        page.getByTestId('dashboard-widget-chart-empty-state'),
+      ).not.toBeVisible();
+    },
+  );
 });
