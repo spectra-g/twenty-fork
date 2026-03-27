@@ -6,6 +6,7 @@ import { useDashboardUrlState } from '@/dashboards/hooks/useDashboardUrlState';
 import { PageLayoutInitializationQueryEffect } from '@/page-layout/components/PageLayoutInitializationQueryEffect';
 import { PageLayoutRelationWidgetsSyncEffect } from '@/page-layout/components/PageLayoutRelationWidgetsSyncEffect';
 import { PageLayoutRendererContent } from '@/page-layout/components/PageLayoutRendererContent';
+import { useBasePageLayout } from '@/page-layout/hooks/useBasePageLayout';
 import { useSetIsPageLayoutInEditMode } from '@/page-layout/hooks/useSetIsPageLayoutInEditMode';
 import { PageLayoutComponentInstanceContext } from '@/page-layout/states/contexts/PageLayoutComponentInstanceContext';
 import { type PageLayout } from '@/page-layout/types/PageLayout';
@@ -28,8 +29,12 @@ export const PageLayoutRenderer = ({
     useSetIsPageLayoutInEditMode(pageLayoutId);
 
   const { targetRecordIdentifier, layoutType } = useLayoutRenderingContext();
+  const pageLayout = useBasePageLayout(pageLayoutId);
   const { presetId, restoredPreset, stageFilter } = useDashboardUrlState();
   const dashboardFiltersState = useDashboardFilters(stageFilter);
+  const shouldRenderDashboardFilterBar =
+    layoutType === PageLayoutType.DASHBOARD &&
+    (pageLayout?.dashboardFilters?.length ?? 0) > 0;
 
   const onInitialized = (pageLayout: PageLayout) => {
     if (isPageLayoutEmpty(pageLayout)) {
@@ -59,7 +64,7 @@ export const PageLayoutRenderer = ({
         <DashboardFiltersContext.Provider
           value={dashboardFiltersState.dashboardFilters}
         >
-          {layoutType === PageLayoutType.DASHBOARD ? (
+          {shouldRenderDashboardFilterBar ? (
             <DashboardFilterBar
               filterDefinitions={[
                 {

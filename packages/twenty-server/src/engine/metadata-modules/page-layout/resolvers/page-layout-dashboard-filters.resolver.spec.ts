@@ -1,3 +1,4 @@
+import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { PageLayoutResolver } from 'src/engine/metadata-modules/page-layout/resolvers/page-layout.resolver';
 import { type PageLayoutUpdateService } from 'src/engine/metadata-modules/page-layout/services/page-layout-update.service';
 import { type PageLayoutService } from 'src/engine/metadata-modules/page-layout/services/page-layout.service';
@@ -6,6 +7,7 @@ const mockPageLayoutService = {
   findBy: jest.fn(),
   findByWorkspaceId: jest.fn(),
   findByIdOrThrow: jest.fn(),
+  getPresetById: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   destroy: jest.fn(),
@@ -121,5 +123,60 @@ describe('PageLayoutResolver dashboard filters', () => {
       name: 'Q1 Sales',
       filterState: {},
     });
+  });
+
+  it('should fetch a dashboard preset through the page layout service', async () => {
+    mockPageLayoutService.getPresetById.mockResolvedValue({
+      id: 'preset_1',
+      name: 'Sales View',
+      filterState: {
+        stage: {
+          eq: 'OPEN',
+        },
+      },
+    });
+
+    const result = await pageLayoutResolver.getDashboardPreset(
+      'layout-1',
+      'preset_1',
+      { id: 'workspace-1' } as never,
+    );
+
+    expect(mockPageLayoutService.getPresetById).toHaveBeenCalledWith({
+      pageLayoutId: 'layout-1',
+      presetId: 'preset_1',
+      workspaceId: 'workspace-1',
+    });
+    expect(result).toEqual({
+      id: 'preset_1',
+      name: 'Sales View',
+      filterState: {
+        stage: {
+          eq: 'OPEN',
+        },
+      },
+    });
+  });
+
+  it('should protect dashboard preset metadata reads with the layouts settings permission guard', () => {
+    const getDashboardPresetGuards =
+      Reflect.getMetadata(
+        GUARDS_METADATA,
+        PageLayoutResolver.prototype.getDashboardPreset,
+      ) ?? [];
+    const createDashboardPresetGuards =
+      Reflect.getMetadata(
+        GUARDS_METADATA,
+        PageLayoutResolver.prototype.createDashboardPreset,
+      ) ?? [];
+
+    expect(getDashboardPresetGuards).toHaveLength(1);
+    expect(createDashboardPresetGuards).toHaveLength(1);
+    expect(typeof getDashboardPresetGuards[0].prototype.canActivate).toBe(
+      'function',
+    );
+    expect(
+      getDashboardPresetGuards[0].prototype.canActivate.toString(),
+    ).toBe(createDashboardPresetGuards[0].prototype.canActivate.toString());
   });
 });

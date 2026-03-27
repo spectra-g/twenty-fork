@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 
 import { PageLayoutRenderer } from '@/page-layout/components/PageLayoutRenderer';
+import { useBasePageLayout } from '@/page-layout/hooks/useBasePageLayout';
 import { useLayoutRenderingContext } from '@/ui/layout/contexts/LayoutRenderingContext';
 import { PageLayoutType } from '~/generated-metadata/graphql';
 
@@ -28,14 +29,27 @@ jest.mock('@/page-layout/hooks/useSetIsPageLayoutInEditMode', () => ({
   }),
 }));
 
+jest.mock('@/page-layout/hooks/useBasePageLayout');
 jest.mock('@/ui/layout/contexts/LayoutRenderingContext');
 
 describe('PageLayoutRenderer', () => {
+  beforeEach(() => {
+    (useBasePageLayout as jest.Mock).mockReturnValue(undefined);
+  });
+
   it('should render the dashboard filter bar for dashboard layouts', () => {
     (useLayoutRenderingContext as jest.Mock).mockReturnValue({
       targetRecordIdentifier: undefined,
       layoutType: PageLayoutType.DASHBOARD,
       isInRightDrawer: false,
+    });
+    (useBasePageLayout as jest.Mock).mockReturnValue({
+      id: 'dashboard-layout-id',
+      name: 'Dashboard',
+      type: PageLayoutType.DASHBOARD,
+      objectMetadataId: null,
+      tabs: [],
+      dashboardFilters: [{ id: 'stage-filter' }],
     });
 
     render(<PageLayoutRenderer pageLayoutId="dashboard-layout-id" />);
@@ -54,6 +68,14 @@ describe('PageLayoutRenderer', () => {
       targetRecordIdentifier: undefined,
       layoutType: PageLayoutType.DASHBOARD,
       isInRightDrawer: false,
+    });
+    (useBasePageLayout as jest.Mock).mockReturnValue({
+      id: 'dashboard-layout-id',
+      name: 'Dashboard',
+      type: PageLayoutType.DASHBOARD,
+      objectMetadataId: null,
+      tabs: [],
+      dashboardFilters: [{ id: 'stage-filter' }],
     });
 
     render(<PageLayoutRenderer pageLayoutId="dashboard-layout-id" />);
@@ -78,6 +100,14 @@ describe('PageLayoutRenderer', () => {
       layoutType: PageLayoutType.DASHBOARD,
       isInRightDrawer: false,
     });
+    (useBasePageLayout as jest.Mock).mockReturnValue({
+      id: 'dashboard-layout-id',
+      name: 'Dashboard',
+      type: PageLayoutType.DASHBOARD,
+      objectMetadataId: null,
+      tabs: [],
+      dashboardFilters: [{ id: 'stage-filter' }],
+    });
 
     render(<PageLayoutRenderer pageLayoutId="dashboard-layout-id" />);
 
@@ -101,6 +131,28 @@ describe('PageLayoutRenderer', () => {
     });
 
     render(<PageLayoutRenderer pageLayoutId="record-layout-id" />);
+
+    expect(
+      screen.queryByTestId('dashboard-filter-bar'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('should not render the dashboard filter bar when dashboard filter metadata is missing', () => {
+    (useLayoutRenderingContext as jest.Mock).mockReturnValue({
+      targetRecordIdentifier: undefined,
+      layoutType: PageLayoutType.DASHBOARD,
+      isInRightDrawer: false,
+    });
+    (useBasePageLayout as jest.Mock).mockReturnValue({
+      id: 'dashboard-layout-id',
+      name: 'Dashboard',
+      type: PageLayoutType.DASHBOARD,
+      objectMetadataId: null,
+      tabs: [],
+      dashboardFilters: undefined,
+    });
+
+    render(<PageLayoutRenderer pageLayoutId="dashboard-layout-id" />);
 
     expect(
       screen.queryByTestId('dashboard-filter-bar'),

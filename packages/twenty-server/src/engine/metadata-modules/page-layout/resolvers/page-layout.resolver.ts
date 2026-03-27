@@ -148,4 +148,18 @@ export class PageLayoutResolver {
       input,
     });
   }
+
+  @Query(() => DashboardPresetDTO)
+  @UseGuards(SettingsPermissionGuard(PermissionFlagType.LAYOUTS))
+  async getDashboardPreset(
+    @Args('pageLayoutId', { type: () => String }) pageLayoutId: string,
+    @Args('presetId', { type: () => String }) presetId: string,
+    @AuthWorkspace() workspace: WorkspaceEntity,
+  ): Promise<DashboardPresetDTO> {
+    return this.pageLayoutService.getPresetById({
+      pageLayoutId,
+      presetId,
+      workspaceId: workspace.id,
+    });
+  }
 }
