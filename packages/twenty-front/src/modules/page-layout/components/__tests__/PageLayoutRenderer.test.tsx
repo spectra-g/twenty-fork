@@ -4,13 +4,19 @@ import { PageLayoutRenderer } from '@/page-layout/components/PageLayoutRenderer'
 import { useLayoutRenderingContext } from '@/ui/layout/contexts/LayoutRenderingContext';
 import { PageLayoutType } from '~/generated-metadata/graphql';
 
-jest.mock('@/page-layout/components/PageLayoutInitializationQueryEffect', () => ({
-  PageLayoutInitializationQueryEffect: () => null,
-}));
+jest.mock(
+  '@/page-layout/components/PageLayoutInitializationQueryEffect',
+  () => ({
+    PageLayoutInitializationQueryEffect: () => null,
+  }),
+);
 
-jest.mock('@/page-layout/components/PageLayoutRelationWidgetsSyncEffect', () => ({
-  PageLayoutRelationWidgetsSyncEffect: () => null,
-}));
+jest.mock(
+  '@/page-layout/components/PageLayoutRelationWidgetsSyncEffect',
+  () => ({
+    PageLayoutRelationWidgetsSyncEffect: () => null,
+  }),
+);
 
 jest.mock('@/page-layout/components/PageLayoutRendererContent', () => ({
   PageLayoutRendererContent: () => <div>page layout content</div>,
@@ -37,6 +43,53 @@ describe('PageLayoutRenderer', () => {
     expect(screen.getByTestId('dashboard-filter-bar')).toBeVisible();
   });
 
+  it('should restore a preset from the dashboard URL when presetId is present', () => {
+    window.history.replaceState(
+      {},
+      '',
+      '/dashboard-layout?presetId=sales-stage-preset-123',
+    );
+
+    (useLayoutRenderingContext as jest.Mock).mockReturnValue({
+      targetRecordIdentifier: undefined,
+      layoutType: PageLayoutType.DASHBOARD,
+      isInRightDrawer: false,
+    });
+
+    render(<PageLayoutRenderer pageLayoutId="dashboard-layout-id" />);
+
+    expect(screen.getByRole('combobox', { name: 'Preset picker' })).toHaveValue(
+      'sales-stage-preset-123',
+    );
+    expect(
+      screen.getByRole('button', { name: 'Stage Closed Won' }),
+    ).toBeVisible();
+  });
+
+  it('should restore raw stage filters from the dashboard URL when no presetId is present', () => {
+    window.history.replaceState(
+      {},
+      '',
+      '/dashboard-layout?filter[stage][eq]=Open',
+    );
+
+    (useLayoutRenderingContext as jest.Mock).mockReturnValue({
+      targetRecordIdentifier: undefined,
+      layoutType: PageLayoutType.DASHBOARD,
+      isInRightDrawer: false,
+    });
+
+    render(<PageLayoutRenderer pageLayoutId="dashboard-layout-id" />);
+
+    expect(screen.getByRole('combobox', { name: 'Preset picker' })).toHaveValue(
+      '',
+    );
+    expect(screen.getByRole('combobox', { name: 'Stage filter' })).toHaveValue(
+      'open',
+    );
+    expect(screen.getByRole('button', { name: 'Stage Open' })).toBeVisible();
+  });
+
   it('should not render the dashboard filter bar for record page layouts', () => {
     (useLayoutRenderingContext as jest.Mock).mockReturnValue({
       targetRecordIdentifier: {
@@ -49,6 +102,8 @@ describe('PageLayoutRenderer', () => {
 
     render(<PageLayoutRenderer pageLayoutId="record-layout-id" />);
 
-    expect(screen.queryByTestId('dashboard-filter-bar')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('dashboard-filter-bar'),
+    ).not.toBeInTheDocument();
   });
 });

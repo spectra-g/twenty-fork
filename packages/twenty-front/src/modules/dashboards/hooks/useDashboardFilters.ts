@@ -5,9 +5,11 @@ export type DashboardStageFilter = {
   label: string;
 };
 
-export const useDashboardFilters = () => {
+export const useDashboardFilters = (
+  initialStageFilter: DashboardStageFilter | null = null,
+) => {
   const [activeStageFilter, setActiveStageFilterState] =
-    useState<DashboardStageFilter | null>(null);
+    useState<DashboardStageFilter | null>(initialStageFilter);
 
   const setActiveStageFilter = (stageFilter: DashboardStageFilter) => {
     setActiveStageFilterState(stageFilter);

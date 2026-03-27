@@ -1,4 +1,6 @@
+import { t } from '@lingui/core/macro';
 import { DashboardFilterBar } from '@/dashboards/components/DashboardFilterBar';
+import { useDashboardUrlState } from '@/dashboards/hooks/useDashboardUrlState';
 import { PageLayoutInitializationQueryEffect } from '@/page-layout/components/PageLayoutInitializationQueryEffect';
 import { PageLayoutRelationWidgetsSyncEffect } from '@/page-layout/components/PageLayoutRelationWidgetsSyncEffect';
 import { PageLayoutRendererContent } from '@/page-layout/components/PageLayoutRendererContent';
@@ -24,6 +26,7 @@ export const PageLayoutRenderer = ({
     useSetIsPageLayoutInEditMode(pageLayoutId);
 
   const { targetRecordIdentifier, layoutType } = useLayoutRenderingContext();
+  const { presetId, restoredPreset, stageFilter } = useDashboardUrlState();
 
   const onInitialized = (pageLayout: PageLayout) => {
     if (isPageLayoutEmpty(pageLayout)) {
@@ -51,7 +54,28 @@ export const PageLayoutRenderer = ({
         }}
       >
         {layoutType === PageLayoutType.DASHBOARD ? (
-          <DashboardFilterBar filterDefinitions={[]} />
+          <DashboardFilterBar
+            filterDefinitions={[
+              {
+                id: 'stage',
+                type: 'stage',
+                label: t`Stage`,
+                options: [
+                  {
+                    value: 'open',
+                    label: t`Open`,
+                  },
+                  {
+                    value: 'closed-won',
+                    label: t`Closed Won`,
+                  },
+                ],
+              },
+            ]}
+            initialPresets={restoredPreset ? [restoredPreset] : []}
+            initialSelectedPresetId={presetId}
+            initialStageFilter={stageFilter}
+          />
         ) : null}
         <PageLayoutInitializationQueryEffect
           pageLayoutId={pageLayoutId}
