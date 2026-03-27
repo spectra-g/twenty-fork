@@ -43,6 +43,7 @@ export class LineChartDataResolver {
     return this.lineChartDataService.getLineChartData({
       objectMetadataId: input.objectMetadataId,
       configuration: input.configuration,
+      dashboardFilters: input.dashboardFilters,
       workspaceId: workspace.id,
       authContext,
     });
