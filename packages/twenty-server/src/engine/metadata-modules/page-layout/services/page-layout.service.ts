@@ -35,6 +35,7 @@ import { WorkspaceMigrationBuilderException } from 'src/engine/workspace-manager
 import { WorkspaceMigrationValidateBuildAndRunService } from 'src/engine/workspace-manager/workspace-migration/services/workspace-migration-validate-build-and-run-service';
 import { DashboardSyncService } from 'src/modules/dashboard-sync/services/dashboard-sync.service';
 import { type DashboardPresetDTO } from 'src/engine/metadata-modules/page-layout/dtos/dashboard-preset.dto';
+import { findDashboardPresetOrThrow } from 'src/engine/metadata-modules/page-layout/utils/dashboard-preset.util';
 
 @Injectable()
 export class PageLayoutService {
@@ -155,16 +156,47 @@ export class PageLayoutService {
 
   async getPresetById({
     presetId,
+    pageLayoutId,
+    workspaceId,
   }: {
     presetId: string;
     pageLayoutId: string;
     workspaceId: string;
   }): Promise<DashboardPresetDTO> {
-    return {
-      id: presetId,
-      name: presetId === 'preset_1' ? 'Sales View' : 'Preset',
-      filterState: {},
-    };
+    const {
+      flatPageLayoutMaps,
+      flatPageLayoutTabMaps,
+      flatPageLayoutWidgetMaps,
+    } = await this.getPageLayoutFlatEntityMaps(workspaceId);
+
+    const flatLayout = findFlatEntityByIdInFlatEntityMaps({
+      flatEntityId: pageLayoutId,
+      flatEntityMaps: flatPageLayoutMaps,
+    });
+
+    const isLayoutNotFound =
+      !isDefined(flatLayout) || isDefined(flatLayout.deletedAt);
+
+    if (isLayoutNotFound) {
+      throw new PageLayoutException(
+        generatePageLayoutExceptionMessage(
+          PageLayoutExceptionMessageKey.PAGE_LAYOUT_NOT_FOUND,
+          pageLayoutId,
+        ),
+        PageLayoutExceptionCode.PAGE_LAYOUT_NOT_FOUND,
+      );
+    }
+
+    const reconstructedLayout = reconstructFlatPageLayoutWithTabsAndWidgets({
+      layout: flatLayout,
+      flatPageLayoutTabMaps,
+      flatPageLayoutWidgetMaps,
+    });
+
+    return findDashboardPresetOrThrow({
+      flatPageLayout: reconstructedLayout,
+      presetId,
+    });
   }
 
   private async getPageLayoutFlatEntityMaps(workspaceId: string): Promise<{

@@ -17,6 +17,7 @@ import {
 import { ObjectMetadataEntity } from 'src/engine/metadata-modules/object-metadata/object-metadata.entity';
 import { PageLayoutTabEntity } from 'src/engine/metadata-modules/page-layout-tab/entities/page-layout-tab.entity';
 import { PageLayoutType } from 'src/engine/metadata-modules/page-layout/enums/page-layout-type.enum';
+import { type DashboardPresetJsonb } from 'src/engine/metadata-modules/page-layout/types/dashboard-preset.type';
 import { SyncableEntity } from 'src/engine/workspace-manager/types/syncable-entity.interface';
 
 @Entity({ name: 'pageLayout', schema: 'core' })
@@ -61,6 +62,9 @@ export class PageLayoutEntity
 
   @Column({ nullable: true, type: 'uuid' })
   defaultTabToFocusOnMobileAndSidePanelId: string | null;
+
+  @Column({ type: 'jsonb', default: () => "'[]'" })
+  dashboardPresets: DashboardPresetJsonb;
 
   @ManyToOne(() => PageLayoutTabEntity, {
     onDelete: 'SET NULL',

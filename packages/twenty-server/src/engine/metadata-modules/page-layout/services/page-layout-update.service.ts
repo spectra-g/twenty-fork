@@ -36,6 +36,7 @@ import { fromFlatPageLayoutWithTabsAndWidgetsToPageLayoutDto } from 'src/engine/
 import { WorkspaceMigrationBuilderException } from 'src/engine/workspace-manager/workspace-migration/exceptions/workspace-migration-builder-exception';
 import { WorkspaceMigrationValidateBuildAndRunService } from 'src/engine/workspace-manager/workspace-migration/services/workspace-migration-validate-build-and-run-service';
 import { DashboardSyncService } from 'src/modules/dashboard-sync/services/dashboard-sync.service';
+import { findDashboardPresetOrThrow } from 'src/engine/metadata-modules/page-layout/utils/dashboard-preset.util';
 
 type UpdatePageLayoutWithTabsParams = {
   id: string;
@@ -53,29 +54,185 @@ export class PageLayoutUpdateService {
   ) {}
 
   async createPreset({
+    workspaceId,
     input,
   }: {
     workspaceId: string;
     input: CreateDashboardPresetInput;
   }): Promise<DashboardPresetDTO> {
-    return {
-      id: 'preset_1',
+    const { flatPageLayoutMaps } =
+      await this.workspaceManyOrAllFlatEntityMapsCacheService.getOrRecomputeManyOrAllFlatEntityMaps(
+        {
+          workspaceId,
+          flatMapsKeys: ['flatPageLayoutMaps'],
+        },
+      );
+
+    const existingPageLayout = findFlatEntityByIdInFlatEntityMaps({
+      flatEntityId: input.pageLayoutId,
+      flatEntityMaps: flatPageLayoutMaps,
+    });
+
+    if (
+      !isDefined(existingPageLayout) ||
+      isDefined(existingPageLayout.deletedAt)
+    ) {
+      throw new PageLayoutException(
+        generatePageLayoutExceptionMessage(
+          PageLayoutExceptionMessageKey.PAGE_LAYOUT_NOT_FOUND,
+          input.pageLayoutId,
+        ),
+        PageLayoutExceptionCode.PAGE_LAYOUT_NOT_FOUND,
+      );
+    }
+
+    const { workspaceCustomFlatApplication } =
+      await this.applicationService.findWorkspaceTwentyStandardAndCustomApplicationOrThrow(
+        { workspaceId },
+      );
+
+    const createdPreset: DashboardPresetDTO = {
+      id: v4(),
       name: input.name,
       filterState: input.filterState ?? {},
     };
+
+    const flatPageLayoutToUpdate: FlatPageLayout = {
+      ...existingPageLayout,
+      dashboardPresets: [
+        ...(existingPageLayout.dashboardPresets ?? []),
+        createdPreset,
+      ],
+      updatedAt: new Date().toISOString(),
+    };
+
+    const validateAndBuildResult =
+      await this.workspaceMigrationValidateBuildAndRunService.validateBuildAndRunWorkspaceMigration(
+        {
+          allFlatEntityOperationByMetadataName: {
+            pageLayout: {
+              flatEntityToCreate: [],
+              flatEntityToDelete: [],
+              flatEntityToUpdate: [flatPageLayoutToUpdate],
+            },
+          },
+          workspaceId,
+          isSystemBuild: false,
+          applicationUniversalIdentifier:
+            workspaceCustomFlatApplication.universalIdentifier,
+        },
+      );
+
+    if (validateAndBuildResult.status === 'fail') {
+      throw new WorkspaceMigrationBuilderException(
+        validateAndBuildResult,
+        'Multiple validation errors occurred while creating dashboard preset',
+      );
+    }
+
+    await this.dashboardSyncService.updateLinkedDashboardsUpdatedAtByPageLayoutId(
+      {
+        pageLayoutId: input.pageLayoutId,
+        workspaceId,
+        updatedAt: new Date(flatPageLayoutToUpdate.updatedAt),
+      },
+    );
+
+    return createdPreset;
   }
 
   async renamePreset({
+    workspaceId,
     input,
   }: {
     workspaceId: string;
     input: RenameDashboardPresetInput;
   }): Promise<DashboardPresetDTO> {
-    return {
-      id: input.presetId,
-      name: input.newName,
-      filterState: {},
+    const { flatPageLayoutMaps } =
+      await this.workspaceManyOrAllFlatEntityMapsCacheService.getOrRecomputeManyOrAllFlatEntityMaps(
+        {
+          workspaceId,
+          flatMapsKeys: ['flatPageLayoutMaps'],
+        },
+      );
+
+    const existingPageLayout = Object.values(
+      flatPageLayoutMaps.byUniversalIdentifier,
+    )
+      .filter(isDefined)
+      .find(
+        (flatPageLayout) =>
+          !isDefined(flatPageLayout.deletedAt) &&
+          (flatPageLayout.dashboardPresets ?? []).some(
+            (preset) => preset.id === input.presetId,
+          ),
+      );
+
+    if (!isDefined(existingPageLayout)) {
+      throw new PageLayoutException(
+        generatePageLayoutExceptionMessage(
+          PageLayoutExceptionMessageKey.DASHBOARD_PRESET_NOT_FOUND,
+          input.presetId,
+        ),
+        PageLayoutExceptionCode.DASHBOARD_PRESET_NOT_FOUND,
+      );
+    }
+
+    const { workspaceCustomFlatApplication } =
+      await this.applicationService.findWorkspaceTwentyStandardAndCustomApplicationOrThrow(
+        { workspaceId },
+      );
+
+    const flatPageLayoutToUpdate: FlatPageLayout = {
+      ...existingPageLayout,
+      dashboardPresets: (existingPageLayout.dashboardPresets ?? []).map(
+        (preset) =>
+          preset.id === input.presetId
+            ? {
+                ...preset,
+                name: input.newName,
+              }
+            : preset,
+      ),
+      updatedAt: new Date().toISOString(),
     };
+
+    const validateAndBuildResult =
+      await this.workspaceMigrationValidateBuildAndRunService.validateBuildAndRunWorkspaceMigration(
+        {
+          allFlatEntityOperationByMetadataName: {
+            pageLayout: {
+              flatEntityToCreate: [],
+              flatEntityToDelete: [],
+              flatEntityToUpdate: [flatPageLayoutToUpdate],
+            },
+          },
+          workspaceId,
+          isSystemBuild: false,
+          applicationUniversalIdentifier:
+            workspaceCustomFlatApplication.universalIdentifier,
+        },
+      );
+
+    if (validateAndBuildResult.status === 'fail') {
+      throw new WorkspaceMigrationBuilderException(
+        validateAndBuildResult,
+        'Multiple validation errors occurred while renaming dashboard preset',
+      );
+    }
+
+    await this.dashboardSyncService.updateLinkedDashboardsUpdatedAtByPageLayoutId(
+      {
+        pageLayoutId: existingPageLayout.id,
+        workspaceId,
+        updatedAt: new Date(flatPageLayoutToUpdate.updatedAt),
+      },
+    );
+
+    return findDashboardPresetOrThrow({
+      flatPageLayout: flatPageLayoutToUpdate,
+      presetId: input.presetId,
+    });
   }
 
   async updatePageLayoutWithTabs({
