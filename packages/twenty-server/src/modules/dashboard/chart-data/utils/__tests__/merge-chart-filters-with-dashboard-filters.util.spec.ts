@@ -1,15 +1,14 @@
 /* eslint-disable @nx/enforce-module-boundaries */
 import { ViewFilterOperand, FieldMetadataType } from 'twenty-shared/types';
 
-import { convertChartFilterToGqlOperationFilter } from 'src/modules/dashboard/chart-data/utils/convert-chart-filter-to-gql-operation-filter.util';
+import { mergeChartFiltersWithDashboardFilters } from 'src/modules/dashboard/chart-data/utils/merge-chart-filters-with-dashboard-filters.util';
 
 const stageFieldId = 'stage-field-id';
-const amountFieldId = 'amount-field-id';
 const foreignFieldId = 'foreign-field-id';
 
 const flatObjectMetadata = {
   id: 'opportunity-object-id',
-  fieldIds: [stageFieldId, amountFieldId],
+  fieldIds: [stageFieldId],
 } as any;
 
 const flatFieldMetadataMaps = {
@@ -25,13 +24,6 @@ const flatFieldMetadataMaps = {
         { value: 'SCREENING', label: 'Screening', position: 1 },
       ],
     },
-    amount: {
-      id: amountFieldId,
-      name: 'amount',
-      label: 'Amount',
-      type: FieldMetadataType.CURRENCY,
-      universalIdentifier: 'amount',
-    },
     foreign: {
       id: foreignFieldId,
       name: 'name',
@@ -42,21 +34,43 @@ const flatFieldMetadataMaps = {
   },
   universalIdentifierById: {
     [stageFieldId]: 'stage',
-    [amountFieldId]: 'amount',
     [foreignFieldId]: 'foreign',
   },
   universalIdentifiersByApplicationId: {},
 } as any;
 
-describe('convertChartFilterToGqlOperationFilter', () => {
-  it('should combine widget and dashboard filters with AND semantics', () => {
-    const result = convertChartFilterToGqlOperationFilter({
+describe('mergeChartFiltersWithDashboardFilters', () => {
+  it('should return the widget filter when no dashboard filters apply', () => {
+    const result = mergeChartFiltersWithDashboardFilters({
       filter: {
         recordFilters: [
           {
             fieldMetadataId: stageFieldId,
             operand: ViewFilterOperand.IS,
             value: '["SCREENING"]',
+          },
+        ],
+        recordFilterGroups: [],
+      },
+      dashboardFilters: [],
+      flatObjectMetadata,
+      flatFieldMetadataMaps,
+      userTimezone: 'UTC',
+    });
+
+    expect(result).toEqual({
+      stage: { in: ['SCREENING'] },
+    });
+  });
+
+  it('should ignore empty widget filter groups when combining dashboard filters', () => {
+    const result = mergeChartFiltersWithDashboardFilters({
+      filter: {
+        recordFilters: [],
+        recordFilterGroups: [
+          {
+            id: 'empty-root-group',
+            logicalOperator: 'AND',
           },
         ],
       },
@@ -73,40 +87,7 @@ describe('convertChartFilterToGqlOperationFilter', () => {
     });
 
     expect(result).toEqual({
-      and: [{ stage: { in: ['SCREENING'] } }, { stage: { in: ['NEW'] } }],
-    });
-  });
-
-  it('should skip dashboard filters for fields outside the widget object metadata', () => {
-    const result = convertChartFilterToGqlOperationFilter({
-      filter: {
-        recordFilters: [
-          {
-            fieldMetadataId: stageFieldId,
-            operand: ViewFilterOperand.IS,
-            value: '["NEW"]',
-          },
-        ],
-      },
-      dashboardFilters: [
-        {
-          fieldMetadataId: foreignFieldId,
-          operand: ViewFilterOperand.CONTAINS,
-          value: 'Acme',
-        },
-        {
-          fieldMetadataId: stageFieldId,
-          operand: ViewFilterOperand.IS,
-          value: '["SCREENING"]',
-        },
-      ],
-      flatObjectMetadata,
-      flatFieldMetadataMaps,
-      userTimezone: 'UTC',
-    });
-
-    expect(result).toEqual({
-      and: [{ stage: { in: ['NEW'] } }, { stage: { in: ['SCREENING'] } }],
+      stage: { in: ['NEW'] },
     });
   });
 });
