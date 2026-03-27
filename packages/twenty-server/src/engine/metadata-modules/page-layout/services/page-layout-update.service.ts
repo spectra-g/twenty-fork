@@ -19,6 +19,9 @@ import { type FlatPageLayoutWidget } from 'src/engine/metadata-modules/flat-page
 import { fromPageLayoutWidgetConfigurationToUniversalConfiguration } from 'src/engine/metadata-modules/flat-page-layout-widget/utils/from-page-layout-widget-configuration-to-universal-configuration.util';
 import { type FlatPageLayout } from 'src/engine/metadata-modules/flat-page-layout/types/flat-page-layout.type';
 import { reconstructFlatPageLayoutWithTabsAndWidgets } from 'src/engine/metadata-modules/flat-page-layout/utils/reconstruct-flat-page-layout-with-tabs-and-widgets.util';
+import { type DashboardPresetDTO } from 'src/engine/metadata-modules/page-layout/dtos/dashboard-preset.dto';
+import { type CreateDashboardPresetInput } from 'src/engine/metadata-modules/page-layout/dtos/inputs/create-dashboard-preset.input';
+import { type RenameDashboardPresetInput } from 'src/engine/metadata-modules/page-layout/dtos/inputs/rename-dashboard-preset.input';
 import { UpdatePageLayoutTabWithWidgetsInput } from 'src/engine/metadata-modules/page-layout-tab/dtos/inputs/update-page-layout-tab-with-widgets.input';
 import { UpdatePageLayoutWidgetWithIdInput } from 'src/engine/metadata-modules/page-layout-widget/dtos/inputs/update-page-layout-widget-with-id.input';
 import { UpdatePageLayoutWithTabsInput } from 'src/engine/metadata-modules/page-layout/dtos/inputs/update-page-layout-with-tabs.input';
@@ -48,6 +51,32 @@ export class PageLayoutUpdateService {
     private readonly applicationService: ApplicationService,
     private readonly dashboardSyncService: DashboardSyncService,
   ) {}
+
+  async createPreset({
+    input,
+  }: {
+    workspaceId: string;
+    input: CreateDashboardPresetInput;
+  }): Promise<DashboardPresetDTO> {
+    return {
+      id: 'preset_1',
+      name: input.name,
+      filterState: input.filterState ?? {},
+    };
+  }
+
+  async renamePreset({
+    input,
+  }: {
+    workspaceId: string;
+    input: RenameDashboardPresetInput;
+  }): Promise<DashboardPresetDTO> {
+    return {
+      id: input.presetId,
+      name: input.newName,
+      filterState: {},
+    };
+  }
 
   async updatePageLayoutWithTabs({
     id,
