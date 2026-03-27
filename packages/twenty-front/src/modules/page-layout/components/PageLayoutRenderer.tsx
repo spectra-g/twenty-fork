@@ -1,5 +1,7 @@
 import { t } from '@lingui/core/macro';
 import { DashboardFilterBar } from '@/dashboards/components/DashboardFilterBar';
+import { DashboardFiltersContext } from '@/dashboards/contexts/DashboardFiltersContext';
+import { useDashboardFilters } from '@/dashboards/hooks/useDashboardFilters';
 import { useDashboardUrlState } from '@/dashboards/hooks/useDashboardUrlState';
 import { PageLayoutInitializationQueryEffect } from '@/page-layout/components/PageLayoutInitializationQueryEffect';
 import { PageLayoutRelationWidgetsSyncEffect } from '@/page-layout/components/PageLayoutRelationWidgetsSyncEffect';
@@ -27,6 +29,7 @@ export const PageLayoutRenderer = ({
 
   const { targetRecordIdentifier, layoutType } = useLayoutRenderingContext();
   const { presetId, restoredPreset, stageFilter } = useDashboardUrlState();
+  const dashboardFiltersState = useDashboardFilters(stageFilter);
 
   const onInitialized = (pageLayout: PageLayout) => {
     if (isPageLayoutEmpty(pageLayout)) {
@@ -53,36 +56,42 @@ export const PageLayoutRenderer = ({
           instanceId: tabListInstanceId,
         }}
       >
-        {layoutType === PageLayoutType.DASHBOARD ? (
-          <DashboardFilterBar
-            filterDefinitions={[
-              {
-                id: 'stage',
-                type: 'stage',
-                label: t`Stage`,
-                options: [
-                  {
-                    value: 'open',
-                    label: t`Open`,
-                  },
-                  {
-                    value: 'closed-won',
-                    label: t`Closed Won`,
-                  },
-                ],
-              },
-            ]}
-            initialPresets={restoredPreset ? [restoredPreset] : []}
-            initialSelectedPresetId={presetId}
-            initialStageFilter={stageFilter}
+        <DashboardFiltersContext.Provider
+          value={dashboardFiltersState.dashboardFilters}
+        >
+          {layoutType === PageLayoutType.DASHBOARD ? (
+            <DashboardFilterBar
+              filterDefinitions={[
+                {
+                  id: 'stage',
+                  fieldMetadataId: 'stage-field-metadata-id',
+                  type: 'stage',
+                  label: t`Stage`,
+                  options: [
+                    {
+                      value: 'open',
+                      label: t`Open`,
+                    },
+                    {
+                      value: 'closed-won',
+                      label: t`Closed Won`,
+                    },
+                  ],
+                },
+              ]}
+              dashboardFiltersState={dashboardFiltersState}
+              initialPresets={restoredPreset ? [restoredPreset] : []}
+              initialSelectedPresetId={presetId}
+              initialStageFilter={stageFilter}
+            />
+          ) : null}
+          <PageLayoutInitializationQueryEffect
+            pageLayoutId={pageLayoutId}
+            onInitialized={onInitialized}
           />
-        ) : null}
-        <PageLayoutInitializationQueryEffect
-          pageLayoutId={pageLayoutId}
-          onInitialized={onInitialized}
-        />
-        <PageLayoutRelationWidgetsSyncEffect pageLayoutId={pageLayoutId} />
-        <PageLayoutRendererContent />
+          <PageLayoutRelationWidgetsSyncEffect pageLayoutId={pageLayoutId} />
+          <PageLayoutRendererContent />
+        </DashboardFiltersContext.Provider>
       </TabListComponentInstanceContext.Provider>
     </PageLayoutComponentInstanceContext.Provider>
   );

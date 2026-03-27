@@ -1,3 +1,4 @@
+import { useDashboardFilterVariables } from '@/dashboards/contexts/DashboardFiltersContext';
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
 import { type ObjectMetadataItem } from '@/object-metadata/types/ObjectMetadataItem';
 import { PIE_CHART_DATA } from '@/page-layout/widgets/graph/graphql/queries/pieChartData';
@@ -40,6 +41,7 @@ export const useGraphPieChartWidgetData = ({
   const { objectMetadataItem } = useObjectMetadataItemById({
     objectId: objectMetadataItemId,
   });
+  const dashboardFilters = useDashboardFilterVariables();
 
   const dataConfiguration = useMemo(
     () => extractPieChartDataConfiguration(configuration),
@@ -55,6 +57,7 @@ export const useGraphPieChartWidgetData = ({
       input: {
         objectMetadataId: objectMetadataItemId,
         configuration: dataConfiguration,
+        dashboardFilters,
       },
     },
   });
