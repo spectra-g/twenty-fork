@@ -120,6 +120,43 @@ describe('PageLayoutRenderer', () => {
     expect(screen.getByRole('button', { name: 'Stage Open' })).toBeVisible();
   });
 
+  it('should restore a shared preset from the dashboard URL and ignore conflicting raw filters', () => {
+    window.history.replaceState(
+      {},
+      '',
+      '/dashboard-layout?presetId=shared&filter[stage][eq]=Open',
+    );
+
+    (useLayoutRenderingContext as jest.Mock).mockReturnValue({
+      targetRecordIdentifier: undefined,
+      layoutType: PageLayoutType.DASHBOARD,
+      isInRightDrawer: false,
+    });
+    (useBasePageLayout as jest.Mock).mockReturnValue({
+      id: 'dashboard-layout-id',
+      name: 'Dashboard',
+      type: PageLayoutType.DASHBOARD,
+      objectMetadataId: null,
+      tabs: [],
+      dashboardFilters: [{ id: 'stage-filter' }],
+    });
+
+    render(<PageLayoutRenderer pageLayoutId="dashboard-layout-id" />);
+
+    expect(screen.getByRole('combobox', { name: 'Preset picker' })).toHaveValue(
+      'shared',
+    );
+    expect(
+      screen.getByRole('option', { name: 'Shared Pipeline' }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: 'Stage Closed Won' }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: 'Stage Open' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('should not render the dashboard filter bar for record page layouts', () => {
     (useLayoutRenderingContext as jest.Mock).mockReturnValue({
       targetRecordIdentifier: {

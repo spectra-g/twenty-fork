@@ -3,6 +3,10 @@ import { Injectable } from '@nestjs/common';
 import { isDefined } from 'twenty-shared/utils';
 
 import { PageLayoutDTO } from 'src/engine/metadata-modules/page-layout/dtos/page-layout.dto';
+import {
+  PageLayoutException,
+  PageLayoutExceptionCode,
+} from 'src/engine/metadata-modules/page-layout/exceptions/page-layout.exception';
 import { PageLayoutService } from 'src/engine/metadata-modules/page-layout/services/page-layout.service';
 import { GlobalWorkspaceOrmManager } from 'src/engine/twenty-orm/global-workspace-datasource/global-workspace-orm.manager';
 import {
@@ -65,22 +69,38 @@ export class DashboardLayoutService {
       workspaceId,
     });
 
-    if (!isDefined(presetId)) {
+    const normalizedPresetId = presetId?.trim();
+
+    if (!isDefined(normalizedPresetId) || normalizedPresetId === '') {
       return {
         ...pageLayout,
         activePresetFilterState: null,
       };
     }
 
-    const preset = await this.pageLayoutService.getPresetById({
-      presetId,
-      pageLayoutId: dashboard.pageLayoutId,
-      workspaceId,
-    });
+    try {
+      const preset = await this.pageLayoutService.getPresetById({
+        presetId: normalizedPresetId,
+        pageLayoutId: dashboard.pageLayoutId,
+        workspaceId,
+      });
 
-    return {
-      ...pageLayout,
-      activePresetFilterState: preset.filterState,
-    };
+      return {
+        ...pageLayout,
+        activePresetFilterState: preset.filterState,
+      };
+    } catch (error) {
+      if (
+        error instanceof PageLayoutException &&
+        error.code === PageLayoutExceptionCode.DASHBOARD_PRESET_NOT_FOUND
+      ) {
+        return {
+          ...pageLayout,
+          activePresetFilterState: null,
+        };
+      }
+
+      throw error;
+    }
   }
 }
