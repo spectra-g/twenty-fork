@@ -1,3 +1,4 @@
+import { useDashboardFilterVariables } from '@/dashboards/contexts/DashboardFiltersContext';
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
 import { type FieldMetadataItemOption } from '@/object-metadata/types/FieldMetadataItem';
 import { BAR_CHART_DATA } from '@/page-layout/widgets/graph/graphql/queries/barChartData';
@@ -55,6 +56,7 @@ export const useGraphBarChartWidgetData = ({
   const { objectMetadataItem } = useObjectMetadataItemById({
     objectId: objectMetadataItemId,
   });
+  const dashboardFilters = useDashboardFilterVariables();
 
   const dataConfiguration = useMemo(
     () => extractBarChartDataConfiguration(configuration),
@@ -71,6 +73,7 @@ export const useGraphBarChartWidgetData = ({
       input: {
         objectMetadataId: objectMetadataItemId,
         configuration: dataConfiguration,
+        dashboardFilters,
       },
     },
   });

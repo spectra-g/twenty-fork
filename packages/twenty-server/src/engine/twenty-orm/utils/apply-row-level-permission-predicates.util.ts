@@ -64,7 +64,7 @@ export const applyRowLevelPermissionPredicates = <T extends ObjectLiteral>({
     queryBuilder.expressionMap.queryType === 'soft-delete' ||
     queryBuilder.expressionMap.queryType === 'delete';
 
-  applyObjectRecordFilterToQueryBuilder({
+  appendObjectRecordFilterToQueryBuilder({
     queryBuilder,
     objectNameSingular: objectMetadata.nameSingular,
     recordFilter,
@@ -76,7 +76,9 @@ export const applyRowLevelPermissionPredicates = <T extends ObjectLiteral>({
   });
 };
 
-const applyObjectRecordFilterToQueryBuilder = <T extends ObjectLiteral>({
+export const appendObjectRecordFilterToQueryBuilder = <
+  T extends ObjectLiteral,
+>({
   queryBuilder,
   objectNameSingular,
   recordFilter,

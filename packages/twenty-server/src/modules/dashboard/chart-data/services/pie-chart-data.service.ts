@@ -1,3 +1,4 @@
+/* eslint-disable @nx/enforce-module-boundaries */
 import { Injectable } from '@nestjs/common';
 
 import { CalendarStartDay } from 'twenty-shared/constants';
@@ -22,6 +23,7 @@ import {
   generateChartDataExceptionMessage,
 } from 'src/modules/dashboard/chart-data/exceptions/chart-data.exception';
 import { ChartDataQueryService } from 'src/modules/dashboard/chart-data/services/chart-data-query.service';
+import { DashboardFilterVariable } from 'src/modules/dashboard/chart-data/types/dashboard-filter-variable.type';
 import { getFieldMetadata } from 'src/modules/dashboard/chart-data/utils/get-field-metadata.util';
 import { getSelectOptions } from 'src/modules/dashboard/chart-data/utils/get-select-options.util';
 import { processOneDimensionalResults } from 'src/modules/dashboard/chart-data/utils/process-one-dimensional-results.util';
@@ -31,6 +33,7 @@ type GetPieChartDataParams = {
   workspaceId: string;
   objectMetadataId: string;
   configuration: PieChartConfigurationDTO;
+  dashboardFilters?: DashboardFilterVariable[];
   authContext: AuthContext;
 };
 
@@ -45,6 +48,7 @@ export class PieChartDataService {
     workspaceId,
     objectMetadataId,
     configuration,
+    dashboardFilters,
     authContext,
   }: GetPieChartDataParams): Promise<PieChartDataOutputDTO> {
     try {
@@ -123,6 +127,7 @@ export class PieChartDataService {
         aggregateFieldMetadataId: configuration.aggregateFieldMetadataId,
         aggregateOperation: configuration.aggregateOperation,
         filter: configuration.filter,
+        dashboardFilters,
         dateGranularity: configuration.dateGranularity,
         userTimezone: configuration.timezone ?? 'UTC',
         firstDayOfTheWeek:

@@ -13,6 +13,7 @@ import {
 } from 'class-validator';
 
 import { UUIDScalarType } from 'src/engine/api/graphql/workspace-schema-builder/graphql-types/scalars';
+import { DashboardFilterInput } from 'src/engine/metadata-modules/page-layout/dtos/inputs/dashboard-filter.input';
 import { UpdatePageLayoutTabWithWidgetsInput } from 'src/engine/metadata-modules/page-layout-tab/dtos/inputs/update-page-layout-tab-with-widgets.input';
 import { PageLayoutType } from 'src/engine/metadata-modules/page-layout/enums/page-layout-type.enum';
 
@@ -39,4 +40,11 @@ export class UpdatePageLayoutWithTabsInput {
   @ValidateNested({ each: true })
   @Type(() => UpdatePageLayoutTabWithWidgetsInput)
   tabs: UpdatePageLayoutTabWithWidgetsInput[];
+
+  @Field(() => [DashboardFilterInput], { nullable: true })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => DashboardFilterInput)
+  @IsOptional()
+  dashboardFilters?: DashboardFilterInput[];
 }

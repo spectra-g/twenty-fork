@@ -8,6 +8,7 @@ import { WorkspaceCacheStorageModule } from 'src/engine/workspace-cache-storage/
 import { ChartDataModule } from 'src/modules/dashboard/chart-data/chart-data.module';
 import { DashboardController } from 'src/modules/dashboard/controllers/dashboard.controller';
 import { DashboardResolver } from 'src/modules/dashboard/resolvers/dashboard.resolver';
+import { DashboardLayoutService } from 'src/modules/dashboard/services/dashboard-layout.service';
 import { DashboardDuplicationService } from 'src/modules/dashboard/services/dashboard-duplication.service';
 
 @Module({
@@ -20,7 +21,11 @@ import { DashboardDuplicationService } from 'src/modules/dashboard/services/dash
     WorkspaceCacheStorageModule,
   ],
   controllers: [DashboardController],
-  providers: [DashboardDuplicationService, DashboardResolver],
+  providers: [
+    DashboardDuplicationService,
+    DashboardLayoutService,
+    DashboardResolver,
+  ],
   exports: [DashboardDuplicationService],
 })
 export class DashboardModule {}

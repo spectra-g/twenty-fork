@@ -802,6 +802,11 @@ export const ALL_ENTITY_PROPERTIES_CONFIGURATION_BY_METADATA_NAME = {
   pageLayout: {
     name: { toCompare: true, toStringify: false, universalProperty: undefined },
     type: { toCompare: true, toStringify: false, universalProperty: undefined },
+    dashboardPresets: {
+      toCompare: true,
+      toStringify: true,
+      universalProperty: undefined,
+    },
     objectMetadataId: {
       toCompare: true,
       toStringify: false,

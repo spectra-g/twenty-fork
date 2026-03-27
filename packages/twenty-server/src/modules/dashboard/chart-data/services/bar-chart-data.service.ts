@@ -1,3 +1,4 @@
+/* eslint-disable @nx/enforce-module-boundaries */
 import { Injectable } from '@nestjs/common';
 
 import { isNumber } from '@sniptt/guards';
@@ -26,6 +27,7 @@ import {
   generateChartDataExceptionMessage,
 } from 'src/modules/dashboard/chart-data/exceptions/chart-data.exception';
 import { ChartDataQueryService } from 'src/modules/dashboard/chart-data/services/chart-data-query.service';
+import { DashboardFilterVariable } from 'src/modules/dashboard/chart-data/types/dashboard-filter-variable.type';
 import { FieldMetadataOption } from 'src/modules/dashboard/chart-data/types/field-metadata-option.type';
 import { GroupByRawResult } from 'src/modules/dashboard/chart-data/types/group-by-raw-result.type';
 import { RawDimensionValue } from 'src/modules/dashboard/chart-data/types/raw-dimension-value.type';
@@ -44,6 +46,7 @@ type GetBarChartDataParams = {
   workspaceId: string;
   objectMetadataId: string;
   configuration: BarChartConfigurationDTO;
+  dashboardFilters?: DashboardFilterVariable[];
   authContext: AuthContext;
 };
 
@@ -58,6 +61,7 @@ export class BarChartDataService {
     workspaceId,
     objectMetadataId,
     configuration,
+    dashboardFilters,
     authContext,
   }: GetBarChartDataParams): Promise<BarChartDataOutputDTO> {
     try {
@@ -154,6 +158,7 @@ export class BarChartDataService {
         aggregateFieldMetadataId: configuration.aggregateFieldMetadataId,
         aggregateOperation: configuration.aggregateOperation,
         filter: configuration.filter,
+        dashboardFilters,
         dateGranularity: configuration.primaryAxisDateGranularity,
         userTimezone,
         firstDayOfTheWeek,

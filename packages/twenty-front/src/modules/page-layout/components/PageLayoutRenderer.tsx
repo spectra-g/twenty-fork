@@ -1,6 +1,12 @@
+import { t } from '@lingui/core/macro';
+import { DashboardFilterBar } from '@/dashboards/components/DashboardFilterBar';
+import { DashboardFiltersContext } from '@/dashboards/contexts/DashboardFiltersContext';
+import { useDashboardFilters } from '@/dashboards/hooks/useDashboardFilters';
+import { useDashboardUrlState } from '@/dashboards/hooks/useDashboardUrlState';
 import { PageLayoutInitializationQueryEffect } from '@/page-layout/components/PageLayoutInitializationQueryEffect';
 import { PageLayoutRelationWidgetsSyncEffect } from '@/page-layout/components/PageLayoutRelationWidgetsSyncEffect';
 import { PageLayoutRendererContent } from '@/page-layout/components/PageLayoutRendererContent';
+import { useBasePageLayout } from '@/page-layout/hooks/useBasePageLayout';
 import { useSetIsPageLayoutInEditMode } from '@/page-layout/hooks/useSetIsPageLayoutInEditMode';
 import { PageLayoutComponentInstanceContext } from '@/page-layout/states/contexts/PageLayoutComponentInstanceContext';
 import { type PageLayout } from '@/page-layout/types/PageLayout';
@@ -8,6 +14,7 @@ import { getTabListInstanceIdFromPageLayoutAndRecord } from '@/page-layout/utils
 import { isPageLayoutEmpty } from '@/page-layout/utils/isPageLayoutEmpty';
 import { useLayoutRenderingContext } from '@/ui/layout/contexts/LayoutRenderingContext';
 import { TabListComponentInstanceContext } from '@/ui/layout/tab-list/states/contexts/TabListComponentInstanceContext';
+import { PageLayoutType } from '~/generated-metadata/graphql';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
@@ -22,6 +29,12 @@ export const PageLayoutRenderer = ({
     useSetIsPageLayoutInEditMode(pageLayoutId);
 
   const { targetRecordIdentifier, layoutType } = useLayoutRenderingContext();
+  const pageLayout = useBasePageLayout(pageLayoutId);
+  const { presetId, restoredPreset, stageFilter } = useDashboardUrlState();
+  const dashboardFiltersState = useDashboardFilters(stageFilter);
+  const shouldRenderDashboardFilterBar =
+    layoutType === PageLayoutType.DASHBOARD &&
+    (pageLayout?.dashboardFilters?.length ?? 0) > 0;
 
   const onInitialized = (pageLayout: PageLayout) => {
     if (isPageLayoutEmpty(pageLayout)) {
@@ -48,12 +61,42 @@ export const PageLayoutRenderer = ({
           instanceId: tabListInstanceId,
         }}
       >
-        <PageLayoutInitializationQueryEffect
-          pageLayoutId={pageLayoutId}
-          onInitialized={onInitialized}
-        />
-        <PageLayoutRelationWidgetsSyncEffect pageLayoutId={pageLayoutId} />
-        <PageLayoutRendererContent />
+        <DashboardFiltersContext.Provider
+          value={dashboardFiltersState.dashboardFilters}
+        >
+          {shouldRenderDashboardFilterBar ? (
+            <DashboardFilterBar
+              filterDefinitions={[
+                {
+                  id: 'stage',
+                  fieldMetadataId: 'stage-field-metadata-id',
+                  type: 'stage',
+                  label: t`Stage`,
+                  options: [
+                    {
+                      value: 'open',
+                      label: t`Open`,
+                    },
+                    {
+                      value: 'closed-won',
+                      label: t`Closed Won`,
+                    },
+                  ],
+                },
+              ]}
+              dashboardFiltersState={dashboardFiltersState}
+              initialPresets={restoredPreset ? [restoredPreset] : []}
+              initialSelectedPresetId={presetId}
+              initialStageFilter={stageFilter}
+            />
+          ) : null}
+          <PageLayoutInitializationQueryEffect
+            pageLayoutId={pageLayoutId}
+            onInitialized={onInitialized}
+          />
+          <PageLayoutRelationWidgetsSyncEffect pageLayoutId={pageLayoutId} />
+          <PageLayoutRendererContent />
+        </DashboardFiltersContext.Provider>
       </TabListComponentInstanceContext.Provider>
     </PageLayoutComponentInstanceContext.Provider>
   );
