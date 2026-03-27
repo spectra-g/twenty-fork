@@ -1,4 +1,5 @@
 import { type FlatPageLayout } from 'src/engine/metadata-modules/flat-page-layout/types/flat-page-layout.type';
+import { PageLayoutException } from 'src/engine/metadata-modules/page-layout/exceptions/page-layout.exception';
 import { PageLayoutType } from 'src/engine/metadata-modules/page-layout/enums/page-layout-type.enum';
 import { PageLayoutService } from 'src/engine/metadata-modules/page-layout/services/page-layout.service';
 import { PageLayoutUpdateService } from 'src/engine/metadata-modules/page-layout/services/page-layout-update.service';
@@ -246,5 +247,75 @@ describe('Dashboard preset service logic', () => {
       },
     });
     expect(currentFlatPageLayout.name).toBe('Pipeline Dashboard v2');
+  });
+
+  it('should reject creating a preset when another preset on the same dashboard already has the same name', async () => {
+    await pageLayoutUpdateService.createPreset({
+      workspaceId: WORKSPACE_ID,
+      input: {
+        pageLayoutId: PAGE_LAYOUT_ID,
+        name: 'Sales',
+        filterState: {
+          stage: {
+            eq: 'OPEN',
+          },
+        },
+      },
+    });
+
+    await expect(
+      pageLayoutUpdateService.createPreset({
+        workspaceId: WORKSPACE_ID,
+        input: {
+          pageLayoutId: PAGE_LAYOUT_ID,
+          name: 'Sales',
+          filterState: {
+            stage: {
+              eq: 'CLOSED_WON',
+            },
+          },
+        },
+      }),
+    ).rejects.toThrow(PageLayoutException);
+  });
+
+  it('should reject renaming a preset when the new name already exists on the same dashboard', async () => {
+    const firstPreset = await pageLayoutUpdateService.createPreset({
+      workspaceId: WORKSPACE_ID,
+      input: {
+        pageLayoutId: PAGE_LAYOUT_ID,
+        name: 'Sales',
+        filterState: {
+          stage: {
+            eq: 'OPEN',
+          },
+        },
+      },
+    });
+
+    const secondPreset = await pageLayoutUpdateService.createPreset({
+      workspaceId: WORKSPACE_ID,
+      input: {
+        pageLayoutId: PAGE_LAYOUT_ID,
+        name: 'Marketing',
+        filterState: {
+          stage: {
+            eq: 'CLOSED_WON',
+          },
+        },
+      },
+    });
+
+    expect(firstPreset.name).toBe('Sales');
+
+    await expect(
+      pageLayoutUpdateService.renamePreset({
+        workspaceId: WORKSPACE_ID,
+        input: {
+          presetId: secondPreset.id,
+          newName: 'Sales',
+        },
+      }),
+    ).rejects.toThrow(PageLayoutException);
   });
 });

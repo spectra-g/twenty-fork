@@ -36,7 +36,10 @@ import { fromFlatPageLayoutWithTabsAndWidgetsToPageLayoutDto } from 'src/engine/
 import { WorkspaceMigrationBuilderException } from 'src/engine/workspace-manager/workspace-migration/exceptions/workspace-migration-builder-exception';
 import { WorkspaceMigrationValidateBuildAndRunService } from 'src/engine/workspace-manager/workspace-migration/services/workspace-migration-validate-build-and-run-service';
 import { DashboardSyncService } from 'src/modules/dashboard-sync/services/dashboard-sync.service';
-import { findDashboardPresetOrThrow } from 'src/engine/metadata-modules/page-layout/utils/dashboard-preset.util';
+import {
+  assertDashboardPresetNameIsUniqueOrThrow,
+  findDashboardPresetOrThrow,
+} from 'src/engine/metadata-modules/page-layout/utils/dashboard-preset.util';
 
 type UpdatePageLayoutWithTabsParams = {
   id: string;
@@ -90,6 +93,11 @@ export class PageLayoutUpdateService {
       await this.applicationService.findWorkspaceTwentyStandardAndCustomApplicationOrThrow(
         { workspaceId },
       );
+
+    assertDashboardPresetNameIsUniqueOrThrow({
+      flatPageLayout: existingPageLayout,
+      presetName: input.name,
+    });
 
     const createdPreset: DashboardPresetDTO = {
       id: v4(),
@@ -182,6 +190,12 @@ export class PageLayoutUpdateService {
       await this.applicationService.findWorkspaceTwentyStandardAndCustomApplicationOrThrow(
         { workspaceId },
       );
+
+    assertDashboardPresetNameIsUniqueOrThrow({
+      flatPageLayout: existingPageLayout,
+      presetName: input.newName,
+      excludedPresetId: input.presetId,
+    });
 
     const flatPageLayoutToUpdate: FlatPageLayout = {
       ...existingPageLayout,

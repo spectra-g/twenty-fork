@@ -7,6 +7,7 @@ import { CustomException } from 'src/utils/custom-exception';
 export enum PageLayoutExceptionCode {
   PAGE_LAYOUT_NOT_FOUND = 'PAGE_LAYOUT_NOT_FOUND',
   DASHBOARD_PRESET_NOT_FOUND = 'DASHBOARD_PRESET_NOT_FOUND',
+  DASHBOARD_PRESET_NAME_ALREADY_EXISTS = 'DASHBOARD_PRESET_NAME_ALREADY_EXISTS',
   INVALID_PAGE_LAYOUT_DATA = 'INVALID_PAGE_LAYOUT_DATA',
   TAB_NOT_FOUND_FOR_WIDGET_DUPLICATION = 'TAB_NOT_FOUND_FOR_WIDGET_DUPLICATION',
 }
@@ -14,6 +15,7 @@ export enum PageLayoutExceptionCode {
 export enum PageLayoutExceptionMessageKey {
   PAGE_LAYOUT_NOT_FOUND = 'PAGE_LAYOUT_NOT_FOUND',
   DASHBOARD_PRESET_NOT_FOUND = 'DASHBOARD_PRESET_NOT_FOUND',
+  DASHBOARD_PRESET_NAME_ALREADY_EXISTS = 'DASHBOARD_PRESET_NAME_ALREADY_EXISTS',
   NAME_REQUIRED = 'NAME_REQUIRED',
   TAB_NOT_FOUND_FOR_WIDGET_DUPLICATION = 'TAB_NOT_FOUND_FOR_WIDGET_DUPLICATION',
 }
@@ -26,6 +28,8 @@ const getPageLayoutExceptionUserFriendlyMessage = (
       return msg`Page layout not found.`;
     case PageLayoutExceptionCode.DASHBOARD_PRESET_NOT_FOUND:
       return msg`Dashboard preset not found.`;
+    case PageLayoutExceptionCode.DASHBOARD_PRESET_NAME_ALREADY_EXISTS:
+      return msg`A dashboard preset with this name already exists.`;
     case PageLayoutExceptionCode.INVALID_PAGE_LAYOUT_DATA:
       return msg`Invalid page layout data.`;
     case PageLayoutExceptionCode.TAB_NOT_FOUND_FOR_WIDGET_DUPLICATION:
@@ -57,6 +61,8 @@ export const generatePageLayoutExceptionMessage = (
       return `Page layout with ID "${value}" not found`;
     case PageLayoutExceptionMessageKey.DASHBOARD_PRESET_NOT_FOUND:
       return `Dashboard preset with ID "${value}" not found`;
+    case PageLayoutExceptionMessageKey.DASHBOARD_PRESET_NAME_ALREADY_EXISTS:
+      return `Dashboard preset with name "${value}" already exists`;
     case PageLayoutExceptionMessageKey.NAME_REQUIRED:
       return 'Page layout name is required';
     case PageLayoutExceptionMessageKey.TAB_NOT_FOUND_FOR_WIDGET_DUPLICATION:

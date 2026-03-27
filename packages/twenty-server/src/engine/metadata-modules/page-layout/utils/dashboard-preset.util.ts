@@ -43,3 +43,39 @@ export const findDashboardPresetOrThrow = ({
     filterState: preset.filterState ?? EMPTY_FILTER_STATE,
   };
 };
+
+const normalizeDashboardPresetName = (name: string) =>
+  name.trim().toLocaleLowerCase();
+
+export const assertDashboardPresetNameIsUniqueOrThrow = ({
+  flatPageLayout,
+  presetName,
+  excludedPresetId,
+}: {
+  flatPageLayout: Pick<FlatPageLayout, 'dashboardPresets'>;
+  presetName: string;
+  excludedPresetId?: string;
+}) => {
+  const normalizedPresetName = normalizeDashboardPresetName(presetName);
+
+  const hasConflictingPreset = getDashboardPresetsFromFlatPageLayout(
+    flatPageLayout,
+  ).some(
+    (candidatePreset) =>
+      candidatePreset.id !== excludedPresetId &&
+      normalizeDashboardPresetName(candidatePreset.name) ===
+        normalizedPresetName,
+  );
+
+  if (!hasConflictingPreset) {
+    return;
+  }
+
+  throw new PageLayoutException(
+    generatePageLayoutExceptionMessage(
+      PageLayoutExceptionMessageKey.DASHBOARD_PRESET_NAME_ALREADY_EXISTS,
+      presetName,
+    ),
+    PageLayoutExceptionCode.DASHBOARD_PRESET_NAME_ALREADY_EXISTS,
+  );
+};
