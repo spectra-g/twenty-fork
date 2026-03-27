@@ -53,6 +53,30 @@ describe('DashboardFilterBar', () => {
     ).toBeVisible();
   });
 
+  it('should save the active stage filter as a named preset and select it', async () => {
+    const user = userEvent.setup();
+
+    render(<DashboardFilterBar filterDefinitions={[stageFilterDefinition]} />);
+
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Stage filter' }),
+      'qualified',
+    );
+    await user.click(screen.getByRole('button', { name: 'Save as Preset' }));
+    await user.type(
+      screen.getByRole('textbox', { name: 'Preset name' }),
+      'Sales Stage',
+    );
+    await user.click(
+      screen.getByRole('button', { name: 'Confirm Save Preset' }),
+    );
+
+    expect(screen.getByRole('combobox', { name: 'Preset picker' })).toHaveValue(
+      'sales-stage',
+    );
+    expect(screen.getByRole('option', { name: 'Sales Stage' })).toBeVisible();
+  });
+
   it('should render an empty bar when no filter definitions are available', () => {
     render(<DashboardFilterBar filterDefinitions={[]} />);
 
