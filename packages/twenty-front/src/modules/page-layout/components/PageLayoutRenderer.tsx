@@ -1,3 +1,4 @@
+import { DashboardFilterBar } from '@/dashboards/components/DashboardFilterBar';
 import { PageLayoutInitializationQueryEffect } from '@/page-layout/components/PageLayoutInitializationQueryEffect';
 import { PageLayoutRelationWidgetsSyncEffect } from '@/page-layout/components/PageLayoutRelationWidgetsSyncEffect';
 import { PageLayoutRendererContent } from '@/page-layout/components/PageLayoutRendererContent';
@@ -8,6 +9,7 @@ import { getTabListInstanceIdFromPageLayoutAndRecord } from '@/page-layout/utils
 import { isPageLayoutEmpty } from '@/page-layout/utils/isPageLayoutEmpty';
 import { useLayoutRenderingContext } from '@/ui/layout/contexts/LayoutRenderingContext';
 import { TabListComponentInstanceContext } from '@/ui/layout/tab-list/states/contexts/TabListComponentInstanceContext';
+import { PageLayoutType } from '~/generated-metadata/graphql';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
@@ -48,6 +50,9 @@ export const PageLayoutRenderer = ({
           instanceId: tabListInstanceId,
         }}
       >
+        {layoutType === PageLayoutType.DASHBOARD ? (
+          <DashboardFilterBar filterDefinitions={[]} />
+        ) : null}
         <PageLayoutInitializationQueryEffect
           pageLayoutId={pageLayoutId}
           onInitialized={onInitialized}
