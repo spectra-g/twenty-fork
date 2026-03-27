@@ -83,7 +83,7 @@ export class ChartDataQueryService {
     aggregateFieldMetadataId,
     aggregateOperation,
     filter,
-    dashboardFilters: _dashboardFilters,
+    dashboardFilters,
     dateGranularity,
     userTimezone,
     firstDayOfTheWeek,
@@ -97,6 +97,7 @@ export class ChartDataQueryService {
   }: ExecuteGroupByQueryParams): Promise<GroupByRawResult[]> {
     const gqlOperationFilter = convertChartFilterToGqlOperationFilter({
       filter,
+      dashboardFilters,
       flatObjectMetadata,
       flatFieldMetadataMaps,
       userTimezone,
