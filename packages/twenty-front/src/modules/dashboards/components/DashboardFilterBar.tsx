@@ -3,8 +3,11 @@ import { useId } from 'react';
 
 import {
   useDashboardFilters,
+  type DashboardFiltersState,
   type DashboardStageFilter,
 } from '@/dashboards/hooks/useDashboardFilters';
+import { ObjectFilterDropdownActorSelect } from '@/object-record/object-filter-dropdown/components/ObjectFilterDropdownActorSelect';
+import { ObjectFilterDropdownDateInput } from '@/object-record/object-filter-dropdown/components/ObjectFilterDropdownDateInput';
 import {
   useDashboardPresets,
   type DashboardPreset,
@@ -12,6 +15,7 @@ import {
 
 export type DashboardStageFilterDefinition = {
   id: string;
+  fieldMetadataId: string;
   type: 'date' | 'owner' | 'stage';
   label: string;
   options: Array<{
@@ -22,6 +26,7 @@ export type DashboardStageFilterDefinition = {
 
 type DashboardFilterBarProps = {
   filterDefinitions: DashboardStageFilterDefinition[];
+  dashboardFiltersState?: DashboardFiltersState;
   initialPresets?: DashboardPreset[];
   initialSelectedPresetId?: string;
   initialStageFilter?: DashboardStageFilter | null;
@@ -29,6 +34,7 @@ type DashboardFilterBarProps = {
 
 export const DashboardFilterBar = ({
   filterDefinitions,
+  dashboardFiltersState,
   initialPresets,
   initialSelectedPresetId,
   initialStageFilter = null,
@@ -36,8 +42,15 @@ export const DashboardFilterBar = ({
   const stageFilterDefinition = filterDefinitions.find(
     (filterDefinition) => filterDefinition.type === 'stage',
   );
+  const ownerFilterDefinitions = filterDefinitions.filter(
+    (filterDefinition) => filterDefinition.type === 'owner',
+  );
+  const dateFilterDefinitions = filterDefinitions.filter(
+    (filterDefinition) => filterDefinition.type === 'date',
+  );
+  const internalDashboardFiltersState = useDashboardFilters(initialStageFilter);
   const { activeStageFilter, clearActiveStageFilter, setActiveStageFilter } =
-    useDashboardFilters(initialStageFilter);
+    dashboardFiltersState ?? internalDashboardFiltersState;
   const {
     presets,
     renamePreset,
@@ -181,6 +194,18 @@ export const DashboardFilterBar = ({
           </select>
         </>
       ) : null}
+      {ownerFilterDefinitions.map((filterDefinition) => (
+        <div key={filterDefinition.id}>
+          <span>{filterDefinition.label} filter</span>
+          <ObjectFilterDropdownActorSelect dropdownId={filterDefinition.id} />
+        </div>
+      ))}
+      {dateFilterDefinitions.map((filterDefinition) => (
+        <div key={filterDefinition.id}>
+          <span>{filterDefinition.label} filter</span>
+          <ObjectFilterDropdownDateInput />
+        </div>
+      ))}
       <form onSubmit={handleSavePreset}>
         <label htmlFor={renamePresetInputId}>{t`Preset name`}</label>
         <input id={renamePresetInputId} name="presetName" type="text" />

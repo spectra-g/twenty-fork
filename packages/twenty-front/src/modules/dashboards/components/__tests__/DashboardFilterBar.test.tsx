@@ -6,10 +6,29 @@ import {
   type DashboardStageFilterDefinition,
 } from '@/dashboards/components/DashboardFilterBar';
 
+jest.mock(
+  '@/object-record/object-filter-dropdown/components/ObjectFilterDropdownActorSelect',
+  () => ({
+    ObjectFilterDropdownActorSelect: () => (
+      <div data-testid="dashboard-owner-filter-input">owner filter input</div>
+    ),
+  }),
+);
+
+jest.mock(
+  '@/object-record/object-filter-dropdown/components/ObjectFilterDropdownDateInput',
+  () => ({
+    ObjectFilterDropdownDateInput: () => (
+      <div data-testid="dashboard-date-filter-input">date filter input</div>
+    ),
+  }),
+);
+
 const stageFilterDefinition: DashboardStageFilterDefinition = {
   id: 'stage',
   type: 'stage',
   label: 'Stage',
+  fieldMetadataId: 'stage-field-metadata-id',
   options: [
     {
       value: 'qualified',
@@ -26,6 +45,15 @@ const dateFilterDefinition: DashboardStageFilterDefinition = {
   id: 'created-at',
   type: 'date',
   label: 'Created at',
+  fieldMetadataId: 'created-at-field-metadata-id',
+  options: [],
+};
+
+const ownerFilterDefinition: DashboardStageFilterDefinition = {
+  id: 'owner',
+  type: 'owner',
+  label: 'Owner',
+  fieldMetadataId: 'owner-field-metadata-id',
   options: [],
 };
 
@@ -86,12 +114,21 @@ describe('DashboardFilterBar', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('should ignore non-stage filter definitions', () => {
+  it('should render the owner actor select when an owner definition is provided', () => {
+    render(<DashboardFilterBar filterDefinitions={[ownerFilterDefinition]} />);
+
+    expect(screen.getByTestId('dashboard-filter-bar')).toBeVisible();
+    expect(screen.getByText('Owner filter')).toBeVisible();
+    expect(
+      screen.getByTestId('dashboard-owner-filter-input'),
+    ).toBeInTheDocument();
+  });
+
+  it('should render the date input when a date definition is provided', () => {
     render(<DashboardFilterBar filterDefinitions={[dateFilterDefinition]} />);
 
     expect(screen.getByTestId('dashboard-filter-bar')).toBeVisible();
-    expect(
-      screen.queryByRole('combobox', { name: 'Created at filter' }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByText('Created at filter')).toBeVisible();
+    expect(screen.getByTestId('dashboard-date-filter-input')).toBeVisible();
   });
 });
