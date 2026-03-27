@@ -15,7 +15,10 @@ import { MetadataResolver } from 'src/engine/api/graphql/graphql-config/decorato
 import { NoPermissionGuard } from 'src/engine/guards/no-permission.guard';
 import { SettingsPermissionGuard } from 'src/engine/guards/settings-permission.guard';
 import { WorkspaceAuthGuard } from 'src/engine/guards/workspace-auth.guard';
+import { DashboardPresetDTO } from 'src/engine/metadata-modules/page-layout/dtos/dashboard-preset.dto';
+import { CreateDashboardPresetInput } from 'src/engine/metadata-modules/page-layout/dtos/inputs/create-dashboard-preset.input';
 import { CreatePageLayoutInput } from 'src/engine/metadata-modules/page-layout/dtos/inputs/create-page-layout.input';
+import { RenameDashboardPresetInput } from 'src/engine/metadata-modules/page-layout/dtos/inputs/rename-dashboard-preset.input';
 import { UpdatePageLayoutWithTabsInput } from 'src/engine/metadata-modules/page-layout/dtos/inputs/update-page-layout-with-tabs.input';
 import { UpdatePageLayoutInput } from 'src/engine/metadata-modules/page-layout/dtos/inputs/update-page-layout.input';
 import { PageLayoutDTO } from 'src/engine/metadata-modules/page-layout/dtos/page-layout.dto';
@@ -117,6 +120,30 @@ export class PageLayoutResolver {
   ): Promise<PageLayoutDTO> {
     return this.pageLayoutUpdateService.updatePageLayoutWithTabs({
       id,
+      workspaceId: workspace.id,
+      input,
+    });
+  }
+
+  @Mutation(() => DashboardPresetDTO)
+  @UseGuards(SettingsPermissionGuard(PermissionFlagType.LAYOUTS))
+  async createDashboardPreset(
+    @Args('input') input: CreateDashboardPresetInput,
+    @AuthWorkspace() workspace: WorkspaceEntity,
+  ): Promise<DashboardPresetDTO> {
+    return this.pageLayoutUpdateService.createPreset({
+      workspaceId: workspace.id,
+      input,
+    });
+  }
+
+  @Mutation(() => DashboardPresetDTO)
+  @UseGuards(SettingsPermissionGuard(PermissionFlagType.LAYOUTS))
+  async renameDashboardPreset(
+    @Args('input') input: RenameDashboardPresetInput,
+    @AuthWorkspace() workspace: WorkspaceEntity,
+  ): Promise<DashboardPresetDTO> {
+    return this.pageLayoutUpdateService.renamePreset({
       workspaceId: workspace.id,
       input,
     });

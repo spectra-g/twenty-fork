@@ -43,6 +43,26 @@ test.describe.serial('Dashboard Preset Flows', () => {
   );
 
   test.skip(
+    'should rename an existing dashboard preset from the preset picker',
+    async ({ page }) => {
+      await page.goto('/dashboards/pipeline-dashboard?presetId=sales-stage-preset-123');
+
+      await page.getByRole('combobox', { name: 'Preset picker' }).click();
+      await page.getByRole('option', { name: 'Sales View' }).click();
+      await page.getByRole('button', { name: 'Rename Preset' }).click();
+      await page.getByRole('textbox', { name: 'Preset name' }).fill('Q1 Sales');
+      await page.getByRole('button', { name: 'Confirm Rename Preset' }).click();
+
+      await expect(
+        page.getByRole('combobox', { name: 'Preset picker' }),
+      ).toHaveValue('sales-stage-preset-123');
+      await expect(
+        page.getByRole('option', { name: 'Q1 Sales' }),
+      ).toBeVisible();
+    },
+  );
+
+  test.skip(
     'should restore raw stage filters from the dashboard URL when no preset is selected',
     async ({ page }) => {
       await page.goto('/dashboards/pipeline-dashboard?filter[stage][eq]=Open');

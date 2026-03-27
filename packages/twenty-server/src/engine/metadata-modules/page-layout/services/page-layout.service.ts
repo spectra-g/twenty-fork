@@ -34,6 +34,7 @@ import { buildSystemAuthContext } from 'src/engine/twenty-orm/utils/build-system
 import { WorkspaceMigrationBuilderException } from 'src/engine/workspace-manager/workspace-migration/exceptions/workspace-migration-builder-exception';
 import { WorkspaceMigrationValidateBuildAndRunService } from 'src/engine/workspace-manager/workspace-migration/services/workspace-migration-validate-build-and-run-service';
 import { DashboardSyncService } from 'src/modules/dashboard-sync/services/dashboard-sync.service';
+import { type DashboardPresetDTO } from 'src/engine/metadata-modules/page-layout/dtos/dashboard-preset.dto';
 
 @Injectable()
 export class PageLayoutService {
@@ -150,6 +151,20 @@ export class PageLayoutService {
         flatPageLayoutWidgetMaps,
       }),
     );
+  }
+
+  async getPresetById({
+    presetId,
+  }: {
+    presetId: string;
+    pageLayoutId: string;
+    workspaceId: string;
+  }): Promise<DashboardPresetDTO> {
+    return {
+      id: presetId,
+      name: presetId === 'preset_1' ? 'Sales View' : 'Preset',
+      filterState: {},
+    };
   }
 
   private async getPageLayoutFlatEntityMaps(workspaceId: string): Promise<{

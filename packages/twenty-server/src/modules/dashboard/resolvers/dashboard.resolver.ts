@@ -1,5 +1,5 @@
 import { UseFilters, UseGuards, UsePipes } from '@nestjs/common';
-import { Args, Mutation } from '@nestjs/graphql';
+import { Args, Mutation, Query } from '@nestjs/graphql';
 
 import { UUIDScalarType } from 'src/engine/api/graphql/workspace-schema-builder/graphql-types/scalars';
 import { MetadataResolver } from 'src/engine/api/graphql/graphql-config/decorators/metadata-resolver.decorator';
@@ -13,8 +13,10 @@ import { AuthWorkspaceMemberId } from 'src/engine/decorators/auth/auth-workspace
 import { AuthWorkspace } from 'src/engine/decorators/auth/auth-workspace.decorator';
 import { NoPermissionGuard } from 'src/engine/guards/no-permission.guard';
 import { WorkspaceAuthGuard } from 'src/engine/guards/workspace-auth.guard';
+import { PageLayoutDTO } from 'src/engine/metadata-modules/page-layout/dtos/page-layout.dto';
 import { PageLayoutGraphqlApiExceptionFilter } from 'src/engine/metadata-modules/page-layout/utils/page-layout-graphql-api-exception.filter';
 import { DuplicatedDashboardDTO } from 'src/modules/dashboard/dtos/duplicated-dashboard.dto';
+import { DashboardLayoutService } from 'src/modules/dashboard/services/dashboard-layout.service';
 import { DashboardDuplicationService } from 'src/modules/dashboard/services/dashboard-duplication.service';
 import { DashboardGraphqlApiExceptionFilter } from 'src/modules/dashboard/utils/dashboard-graphql-api-exception.filter';
 
@@ -28,7 +30,22 @@ import { DashboardGraphqlApiExceptionFilter } from 'src/modules/dashboard/utils/
 export class DashboardResolver {
   constructor(
     private readonly dashboardDuplicationService: DashboardDuplicationService,
+    private readonly dashboardLayoutService: DashboardLayoutService,
   ) {}
+
+  @Query(() => PageLayoutDTO, { nullable: true })
+  @UseGuards(NoPermissionGuard)
+  async getDashboardLayoutByUrl(
+    @Args('dashboardId', { type: () => UUIDScalarType }) dashboardId: string,
+    @Args('presetId', { type: () => String, nullable: true }) presetId: string,
+    @AuthWorkspace() workspace: WorkspaceEntity,
+  ): Promise<PageLayoutDTO> {
+    return this.dashboardLayoutService.getDashboardLayoutByUrl({
+      dashboardId,
+      presetId,
+      workspaceId: workspace.id,
+    });
+  }
 
   @Mutation(() => DuplicatedDashboardDTO)
   @UseGuards(NoPermissionGuard)
