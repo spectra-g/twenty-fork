@@ -68,27 +68,9 @@ export const useGraphBarChartWidgetData = ({
     [dashboardFilters],
   );
 
-  const configurationHasLocalFilters =
-    (configuration.filter?.recordFilters?.length ?? 0) > 0 ||
-    (configuration.filter?.recordFilterGroups?.length ?? 0) > 0;
-
-  const effectiveConfiguration = useMemo(() => {
-    if (configurationHasLocalFilters || activeDashboardFilters.length === 0) {
-      return configuration;
-    }
-
-    return {
-      ...configuration,
-      filter: {
-        recordFilters: activeDashboardFilters,
-        recordFilterGroups: [],
-      },
-    };
-  }, [activeDashboardFilters, configuration, configurationHasLocalFilters]);
-
   const dataConfiguration = useMemo(
-    () => extractBarChartDataConfiguration(effectiveConfiguration),
-    [effectiveConfiguration],
+    () => extractBarChartDataConfiguration(configuration),
+    [configuration],
   );
 
   const {
@@ -101,6 +83,13 @@ export const useGraphBarChartWidgetData = ({
       input: {
         objectMetadataId: objectMetadataItemId,
         configuration: dataConfiguration,
+        dashboardGlobalFilters:
+          activeDashboardFilters.length > 0
+            ? {
+                recordFilters: activeDashboardFilters,
+                recordFilterGroups: [],
+              }
+            : undefined,
       },
     },
   });
@@ -120,10 +109,10 @@ export const useGraphBarChartWidgetData = ({
     : new Map();
 
   const colorDeterminingFieldId = isDefined(
-    effectiveConfiguration.secondaryAxisGroupByFieldMetadataId,
+    configuration.secondaryAxisGroupByFieldMetadataId,
   )
-    ? effectiveConfiguration.secondaryAxisGroupByFieldMetadataId
-    : effectiveConfiguration.primaryAxisGroupByFieldMetadataId;
+    ? configuration.secondaryAxisGroupByFieldMetadataId
+    : configuration.primaryAxisGroupByFieldMetadataId;
 
   const colorDeterminingField = objectMetadataItem?.fields?.find(
     (field: { id: string }) => field.id === colorDeterminingFieldId,
@@ -145,7 +134,7 @@ export const useGraphBarChartWidgetData = ({
     return colorDeterminingField.options;
   }, [colorDeterminingField]);
 
-  const configurationColor = parseGraphColor(effectiveConfiguration.color);
+  const configurationColor = parseGraphColor(configuration.color);
 
   const colorMode = determineGraphColorMode({
     configurationColor,
@@ -177,12 +166,12 @@ export const useGraphBarChartWidgetData = ({
     series,
     xAxisLabel: effectiveQueryData?.barChartData?.xAxisLabel ?? '',
     yAxisLabel: effectiveQueryData?.barChartData?.yAxisLabel ?? '',
-    showDataLabels: effectiveConfiguration.displayDataLabel ?? false,
-    showLegend: effectiveConfiguration.displayLegend ?? true,
+    showDataLabels: configuration.displayDataLabel ?? false,
+    showLegend: configuration.displayLegend ?? true,
     layout: effectiveQueryData?.barChartData?.layout,
     groupMode: getEffectiveGroupMode(
-      effectiveConfiguration.groupMode,
-      isDefined(effectiveConfiguration.secondaryAxisGroupByFieldMetadataId),
+      configuration.groupMode,
+      isDefined(configuration.secondaryAxisGroupByFieldMetadataId),
     ),
     hasTooManyGroups:
       effectiveQueryData?.barChartData?.hasTooManyGroups ?? false,

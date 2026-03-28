@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import { CalendarStartDay } from 'twenty-shared/constants';
-import { FirstDayOfTheWeek } from 'twenty-shared/types';
+// eslint-disable-next-line @nx/enforce-module-boundaries
+import { type ChartFilter, FirstDayOfTheWeek } from 'twenty-shared/types';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import {
   convertCalendarStartDayNonIsoNumberToFirstDayOfTheWeek,
   isDefined,
@@ -32,6 +35,7 @@ type GetPieChartDataParams = {
   objectMetadataId: string;
   configuration: PieChartConfigurationDTO;
   authContext: AuthContext;
+  dashboardGlobalFilters?: ChartFilter;
 };
 
 @Injectable()
@@ -46,6 +50,7 @@ export class PieChartDataService {
     objectMetadataId,
     configuration,
     authContext,
+    dashboardGlobalFilters,
   }: GetPieChartDataParams): Promise<PieChartDataOutputDTO> {
     try {
       if (
@@ -123,6 +128,7 @@ export class PieChartDataService {
         aggregateFieldMetadataId: configuration.aggregateFieldMetadataId,
         aggregateOperation: configuration.aggregateOperation,
         filter: configuration.filter,
+        dashboardGlobalFilters,
         dateGranularity: configuration.dateGranularity,
         userTimezone: configuration.timezone ?? 'UTC',
         firstDayOfTheWeek:

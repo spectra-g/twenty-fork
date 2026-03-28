@@ -1,12 +1,15 @@
 import { Injectable } from '@nestjs/common';
 
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import { CalendarStartDay } from 'twenty-shared/constants';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import {
   AggregateOperations,
   type ChartFilter,
   ObjectRecordGroupByDateGranularity,
   OrderByWithGroupBy,
 } from 'twenty-shared/types';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import {
   isDefined,
   isFieldMetadataArrayKind,
@@ -35,6 +38,7 @@ import {
   type GroupByFieldObject,
 } from 'src/modules/dashboard/chart-data/utils/build-group-by-field-object.util';
 import { convertChartFilterToGqlOperationFilter } from 'src/modules/dashboard/chart-data/utils/convert-chart-filter-to-gql-operation-filter.util';
+import { composeChartFilters } from 'src/modules/dashboard/chart-data/utils/compose-chart-filters.util';
 import { getFieldMetadata } from 'src/modules/dashboard/chart-data/utils/get-field-metadata.util';
 import { getGroupByOrderBy } from 'src/modules/dashboard/chart-data/utils/get-group-by-order-by.util';
 import { isRelationNestedFieldDateKind } from 'src/modules/dashboard/chart-data/utils/is-relation-nested-field-date-kind.util';
@@ -51,6 +55,7 @@ type ExecuteGroupByQueryParams = {
   aggregateFieldMetadataId: string;
   aggregateOperation: AggregateOperations;
   filter?: ChartFilter;
+  dashboardGlobalFilters?: ChartFilter;
   dateGranularity?: ObjectRecordGroupByDateGranularity;
   userTimezone: string;
   firstDayOfTheWeek: CalendarStartDay;
@@ -80,6 +85,7 @@ export class ChartDataQueryService {
     aggregateFieldMetadataId,
     aggregateOperation,
     filter,
+    dashboardGlobalFilters,
     dateGranularity,
     userTimezone,
     firstDayOfTheWeek,
@@ -91,8 +97,13 @@ export class ChartDataQueryService {
     secondaryAxisOrderBy,
     splitMultiValueFields,
   }: ExecuteGroupByQueryParams): Promise<GroupByRawResult[]> {
+    const composedFilter = composeChartFilters({
+      dashboardGlobalFilters,
+      localFilters: filter,
+    });
+
     const gqlOperationFilter = convertChartFilterToGqlOperationFilter({
-      filter,
+      filter: composedFilter,
       flatObjectMetadata,
       flatFieldMetadataMaps,
       userTimezone,
