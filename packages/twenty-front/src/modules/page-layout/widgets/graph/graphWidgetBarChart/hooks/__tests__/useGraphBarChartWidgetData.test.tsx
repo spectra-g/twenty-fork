@@ -111,6 +111,10 @@ const LocalFilterGraphWidgetPreview = () => {
 };
 
 describe('useGraphBarChartWidgetData', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
   it('should refresh visible widget data when a dashboard text filter is applied', async () => {
     const user = userEvent.setup();
 
@@ -412,5 +416,226 @@ describe('useGraphBarChartWidgetData', () => {
     });
 
     expect(screen.queryByText('Apple')).not.toBeInTheDocument();
+  });
+
+  it('should refresh visible widget data when a saved preset is applied', async () => {
+    const user = userEvent.setup();
+
+    const mocks: MockedResponse[] = [
+      {
+        request: {
+          query: BAR_CHART_DATA,
+          variables: {
+            input: {
+              objectMetadataId: 'company-object-metadata-id',
+              configuration: baseDataConfiguration,
+              dashboardGlobalFilters: undefined,
+            },
+          },
+        },
+        result: {
+          data: {
+            barChartData: {
+              data: [{ id: 'All companies', totalCount: 12 }],
+              indexBy: 'id',
+              keys: ['totalCount'],
+              series: [{ key: 'totalCount', label: 'Total count' }],
+              xAxisLabel: 'Company',
+              yAxisLabel: 'Count',
+              showLegend: true,
+              showDataLabels: false,
+              layout: BarChartLayout.VERTICAL,
+              groupMode: 'grouped',
+              hasTooManyGroups: false,
+              formattedToRawLookup: {},
+            },
+          },
+        },
+      },
+      {
+        request: {
+          query: BAR_CHART_DATA,
+          variables: {
+            input: {
+              objectMetadataId: 'company-object-metadata-id',
+              configuration: baseDataConfiguration,
+              dashboardGlobalFilters: {
+                recordFilters: [
+                  {
+                    id: 'dashboard-filter-1',
+                    fieldMetadataId: 'name',
+                    value: 'Apple',
+                    displayValue: 'Apple',
+                    operand: 'CONTAINS',
+                    type: FieldMetadataType.TEXT,
+                    label: 'Name',
+                  },
+                ],
+                recordFilterGroups: [],
+              },
+            },
+          },
+        },
+        result: {
+          data: {
+            barChartData: {
+              data: [{ id: 'Apple', totalCount: 3 }],
+              indexBy: 'id',
+              keys: ['totalCount'],
+              series: [{ key: 'totalCount', label: 'Total count' }],
+              xAxisLabel: 'Company',
+              yAxisLabel: 'Count',
+              showLegend: true,
+              showDataLabels: false,
+              layout: BarChartLayout.VERTICAL,
+              groupMode: 'grouped',
+              hasTooManyGroups: false,
+              formattedToRawLookup: {},
+            },
+          },
+        },
+      },
+      {
+        request: {
+          query: BAR_CHART_DATA,
+          variables: {
+            input: {
+              objectMetadataId: 'company-object-metadata-id',
+              configuration: baseDataConfiguration,
+              dashboardGlobalFilters: {
+                recordFilters: [
+                  {
+                    id: 'dashboard-filter-1',
+                    fieldMetadataId: 'name',
+                    value: 'Other',
+                    displayValue: 'Other',
+                    operand: 'CONTAINS',
+                    type: FieldMetadataType.TEXT,
+                    label: 'Name',
+                  },
+                ],
+                recordFilterGroups: [],
+              },
+            },
+          },
+        },
+        result: {
+          data: {
+            barChartData: {
+              data: [{ id: 'Other', totalCount: 5 }],
+              indexBy: 'id',
+              keys: ['totalCount'],
+              series: [{ key: 'totalCount', label: 'Total count' }],
+              xAxisLabel: 'Company',
+              yAxisLabel: 'Count',
+              showLegend: true,
+              showDataLabels: false,
+              layout: BarChartLayout.VERTICAL,
+              groupMode: 'grouped',
+              hasTooManyGroups: false,
+              formattedToRawLookup: {},
+            },
+          },
+        },
+      },
+      {
+        request: {
+          query: BAR_CHART_DATA,
+          variables: {
+            input: {
+              objectMetadataId: 'company-object-metadata-id',
+              configuration: baseDataConfiguration,
+              dashboardGlobalFilters: {
+                recordFilters: [
+                  {
+                    id: 'dashboard-filter-1',
+                    fieldMetadataId: 'name',
+                    value: 'Apple',
+                    displayValue: 'Apple',
+                    operand: 'CONTAINS',
+                    type: FieldMetadataType.TEXT,
+                    label: 'Name',
+                  },
+                ],
+                recordFilterGroups: [],
+              },
+            },
+          },
+        },
+        result: {
+          data: {
+            barChartData: {
+              data: [{ id: 'Apple', totalCount: 3 }],
+              indexBy: 'id',
+              keys: ['totalCount'],
+              series: [{ key: 'totalCount', label: 'Total count' }],
+              xAxisLabel: 'Company',
+              yAxisLabel: 'Count',
+              showLegend: true,
+              showDataLabels: false,
+              layout: BarChartLayout.VERTICAL,
+              groupMode: 'grouped',
+              hasTooManyGroups: false,
+              formattedToRawLookup: {},
+            },
+          },
+        },
+      },
+    ];
+
+    render(
+      <>
+        <DashboardFilterBar />
+        <GraphWidgetPreview />
+      </>,
+      {
+        wrapper: createWrapper(mocks),
+      },
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('All companies')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Add filter' }));
+    fireEvent.change(screen.getByLabelText('Value'), {
+      target: { value: 'Apple' },
+    });
+    await user.click(screen.getByRole('button', { name: 'Apply filter' }));
+
+    await user.click(screen.getByRole('button', { name: 'Filter presets' }));
+    await user.click(screen.getByRole('button', { name: 'Save as preset' }));
+    await user.type(screen.getByLabelText('Preset name'), 'Q1 Sales');
+    await user.click(screen.getByRole('button', { name: 'Save preset' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Apple')).toBeInTheDocument();
+    });
+
+    await user.click(
+      screen.getByRole('button', { name: /Name contains Apple/i }),
+    );
+    fireEvent.change(screen.getByLabelText('Value'), {
+      target: { value: 'Other' },
+    });
+    await user.click(screen.getByRole('button', { name: 'Apply filter' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Other')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Filter presets' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Apply preset Q1 Sales' }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Apple')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText('Other')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Name contains Apple/i }),
+    ).toBeInTheDocument();
   });
 });
