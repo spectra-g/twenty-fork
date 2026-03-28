@@ -1,4 +1,5 @@
 import { useNavigatePageLayoutCommandMenu } from '@/command-menu/pages/page-layout/hooks/useNavigatePageLayoutCommandMenu';
+import { DashboardFilterBar } from '@/page-layout/components/DashboardFilterBar';
 import { PageLayoutLeftPanel } from '@/page-layout/components/PageLayoutLeftPanel';
 import { PageLayoutTabList } from '@/page-layout/components/PageLayoutTabList';
 import { PageLayoutTabListEffect } from '@/page-layout/components/PageLayoutTabListEffect';
@@ -22,9 +23,12 @@ import { useSetAtomComponentState } from '@/ui/utilities/state/jotai/hooks/useSe
 import { useAtomComponentStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateValue';
 import styled from '@emotion/styled';
 import { t } from '@lingui/core/macro';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import { CommandMenuPages } from 'twenty-shared/types';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import { isDefined } from 'twenty-shared/utils';
-import { useIsMobile } from 'twenty-ui/utilities';
+import { useIsMobile } from '@/ui/utilities/responsive/hooks/useIsMobile';
+import { PageLayoutType } from '~/generated-metadata/graphql';
 
 const StyledContainer = styled.div<{ hasPinnedTab: boolean }>`
   display: grid;
@@ -146,6 +150,8 @@ export const PageLayoutRendererContent = () => {
           )}
           defaultEnableXScroll={false}
         >
+          {currentPageLayout.type === PageLayoutType.DASHBOARD &&
+            !isPageLayoutInEditMode && <DashboardFilterBar />}
           {isDefined(activeTabId) && (
             <PageLayoutMainContent tabId={activeTabId} />
           )}
