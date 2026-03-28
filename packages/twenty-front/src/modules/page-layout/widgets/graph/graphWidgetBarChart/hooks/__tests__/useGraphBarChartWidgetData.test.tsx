@@ -7,6 +7,7 @@ import { extractBarChartDataConfiguration } from '@/page-layout/widgets/graph/ut
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { type ReactNode } from 'react';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import { FieldMetadataType } from 'twenty-shared/types';
 import {
   AggregateOperations,
@@ -42,7 +43,8 @@ const baseConfiguration: BarChartConfiguration = {
   displayDataLabel: false,
 };
 
-const baseDataConfiguration = extractBarChartDataConfiguration(baseConfiguration);
+const baseDataConfiguration =
+  extractBarChartDataConfiguration(baseConfiguration);
 
 const createWrapper = (mocks: MockedResponse[]) => {
   return ({ children }: { children: ReactNode }) => (
@@ -120,6 +122,7 @@ describe('useGraphBarChartWidgetData', () => {
             input: {
               objectMetadataId: 'company-object-metadata-id',
               configuration: baseDataConfiguration,
+              dashboardGlobalFilters: undefined,
             },
           },
         },
@@ -148,15 +151,58 @@ describe('useGraphBarChartWidgetData', () => {
           variables: {
             input: {
               objectMetadataId: 'company-object-metadata-id',
+              configuration: baseDataConfiguration,
+              dashboardGlobalFilters: {
+                recordFilters: [
+                  {
+                    id: 'dashboard-filter-1',
+                    fieldMetadataId: 'name',
+                    value: 'Apple',
+                    displayValue: 'Apple',
+                    operand: 'CONTAINS',
+                    type: FieldMetadataType.TEXT,
+                    label: 'Name',
+                  },
+                ],
+                recordFilterGroups: [],
+              },
+            },
+          },
+        },
+        result: {
+          data: {
+            barChartData: {
+              data: [{ id: 'Apple', totalCount: 3 }],
+              indexBy: 'id',
+              keys: ['totalCount'],
+              series: [{ key: 'totalCount', label: 'Total count' }],
+              xAxisLabel: 'Company',
+              yAxisLabel: 'Count',
+              showLegend: true,
+              showDataLabels: false,
+              layout: BarChartLayout.VERTICAL,
+              groupMode: 'grouped',
+              hasTooManyGroups: false,
+              formattedToRawLookup: {},
+            },
+          },
+        },
+      },
+      {
+        request: {
+          query: BAR_CHART_DATA,
+          variables: {
+            input: {
+              objectMetadataId: 'company-object-metadata-id',
               configuration: {
                 ...baseDataConfiguration,
                 filter: {
                   recordFilters: [
                     {
-                      id: 'dashboard-filter-1',
-                      fieldMetadataId: 'name',
-                      value: 'Apple',
-                      displayValue: 'Apple',
+                      id: 'local-filter-1',
+                      fieldMetadataId: 'name-field-id',
+                      value: 'Local',
+                      displayValue: 'Local',
                       operand: 'CONTAINS',
                       type: FieldMetadataType.TEXT,
                       label: 'Name',
@@ -164,6 +210,20 @@ describe('useGraphBarChartWidgetData', () => {
                   ],
                   recordFilterGroups: [],
                 },
+              },
+              dashboardGlobalFilters: {
+                recordFilters: [
+                  {
+                    id: 'dashboard-filter-1',
+                    fieldMetadataId: 'name',
+                    value: 'Apple',
+                    displayValue: 'Apple',
+                    operand: 'CONTAINS',
+                    type: FieldMetadataType.TEXT,
+                    label: 'Name',
+                  },
+                ],
+                recordFilterGroups: [],
               },
             },
           },
@@ -242,6 +302,66 @@ describe('useGraphBarChartWidgetData', () => {
                   ],
                   recordFilterGroups: [],
                 },
+              },
+              dashboardGlobalFilters: undefined,
+            },
+          },
+        },
+        result: {
+          data: {
+            barChartData: {
+              data: [{ id: 'Local only', totalCount: 2 }],
+              indexBy: 'id',
+              keys: ['totalCount'],
+              series: [{ key: 'totalCount', label: 'Total count' }],
+              xAxisLabel: 'Company',
+              yAxisLabel: 'Count',
+              showLegend: true,
+              showDataLabels: false,
+              layout: BarChartLayout.VERTICAL,
+              groupMode: 'grouped',
+              hasTooManyGroups: false,
+              formattedToRawLookup: {},
+            },
+          },
+        },
+      },
+      {
+        request: {
+          query: BAR_CHART_DATA,
+          variables: {
+            input: {
+              objectMetadataId: 'company-object-metadata-id',
+              configuration: {
+                ...baseDataConfiguration,
+                filter: {
+                  recordFilters: [
+                    {
+                      id: 'local-filter-1',
+                      fieldMetadataId: 'name-field-id',
+                      value: 'Local',
+                      displayValue: 'Local',
+                      operand: 'CONTAINS',
+                      type: FieldMetadataType.TEXT,
+                      label: 'Name',
+                    },
+                  ],
+                  recordFilterGroups: [],
+                },
+              },
+              dashboardGlobalFilters: {
+                recordFilters: [
+                  {
+                    id: 'dashboard-filter-1',
+                    fieldMetadataId: 'name',
+                    value: 'Apple',
+                    displayValue: 'Apple',
+                    operand: 'CONTAINS',
+                    type: FieldMetadataType.TEXT,
+                    label: 'Name',
+                  },
+                ],
+                recordFilterGroups: [],
               },
             },
           },
