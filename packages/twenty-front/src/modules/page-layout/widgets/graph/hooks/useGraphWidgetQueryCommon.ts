@@ -1,5 +1,7 @@
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
+import { useDashboardFilters } from '@/page-layout/hooks/useDashboardFilters';
 import { useUserTimezone } from '@/ui/input/components/internal/date/hooks/useUserTimezone';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import {
   computeRecordGqlOperationFilter,
   isDefined,
@@ -10,6 +12,8 @@ import {
   type LineChartConfiguration,
   type PieChartConfiguration,
 } from '~/generated-metadata/graphql';
+
+import { composeChartFilters } from './composeChartFilters';
 
 export const useGraphWidgetQueryCommon = ({
   objectMetadataItemId,
@@ -25,6 +29,7 @@ export const useGraphWidgetQueryCommon = ({
   const { objectMetadataItem } = useObjectMetadataItemById({
     objectId: objectMetadataItemId,
   });
+  const { dashboardFilters } = useDashboardFilters();
 
   const aggregateFieldId = configuration.aggregateFieldMetadataId;
 
@@ -38,13 +43,22 @@ export const useGraphWidgetQueryCommon = ({
 
   const { userTimezone } = useUserTimezone();
 
+  const activeDashboardFilters = dashboardFilters.filter(
+    (dashboardFilter) => dashboardFilter.value.trim().length > 0,
+  );
+
+  const composedFilters = composeChartFilters({
+    dashboardGlobalFilters: activeDashboardFilters,
+    localFilters: configuration.filter,
+  });
+
   const gqlOperationFilter = computeRecordGqlOperationFilter({
     fields: objectMetadataItem.fields,
     filterValueDependencies: {
       timeZone: userTimezone,
     },
-    recordFilters: configuration.filter?.recordFilters ?? [],
-    recordFilterGroups: configuration.filter?.recordFilterGroups ?? [],
+    recordFilters: composedFilters.recordFilters,
+    recordFilterGroups: composedFilters.recordFilterGroups,
   });
 
   return {
