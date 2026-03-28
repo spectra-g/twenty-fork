@@ -1,3 +1,5 @@
+import { useDashboardFilters } from '@/dashboard-filters/hooks/useDashboardFilters';
+import { buildDashboardFilterQuery } from '@/dashboard-filters/utils/buildDashboardFilterQuery';
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
 import { useUserTimezone } from '@/ui/input/components/internal/date/hooks/useUserTimezone';
 import {
@@ -27,6 +29,7 @@ export const useGraphWidgetQueryCommon = ({
   });
 
   const aggregateFieldId = configuration.aggregateFieldMetadataId;
+  const { appliedFilters } = useDashboardFilters();
 
   const aggregateField = objectMetadataItem.readableFields.find(
     (field: { id: string }) => field.id === aggregateFieldId,
@@ -38,7 +41,7 @@ export const useGraphWidgetQueryCommon = ({
 
   const { userTimezone } = useUserTimezone();
 
-  const gqlOperationFilter = computeRecordGqlOperationFilter({
+  const widgetGqlOperationFilter = computeRecordGqlOperationFilter({
     fields: objectMetadataItem.fields,
     filterValueDependencies: {
       timeZone: userTimezone,
@@ -47,9 +50,25 @@ export const useGraphWidgetQueryCommon = ({
     recordFilterGroups: configuration.filter?.recordFilterGroups ?? [],
   });
 
+  const dashboardFilter = buildDashboardFilterQuery({
+    dashboardFilters: appliedFilters,
+    fields: objectMetadataItem.fields,
+  });
+
+  const dashboardGqlOperationFilter = isDefined(dashboardFilter)
+    ? computeRecordGqlOperationFilter({
+        fields: objectMetadataItem.fields,
+        filterValueDependencies: {
+          timeZone: userTimezone,
+        },
+        recordFilters: dashboardFilter.recordFilters ?? [],
+        recordFilterGroups: dashboardFilter.recordFilterGroups ?? [],
+      })
+    : undefined;
+
   return {
     objectMetadataItem,
-    gqlOperationFilter,
+    gqlOperationFilter: dashboardGqlOperationFilter ?? widgetGqlOperationFilter,
     aggregateField,
   };
 };

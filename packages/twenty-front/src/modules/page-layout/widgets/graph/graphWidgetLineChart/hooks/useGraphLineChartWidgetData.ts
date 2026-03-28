@@ -1,3 +1,5 @@
+import { useDashboardFilters } from '@/dashboard-filters/hooks/useDashboardFilters';
+import { buildDashboardFilterQuery } from '@/dashboard-filters/utils/buildDashboardFilterQuery';
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
 import { type ObjectMetadataItem } from '@/object-metadata/types/ObjectMetadataItem';
 import { LINE_CHART_DATA } from '@/page-layout/widgets/graph/graphql/queries/lineChartData';
@@ -44,8 +46,23 @@ export const useGraphLineChartWidgetData = ({
   const { objectMetadataItem } = useObjectMetadataItemById({
     objectId: objectMetadataItemId,
   });
+  const { appliedFilters } = useDashboardFilters();
 
-  const dataConfiguration = extractLineChartDataConfiguration(configuration);
+  const dashboardFilter = buildDashboardFilterQuery({
+    dashboardFilters: appliedFilters,
+    fields: objectMetadataItem.fields,
+  });
+
+  const effectiveConfiguration = dashboardFilter
+    ? {
+        ...configuration,
+        filter: dashboardFilter,
+      }
+    : configuration;
+
+  const dataConfiguration = extractLineChartDataConfiguration(
+    effectiveConfiguration,
+  );
 
   const {
     data: queryData,
@@ -66,7 +83,7 @@ export const useGraphLineChartWidgetData = ({
 
   const secondaryAxisField = objectMetadataItem?.fields?.find(
     (field: { id: string }) =>
-      field.id === configuration.secondaryAxisGroupByFieldMetadataId,
+      field.id === effectiveConfiguration.secondaryAxisGroupByFieldMetadataId,
   );
 
   const selectFieldOptions =

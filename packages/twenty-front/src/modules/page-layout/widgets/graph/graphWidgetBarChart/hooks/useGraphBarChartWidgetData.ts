@@ -1,3 +1,5 @@
+import { useDashboardFilters } from '@/dashboard-filters/hooks/useDashboardFilters';
+import { buildDashboardFilterQuery } from '@/dashboard-filters/utils/buildDashboardFilterQuery';
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
 import { type FieldMetadataItemOption } from '@/object-metadata/types/FieldMetadataItem';
 import { BAR_CHART_DATA } from '@/page-layout/widgets/graph/graphql/queries/barChartData';
@@ -55,10 +57,27 @@ export const useGraphBarChartWidgetData = ({
   const { objectMetadataItem } = useObjectMetadataItemById({
     objectId: objectMetadataItemId,
   });
+  const { appliedFilters } = useDashboardFilters();
+
+  const dashboardFilter = buildDashboardFilterQuery({
+    dashboardFilters: appliedFilters,
+    fields: objectMetadataItem.fields,
+  });
+
+  const effectiveConfiguration = useMemo(
+    () =>
+      dashboardFilter
+        ? {
+            ...configuration,
+            filter: dashboardFilter,
+          }
+        : configuration,
+    [configuration, dashboardFilter],
+  );
 
   const dataConfiguration = useMemo(
-    () => extractBarChartDataConfiguration(configuration),
-    [configuration],
+    () => extractBarChartDataConfiguration(effectiveConfiguration),
+    [effectiveConfiguration],
   );
 
   const {
@@ -93,7 +112,7 @@ export const useGraphBarChartWidgetData = ({
     configuration.secondaryAxisGroupByFieldMetadataId,
   )
     ? configuration.secondaryAxisGroupByFieldMetadataId
-    : configuration.primaryAxisGroupByFieldMetadataId;
+    : effectiveConfiguration.primaryAxisGroupByFieldMetadataId;
 
   const colorDeterminingField = objectMetadataItem?.fields?.find(
     (field: { id: string }) => field.id === colorDeterminingFieldId,
