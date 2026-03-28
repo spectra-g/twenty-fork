@@ -1,3 +1,4 @@
+import { DashboardFilterPresetPicker } from '@/dashboards/components/DashboardFilterPresetPicker/DashboardFilterPresetPicker';
 import { useDashboardFilters } from '@/page-layout/hooks/useDashboardFilters';
 import styled from '@emotion/styled';
 import { ChangeEvent, useState } from 'react';
@@ -89,6 +90,7 @@ export const DashboardFilterBar = () => {
       <StyledAddFilterButton type="button" onClick={handleAddFilter}>
         Add filter
       </StyledAddFilterButton>
+      <DashboardFilterPresetPicker dashboardId="mock-dashboard-id" />
       {dashboardFilters.map((dashboardFilter) => (
         <StyledFilterChip
           key={dashboardFilter.id}

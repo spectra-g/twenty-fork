@@ -38,11 +38,14 @@ jest.mock('@/page-layout/hooks/useReorderPageLayoutTabs', () => ({
   }),
 }));
 
-jest.mock('@/command-menu/pages/page-layout/hooks/useNavigatePageLayoutCommandMenu', () => ({
-  useNavigatePageLayoutCommandMenu: () => ({
-    navigatePageLayoutCommandMenu: jest.fn(),
+jest.mock(
+  '@/command-menu/pages/page-layout/hooks/useNavigatePageLayoutCommandMenu',
+  () => ({
+    useNavigatePageLayoutCommandMenu: () => ({
+      navigatePageLayoutCommandMenu: jest.fn(),
+    }),
   }),
-}));
+);
 
 jest.mock('@/ui/utilities/scroll/components/ScrollWrapper', () => ({
   ScrollWrapper: ({ children }: { children: React.ReactNode }) => (
@@ -59,20 +62,25 @@ describe('PageLayoutRendererContent', () => {
     const pageLayoutId = 'dashboard-layout-id';
     const store = createStore();
 
-    store.set(pageLayoutPersistedComponentState.atomFamily({ instanceId: pageLayoutId }), {
-      id: pageLayoutId,
-      name: 'Dashboard',
-      type: PageLayoutType.DASHBOARD,
-      objectMetadataId: 'company-object-metadata-id',
-      tabs: [
-        {
-          id: 'tab-1',
-          title: 'Overview',
-          position: 0,
-          widgets: [],
-        },
-      ],
-    });
+    store.set(
+      pageLayoutPersistedComponentState.atomFamily({
+        instanceId: pageLayoutId,
+      }),
+      {
+        id: pageLayoutId,
+        name: 'Dashboard',
+        type: PageLayoutType.DASHBOARD,
+        objectMetadataId: 'company-object-metadata-id',
+        tabs: [
+          {
+            id: 'tab-1',
+            title: 'Overview',
+            position: 0,
+            widgets: [],
+          },
+        ],
+      },
+    );
     store.set(
       activeTabIdComponentState.atomFamily({
         instanceId: getTabListInstanceIdFromPageLayoutId(pageLayoutId),
@@ -96,6 +104,9 @@ describe('PageLayoutRendererContent', () => {
 
     expect(
       screen.getByRole('button', { name: 'Add filter' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Filter presets' }),
     ).toBeInTheDocument();
   });
 });
