@@ -1,9 +1,10 @@
 import { renderHook } from '@testing-library/react';
 
+import { ViewFilterOperand } from 'twenty-shared/types';
+
 import { useGraphBarChartWidgetData } from '@/page-layout/widgets/graph/graphWidgetBarChart/hooks/useGraphBarChartWidgetData';
 import { useGraphLineChartWidgetData } from '@/page-layout/widgets/graph/graphWidgetLineChart/hooks/useGraphLineChartWidgetData';
 import { useGraphPieChartWidgetData } from '@/page-layout/widgets/graph/graphWidgetPieChart/hooks/useGraphPieChartWidgetData';
-import { ViewFilterOperand } from 'twenty-shared/types';
 
 const mockUseDashboardFilters = jest.fn();
 const mockUseQuery = jest.fn();
@@ -29,12 +30,9 @@ jest.mock('@apollo/client', () => ({
   useQuery: (...args: unknown[]) => mockUseQuery(...args),
 }));
 
-jest.mock(
-  '@/page-layout/widgets/graph/utils/determineGraphColorMode',
-  () => ({
-    determineGraphColorMode: () => 'automaticPalette',
-  }),
-);
+jest.mock('@/page-layout/widgets/graph/utils/determineGraphColorMode', () => ({
+  determineGraphColorMode: () => 'automaticPalette',
+}));
 
 jest.mock('@/page-layout/widgets/graph/utils/parseGraphColor', () => ({
   parseGraphColor: () => undefined,
@@ -97,15 +95,20 @@ describe('dashboard filters in graph data hooks', () => {
           input: {
             objectMetadataId: 'object-id',
             configuration: expect.objectContaining({
-              filter: {
-                recordFilters: [
+              filter: expect.objectContaining({
+                recordFilters: expect.arrayContaining([
+                  expect.objectContaining({
+                    fieldMetadataId: 'widget-field-id',
+                    operand: 'IS',
+                    value: 'widget',
+                  }),
                   expect.objectContaining({
                     fieldMetadataId: 'owner-field-id',
                     operand: ViewFilterOperand.IS,
                     subFieldName: 'workspaceMemberId',
                   }),
-                ],
-              },
+                ]),
+              }),
             }),
           },
         },
@@ -139,13 +142,18 @@ describe('dashboard filters in graph data hooks', () => {
           input: {
             objectMetadataId: 'object-id',
             configuration: expect.objectContaining({
-              filter: {
-                recordFilters: [
+              filter: expect.objectContaining({
+                recordFilters: expect.arrayContaining([
+                  expect.objectContaining({
+                    fieldMetadataId: 'widget-field-id',
+                    operand: 'IS',
+                    value: 'widget',
+                  }),
                   expect.objectContaining({
                     fieldMetadataId: 'owner-field-id',
                   }),
-                ],
-              },
+                ]),
+              }),
             }),
           },
         },
@@ -180,15 +188,61 @@ describe('dashboard filters in graph data hooks', () => {
           input: {
             objectMetadataId: 'object-id',
             configuration: expect.objectContaining({
-              filter: {
-                recordFilters: [
+              filter: expect.objectContaining({
+                recordFilters: expect.arrayContaining([
+                  expect.objectContaining({
+                    fieldMetadataId: 'widget-field-id',
+                    operand: 'IS',
+                    value: 'widget',
+                  }),
                   expect.objectContaining({
                     fieldMetadataId: 'owner-field-id',
                   }),
-                ],
-              },
+                ]),
+              }),
             }),
           },
+        },
+      }),
+    );
+  });
+
+  it('gives precedence to the dashboard filter when bar chart filters conflict on the same field', () => {
+    renderHook(() =>
+      useGraphBarChartWidgetData({
+        objectMetadataItemId: 'object-id',
+        configuration: {
+          aggregateFieldMetadataId: 'aggregate-field-id',
+          primaryAxisGroupByFieldMetadataId: 'created-at-field-id',
+          filter: {
+            recordFilters: [
+              {
+                fieldMetadataId: 'owner-field-id',
+                operand: 'IS',
+                value: 'owner-2',
+              },
+            ],
+          },
+        } as never,
+      }),
+    );
+
+    expect(mockUseQuery).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        variables: {
+          input: expect.objectContaining({
+            configuration: expect.objectContaining({
+              filter: expect.objectContaining({
+                recordFilters: expect.arrayContaining([
+                  expect.objectContaining({
+                    fieldMetadataId: 'owner-field-id',
+                    value: expect.stringContaining('owner-1'),
+                  }),
+                ]),
+              }),
+            }),
+          }),
         },
       }),
     );

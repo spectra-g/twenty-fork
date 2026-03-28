@@ -6,6 +6,7 @@ import { LINE_CHART_DATA } from '@/page-layout/widgets/graph/graphql/queries/lin
 import { type LineChartSeriesWithColor } from '@/page-layout/widgets/graph/graphWidgetLineChart/types/LineChartSeriesWithColor';
 import { type GraphColorMode } from '@/page-layout/widgets/graph/types/GraphColorMode';
 import { type RawDimensionValue } from '@/page-layout/widgets/graph/types/RawDimensionValue';
+import { mergeChartFilters } from '@/page-layout/widgets/graph/utils/mergeChartFilters';
 import { determineChartItemColor } from '@/page-layout/widgets/graph/utils/determineChartItemColor';
 import { determineGraphColorMode } from '@/page-layout/widgets/graph/utils/determineGraphColorMode';
 import { extractLineChartDataConfiguration } from '@/page-layout/widgets/graph/utils/extractLineChartDataConfiguration';
@@ -52,11 +53,12 @@ export const useGraphLineChartWidgetData = ({
     dashboardFilters: appliedFilters,
     fields: objectMetadataItem.fields,
   });
+  const mergedFilter = mergeChartFilters(configuration.filter, dashboardFilter);
 
-  const effectiveConfiguration = dashboardFilter
+  const effectiveConfiguration = isDefined(mergedFilter)
     ? {
         ...configuration,
-        filter: dashboardFilter,
+        filter: mergedFilter,
       }
     : configuration;
 

@@ -8,6 +8,7 @@ import { getEffectiveGroupMode } from '@/page-layout/widgets/graph/graphWidgetBa
 import { type BarChartDatum } from '@/page-layout/widgets/graph/graphWidgetBarChart/types/BarChartDatum';
 import { type GraphColorMode } from '@/page-layout/widgets/graph/types/GraphColorMode';
 import { type RawDimensionValue } from '@/page-layout/widgets/graph/types/RawDimensionValue';
+import { mergeChartFilters } from '@/page-layout/widgets/graph/utils/mergeChartFilters';
 import { determineChartItemColor } from '@/page-layout/widgets/graph/utils/determineChartItemColor';
 import { determineGraphColorMode } from '@/page-layout/widgets/graph/utils/determineGraphColorMode';
 import { extractBarChartDataConfiguration } from '@/page-layout/widgets/graph/utils/extractBarChartDataConfiguration';
@@ -63,16 +64,17 @@ export const useGraphBarChartWidgetData = ({
     dashboardFilters: appliedFilters,
     fields: objectMetadataItem.fields,
   });
+  const mergedFilter = mergeChartFilters(configuration.filter, dashboardFilter);
 
   const effectiveConfiguration = useMemo(
     () =>
-      dashboardFilter
+      isDefined(mergedFilter)
         ? {
             ...configuration,
-            filter: dashboardFilter,
+            filter: mergedFilter,
           }
         : configuration,
-    [configuration, dashboardFilter],
+    [configuration, mergedFilter],
   );
 
   const dataConfiguration = useMemo(

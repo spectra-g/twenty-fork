@@ -1,6 +1,7 @@
 import { useDashboardFilters } from '@/dashboard-filters/hooks/useDashboardFilters';
 import { buildDashboardFilterQuery } from '@/dashboard-filters/utils/buildDashboardFilterQuery';
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
+import { mergeChartFilters } from '@/page-layout/widgets/graph/utils/mergeChartFilters';
 import { useUserTimezone } from '@/ui/input/components/internal/date/hooks/useUserTimezone';
 import {
   computeRecordGqlOperationFilter,
@@ -40,35 +41,27 @@ export const useGraphWidgetQueryCommon = ({
   }
 
   const { userTimezone } = useUserTimezone();
-
-  const widgetGqlOperationFilter = computeRecordGqlOperationFilter({
-    fields: objectMetadataItem.fields,
-    filterValueDependencies: {
-      timeZone: userTimezone,
-    },
-    recordFilters: configuration.filter?.recordFilters ?? [],
-    recordFilterGroups: configuration.filter?.recordFilterGroups ?? [],
-  });
-
   const dashboardFilter = buildDashboardFilterQuery({
     dashboardFilters: appliedFilters,
     fields: objectMetadataItem.fields,
   });
+  const effectiveFilters = mergeChartFilters(
+    configuration.filter,
+    dashboardFilter,
+  );
 
-  const dashboardGqlOperationFilter = isDefined(dashboardFilter)
-    ? computeRecordGqlOperationFilter({
-        fields: objectMetadataItem.fields,
-        filterValueDependencies: {
-          timeZone: userTimezone,
-        },
-        recordFilters: dashboardFilter.recordFilters ?? [],
-        recordFilterGroups: dashboardFilter.recordFilterGroups ?? [],
-      })
-    : undefined;
+  const gqlOperationFilter = computeRecordGqlOperationFilter({
+    fields: objectMetadataItem.fields,
+    filterValueDependencies: {
+      timeZone: userTimezone,
+    },
+    recordFilters: effectiveFilters?.recordFilters ?? [],
+    recordFilterGroups: effectiveFilters?.recordFilterGroups ?? [],
+  });
 
   return {
     objectMetadataItem,
-    gqlOperationFilter: dashboardGqlOperationFilter ?? widgetGqlOperationFilter,
+    gqlOperationFilter,
     aggregateField,
   };
 };
