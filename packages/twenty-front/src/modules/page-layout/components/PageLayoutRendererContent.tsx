@@ -9,6 +9,7 @@ import { useCreatePageLayoutTab } from '@/page-layout/hooks/useCreatePageLayoutT
 import { useCurrentPageLayout } from '@/page-layout/hooks/useCurrentPageLayout';
 import { useReorderPageLayoutTabs } from '@/page-layout/hooks/useReorderPageLayoutTabs';
 import { PageLayoutMainContent } from '@/page-layout/PageLayoutMainContent';
+import { useHasPermissionFlag } from '@/settings/roles/hooks/useHasPermissionFlag';
 import { isPageLayoutInEditModeComponentState } from '@/page-layout/states/isPageLayoutInEditModeComponentState';
 import { pageLayoutTabSettingsOpenTabIdComponentState } from '@/page-layout/states/pageLayoutTabSettingsOpenTabIdComponentState';
 import { getScrollWrapperInstanceIdFromPageLayoutId } from '@/page-layout/utils/getScrollWrapperInstanceIdFromPageLayoutId';
@@ -28,7 +29,10 @@ import { useState } from 'react';
 import { CommandMenuPages } from 'twenty-shared/types';
 import { isDefined } from 'twenty-shared/utils';
 import { useIsMobile } from 'twenty-ui/utilities';
-import { PageLayoutType } from '~/generated-metadata/graphql';
+import {
+  PageLayoutType,
+  PermissionFlagType,
+} from '~/generated-metadata/graphql';
 
 const StyledContainer = styled.div<{ hasPinnedTab: boolean }>`
   display: grid;
@@ -75,6 +79,7 @@ export const PageLayoutRendererContent = () => {
   const { navigatePageLayoutCommandMenu } = useNavigatePageLayoutCommandMenu();
 
   const isMobile = useIsMobile();
+  const hasLayoutsPermission = useHasPermissionFlag(PermissionFlagType.LAYOUTS);
 
   if (!isDefined(currentPageLayout)) {
     return null;
@@ -127,7 +132,7 @@ export const PageLayoutRendererContent = () => {
       )}
 
       <StyledTabsAndDashboardContainer>
-        {isDashboardLayout && (
+        {isDashboardLayout && hasLayoutsPermission && (
           <div>
             <DashboardFilterUrlSyncEffect />
             <button
