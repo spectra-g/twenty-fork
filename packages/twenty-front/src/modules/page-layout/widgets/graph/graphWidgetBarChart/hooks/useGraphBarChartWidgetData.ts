@@ -1,3 +1,5 @@
+import { useDashboardFilters } from '@/dashboard-filters/hooks/useDashboardFilters';
+import { buildDashboardFilterQuery } from '@/dashboard-filters/utils/buildDashboardFilterQuery';
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
 import { type FieldMetadataItemOption } from '@/object-metadata/types/FieldMetadataItem';
 import { BAR_CHART_DATA } from '@/page-layout/widgets/graph/graphql/queries/barChartData';
@@ -6,6 +8,7 @@ import { getEffectiveGroupMode } from '@/page-layout/widgets/graph/graphWidgetBa
 import { type BarChartDatum } from '@/page-layout/widgets/graph/graphWidgetBarChart/types/BarChartDatum';
 import { type GraphColorMode } from '@/page-layout/widgets/graph/types/GraphColorMode';
 import { type RawDimensionValue } from '@/page-layout/widgets/graph/types/RawDimensionValue';
+import { mergeChartFilters } from '@/page-layout/widgets/graph/utils/mergeChartFilters';
 import { determineChartItemColor } from '@/page-layout/widgets/graph/utils/determineChartItemColor';
 import { determineGraphColorMode } from '@/page-layout/widgets/graph/utils/determineGraphColorMode';
 import { extractBarChartDataConfiguration } from '@/page-layout/widgets/graph/utils/extractBarChartDataConfiguration';
@@ -55,10 +58,28 @@ export const useGraphBarChartWidgetData = ({
   const { objectMetadataItem } = useObjectMetadataItemById({
     objectId: objectMetadataItemId,
   });
+  const { appliedFilters } = useDashboardFilters();
+
+  const dashboardFilter = buildDashboardFilterQuery({
+    dashboardFilters: appliedFilters,
+    fields: objectMetadataItem.fields,
+  });
+  const mergedFilter = mergeChartFilters(configuration.filter, dashboardFilter);
+
+  const effectiveConfiguration = useMemo(
+    () =>
+      isDefined(mergedFilter)
+        ? {
+            ...configuration,
+            filter: mergedFilter,
+          }
+        : configuration,
+    [configuration, mergedFilter],
+  );
 
   const dataConfiguration = useMemo(
-    () => extractBarChartDataConfiguration(configuration),
-    [configuration],
+    () => extractBarChartDataConfiguration(effectiveConfiguration),
+    [effectiveConfiguration],
   );
 
   const {
@@ -93,7 +114,7 @@ export const useGraphBarChartWidgetData = ({
     configuration.secondaryAxisGroupByFieldMetadataId,
   )
     ? configuration.secondaryAxisGroupByFieldMetadataId
-    : configuration.primaryAxisGroupByFieldMetadataId;
+    : effectiveConfiguration.primaryAxisGroupByFieldMetadataId;
 
   const colorDeterminingField = objectMetadataItem?.fields?.find(
     (field: { id: string }) => field.id === colorDeterminingFieldId,

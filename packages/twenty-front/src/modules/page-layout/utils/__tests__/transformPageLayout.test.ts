@@ -18,6 +18,19 @@ const makePageLayout = (overrides: Partial<PageLayout> = {}): PageLayout =>
   }) as PageLayout;
 
 describe('transformPageLayout', () => {
+  it('should default global filter state when missing from a dashboard layout', () => {
+    const layout = makePageLayout({
+      type: PageLayoutType.DASHBOARD,
+    } as any);
+
+    const result = transformPageLayout(layout as any);
+
+    expect((result as any).globalFilterState).toEqual({
+      recordFilters: [],
+      recordFilterGroups: [],
+    });
+  });
+
   it('should default tabs to empty array when null', () => {
     const layout = makePageLayout({ tabs: null as any });
 

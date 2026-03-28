@@ -1,9 +1,12 @@
+import { useDashboardFilters } from '@/dashboard-filters/hooks/useDashboardFilters';
+import { buildDashboardFilterQuery } from '@/dashboard-filters/utils/buildDashboardFilterQuery';
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
 import { type ObjectMetadataItem } from '@/object-metadata/types/ObjectMetadataItem';
 import { PIE_CHART_DATA } from '@/page-layout/widgets/graph/graphql/queries/pieChartData';
 import { type PieChartDataItemWithColor } from '@/page-layout/widgets/graph/graphWidgetPieChart/types/PieChartDataItem';
 import { type GraphColorMode } from '@/page-layout/widgets/graph/types/GraphColorMode';
 import { type RawDimensionValue } from '@/page-layout/widgets/graph/types/RawDimensionValue';
+import { mergeChartFilters } from '@/page-layout/widgets/graph/utils/mergeChartFilters';
 import { determineChartItemColor } from '@/page-layout/widgets/graph/utils/determineChartItemColor';
 import { determineGraphColorMode } from '@/page-layout/widgets/graph/utils/determineGraphColorMode';
 import { extractPieChartDataConfiguration } from '@/page-layout/widgets/graph/utils/extractPieChartDataConfiguration';
@@ -40,10 +43,28 @@ export const useGraphPieChartWidgetData = ({
   const { objectMetadataItem } = useObjectMetadataItemById({
     objectId: objectMetadataItemId,
   });
+  const { appliedFilters } = useDashboardFilters();
+
+  const dashboardFilter = buildDashboardFilterQuery({
+    dashboardFilters: appliedFilters,
+    fields: objectMetadataItem.fields,
+  });
+  const mergedFilter = mergeChartFilters(configuration.filter, dashboardFilter);
+
+  const effectiveConfiguration = useMemo(
+    () =>
+      isDefined(mergedFilter)
+        ? {
+            ...configuration,
+            filter: mergedFilter,
+          }
+        : configuration,
+    [configuration, mergedFilter],
+  );
 
   const dataConfiguration = useMemo(
-    () => extractPieChartDataConfiguration(configuration),
-    [configuration],
+    () => extractPieChartDataConfiguration(effectiveConfiguration),
+    [effectiveConfiguration],
   );
 
   const {
@@ -65,7 +86,7 @@ export const useGraphPieChartWidgetData = ({
 
   const groupByField = objectMetadataItem?.fields?.find(
     (field: { id: string }) =>
-      field.id === configuration.groupByFieldMetadataId,
+      field.id === effectiveConfiguration.groupByFieldMetadataId,
   );
 
   const selectFieldOptions =

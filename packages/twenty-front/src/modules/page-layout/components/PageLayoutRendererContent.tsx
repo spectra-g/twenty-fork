@@ -1,3 +1,5 @@
+import { DashboardFilterPanel } from '@/dashboard-filters/components/DashboardFilterPanel';
+import { DashboardFilterUrlSyncEffect } from '@/dashboard-filters/components/DashboardFilterUrlSyncEffect';
 import { useNavigatePageLayoutCommandMenu } from '@/command-menu/pages/page-layout/hooks/useNavigatePageLayoutCommandMenu';
 import { PageLayoutLeftPanel } from '@/page-layout/components/PageLayoutLeftPanel';
 import { PageLayoutTabList } from '@/page-layout/components/PageLayoutTabList';
@@ -7,6 +9,7 @@ import { useCreatePageLayoutTab } from '@/page-layout/hooks/useCreatePageLayoutT
 import { useCurrentPageLayout } from '@/page-layout/hooks/useCurrentPageLayout';
 import { useReorderPageLayoutTabs } from '@/page-layout/hooks/useReorderPageLayoutTabs';
 import { PageLayoutMainContent } from '@/page-layout/PageLayoutMainContent';
+import { useHasPermissionFlag } from '@/settings/roles/hooks/useHasPermissionFlag';
 import { isPageLayoutInEditModeComponentState } from '@/page-layout/states/isPageLayoutInEditModeComponentState';
 import { pageLayoutTabSettingsOpenTabIdComponentState } from '@/page-layout/states/pageLayoutTabSettingsOpenTabIdComponentState';
 import { getScrollWrapperInstanceIdFromPageLayoutId } from '@/page-layout/utils/getScrollWrapperInstanceIdFromPageLayoutId';
@@ -22,9 +25,14 @@ import { useSetAtomComponentState } from '@/ui/utilities/state/jotai/hooks/useSe
 import { useAtomComponentStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateValue';
 import styled from '@emotion/styled';
 import { t } from '@lingui/core/macro';
+import { useState } from 'react';
 import { CommandMenuPages } from 'twenty-shared/types';
 import { isDefined } from 'twenty-shared/utils';
 import { useIsMobile } from 'twenty-ui/utilities';
+import {
+  PageLayoutType,
+  PermissionFlagType,
+} from '~/generated-metadata/graphql';
 
 const StyledContainer = styled.div<{ hasPinnedTab: boolean }>`
   display: grid;
@@ -50,6 +58,8 @@ const StyledScrollWrapper = styled(ScrollWrapper)`
 `;
 
 export const PageLayoutRendererContent = () => {
+  const [isDashboardFilterPanelOpen, setIsDashboardFilterPanelOpen] =
+    useState(false);
   const { currentPageLayout } = useCurrentPageLayout();
 
   const { isInRightDrawer, layoutType, targetRecordIdentifier } =
@@ -69,6 +79,7 @@ export const PageLayoutRendererContent = () => {
   const { navigatePageLayoutCommandMenu } = useNavigatePageLayoutCommandMenu();
 
   const isMobile = useIsMobile();
+  const hasLayoutsPermission = useHasPermissionFlag(PermissionFlagType.LAYOUTS);
 
   if (!isDefined(currentPageLayout)) {
     return null;
@@ -112,6 +123,7 @@ export const PageLayoutRendererContent = () => {
   });
 
   const sortedTabs = sortTabsByPosition(tabsToRenderInTabList);
+  const isDashboardLayout = currentPageLayout.type === PageLayoutType.DASHBOARD;
 
   return (
     <StyledContainer hasPinnedTab={isDefined(pinnedLeftTab)}>
@@ -120,6 +132,23 @@ export const PageLayoutRendererContent = () => {
       )}
 
       <StyledTabsAndDashboardContainer>
+        {isDashboardLayout && hasLayoutsPermission && (
+          <div>
+            <DashboardFilterUrlSyncEffect />
+            <button
+              type="button"
+              onClick={() =>
+                setIsDashboardFilterPanelOpen(
+                  (currentIsDashboardFilterPanelOpen) =>
+                    !currentIsDashboardFilterPanelOpen,
+                )
+              }
+            >
+              Filters
+            </button>
+            {isDashboardFilterPanelOpen && <DashboardFilterPanel />}
+          </div>
+        )}
         <PageLayoutTabListEffect
           tabs={sortedTabs}
           componentInstanceId={tabListInstanceId}

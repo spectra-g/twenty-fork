@@ -1,4 +1,7 @@
+import { useDashboardFilters } from '@/dashboard-filters/hooks/useDashboardFilters';
+import { buildDashboardFilterQuery } from '@/dashboard-filters/utils/buildDashboardFilterQuery';
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
+import { mergeChartFilters } from '@/page-layout/widgets/graph/utils/mergeChartFilters';
 import { useUserTimezone } from '@/ui/input/components/internal/date/hooks/useUserTimezone';
 import {
   computeRecordGqlOperationFilter,
@@ -27,6 +30,7 @@ export const useGraphWidgetQueryCommon = ({
   });
 
   const aggregateFieldId = configuration.aggregateFieldMetadataId;
+  const { appliedFilters } = useDashboardFilters();
 
   const aggregateField = objectMetadataItem.readableFields.find(
     (field: { id: string }) => field.id === aggregateFieldId,
@@ -37,14 +41,22 @@ export const useGraphWidgetQueryCommon = ({
   }
 
   const { userTimezone } = useUserTimezone();
+  const dashboardFilter = buildDashboardFilterQuery({
+    dashboardFilters: appliedFilters,
+    fields: objectMetadataItem.fields,
+  });
+  const effectiveFilters = mergeChartFilters(
+    configuration.filter,
+    dashboardFilter,
+  );
 
   const gqlOperationFilter = computeRecordGqlOperationFilter({
     fields: objectMetadataItem.fields,
     filterValueDependencies: {
       timeZone: userTimezone,
     },
-    recordFilters: configuration.filter?.recordFilters ?? [],
-    recordFilterGroups: configuration.filter?.recordFilterGroups ?? [],
+    recordFilters: effectiveFilters?.recordFilters ?? [],
+    recordFilterGroups: effectiveFilters?.recordFilterGroups ?? [],
   });
 
   return {

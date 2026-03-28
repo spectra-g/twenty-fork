@@ -1,9 +1,12 @@
+import { useDashboardFilters } from '@/dashboard-filters/hooks/useDashboardFilters';
+import { buildDashboardFilterQuery } from '@/dashboard-filters/utils/buildDashboardFilterQuery';
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
 import { type ObjectMetadataItem } from '@/object-metadata/types/ObjectMetadataItem';
 import { LINE_CHART_DATA } from '@/page-layout/widgets/graph/graphql/queries/lineChartData';
 import { type LineChartSeriesWithColor } from '@/page-layout/widgets/graph/graphWidgetLineChart/types/LineChartSeriesWithColor';
 import { type GraphColorMode } from '@/page-layout/widgets/graph/types/GraphColorMode';
 import { type RawDimensionValue } from '@/page-layout/widgets/graph/types/RawDimensionValue';
+import { mergeChartFilters } from '@/page-layout/widgets/graph/utils/mergeChartFilters';
 import { determineChartItemColor } from '@/page-layout/widgets/graph/utils/determineChartItemColor';
 import { determineGraphColorMode } from '@/page-layout/widgets/graph/utils/determineGraphColorMode';
 import { extractLineChartDataConfiguration } from '@/page-layout/widgets/graph/utils/extractLineChartDataConfiguration';
@@ -44,8 +47,24 @@ export const useGraphLineChartWidgetData = ({
   const { objectMetadataItem } = useObjectMetadataItemById({
     objectId: objectMetadataItemId,
   });
+  const { appliedFilters } = useDashboardFilters();
 
-  const dataConfiguration = extractLineChartDataConfiguration(configuration);
+  const dashboardFilter = buildDashboardFilterQuery({
+    dashboardFilters: appliedFilters,
+    fields: objectMetadataItem.fields,
+  });
+  const mergedFilter = mergeChartFilters(configuration.filter, dashboardFilter);
+
+  const effectiveConfiguration = isDefined(mergedFilter)
+    ? {
+        ...configuration,
+        filter: mergedFilter,
+      }
+    : configuration;
+
+  const dataConfiguration = extractLineChartDataConfiguration(
+    effectiveConfiguration,
+  );
 
   const {
     data: queryData,
@@ -66,7 +85,7 @@ export const useGraphLineChartWidgetData = ({
 
   const secondaryAxisField = objectMetadataItem?.fields?.find(
     (field: { id: string }) =>
-      field.id === configuration.secondaryAxisGroupByFieldMetadataId,
+      field.id === effectiveConfiguration.secondaryAxisGroupByFieldMetadataId,
   );
 
   const selectFieldOptions =
