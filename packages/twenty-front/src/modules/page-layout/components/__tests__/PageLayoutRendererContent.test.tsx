@@ -4,6 +4,8 @@ import { Provider as JotaiProvider } from 'jotai';
 import qs from 'qs';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 
+import { currentUserState } from '@/auth/states/currentUserState';
+import { currentWorkspaceState } from '@/auth/states/currentWorkspaceState';
 import { PageLayoutRendererContent } from '@/page-layout/components/PageLayoutRendererContent';
 import { resetJotaiStore } from '@/ui/utilities/state/jotai/jotaiStore';
 import { PageLayoutType } from '~/generated-metadata/graphql';
@@ -117,6 +119,61 @@ const renderComponent = ({
 } = {}) => {
   const store = resetJotaiStore();
 
+  store.set(currentUserState.atom, {
+    id: 'user-1',
+    email: 'user-1@example.com',
+    firstName: 'Test',
+    lastName: 'User',
+    supportUserHash: null,
+    canAccessFullAdminPanel: false,
+    canImpersonate: false,
+    onboardingStatus: null,
+    userVars: null,
+    hasPassword: true,
+  });
+  store.set(currentWorkspaceState.atom, {
+    id: 'workspace-1',
+    inviteHash: null,
+    logo: null,
+    displayName: 'Workspace',
+    allowImpersonation: false,
+    featureFlags: [],
+    activationStatus: 'ACTIVE',
+    billingSubscriptions: [],
+    billingEntitlements: [],
+    currentBillingSubscription: null,
+    workspaceMembersCount: 1,
+    isPublicInviteLinkEnabled: false,
+    isGoogleAuthEnabled: false,
+    isGoogleAuthBypassEnabled: false,
+    isMicrosoftAuthEnabled: false,
+    isMicrosoftAuthBypassEnabled: false,
+    isPasswordAuthEnabled: true,
+    isPasswordAuthBypassEnabled: false,
+    isCustomDomainEnabled: false,
+    hasValidEnterpriseKey: false,
+    subdomain: 'workspace',
+    customDomain: null,
+    workspaceUrls: {
+      subdomainUrl: 'https://workspace.example.com',
+      customUrl: null,
+    },
+    metadataVersion: 1,
+    isTwoFactorAuthenticationEnforced: false,
+    trashRetentionDays: 30,
+    eventLogRetentionDays: 30,
+    fastModel: 'gpt-4.1-mini',
+    smartModel: 'gpt-4.1',
+    aiAdditionalInstructions: null,
+    editableProfileFields: [],
+    autoEnableNewAiModels: false,
+    disabledAiModelIds: [],
+    enabledAiModelIds: [],
+    useRecommendedModels: true,
+    defaultRole: null,
+    workspaceCustomApplication: null,
+  });
+
   return render(
     <MemoryRouter
       initialEntries={[initialEntry]}
@@ -136,6 +193,7 @@ const renderComponent = ({
 describe('PageLayoutRendererContent', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    localStorage.clear();
 
     mockUseCurrentPageLayout.mockReturnValue({
       currentPageLayout: {
@@ -185,6 +243,91 @@ describe('PageLayoutRendererContent', () => {
     expect(screen.getByLabelText('Start date')).toHaveValue('');
     expect(screen.getByLabelText('End date')).toHaveValue('');
     expect(screen.getByLabelText('Stage')).toHaveValue('');
+  });
+
+  it('disables saving a preset until the name is non-empty and lists the saved preset', async () => {
+    const user = userEvent.setup();
+
+    renderComponent();
+
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+
+    const saveButton = screen.getByRole('button', { name: 'Save as Preset' });
+
+    expect(saveButton).toBeDisabled();
+
+    await user.type(screen.getByLabelText('Preset name'), '   ');
+    expect(saveButton).toBeDisabled();
+
+    await user.clear(screen.getByLabelText('Preset name'));
+    await user.type(
+      screen.getByLabelText('Preset name'),
+      'Quarter close owners',
+    );
+
+    expect(saveButton).toBeEnabled();
+
+    await user.click(saveButton);
+
+    expect(
+      screen.getByRole('button', { name: 'Apply preset Quarter close owners' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: 'Rename preset Quarter close owners',
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('renames and reapplies a saved preset from the dashboard filters panel', async () => {
+    const user = userEvent.setup();
+
+    renderComponent();
+
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+    await user.selectOptions(screen.getByLabelText('Owner'), 'owner-2');
+    await user.type(screen.getByLabelText('Start date'), '2026-02-01');
+    await user.type(screen.getByLabelText('End date'), '2026-02-28');
+    await user.selectOptions(screen.getByLabelText('Stage'), 'NEW');
+    await user.click(screen.getByRole('button', { name: 'Apply' }));
+    await user.type(screen.getByLabelText('Preset name'), 'Initial preset');
+    await user.click(screen.getByRole('button', { name: 'Save as Preset' }));
+
+    await user.click(
+      screen.getByRole('button', { name: 'Rename preset Initial preset' }),
+    );
+
+    const confirmRenameButton = screen.getByRole('button', {
+      name: 'Confirm rename',
+    });
+
+    expect(confirmRenameButton).toBeDisabled();
+
+    await user.type(screen.getByLabelText('Rename preset'), '   ');
+    expect(confirmRenameButton).toBeDisabled();
+
+    await user.clear(screen.getByLabelText('Rename preset'));
+    await user.type(screen.getByLabelText('Rename preset'), 'Renamed preset');
+    expect(confirmRenameButton).toBeEnabled();
+
+    await user.click(confirmRenameButton);
+
+    expect(
+      screen.getByRole('button', { name: 'Apply preset Renamed preset' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Apply preset Initial preset' }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Clear filters' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Apply preset Renamed preset' }),
+    );
+
+    expect(screen.getByLabelText('Owner')).toHaveValue('owner-2');
+    expect(screen.getByLabelText('Start date')).toHaveValue('2026-02-01');
+    expect(screen.getByLabelText('End date')).toHaveValue('2026-02-28');
+    expect(screen.getByLabelText('Stage')).toHaveValue('NEW');
   });
 
   it('serializes applied dashboard filters into the URL while preserving unrelated query params', async () => {

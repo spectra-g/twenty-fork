@@ -5,37 +5,41 @@ import {
 import { useAtomState } from '@/ui/utilities/state/jotai/hooks/useAtomState';
 
 export const useDashboardFilters = () => {
-  const [dashboardFilters, setDashboardFilters] = useAtomState(
-    dashboardFilterState,
-  );
+  const [dashboardFilter, setDashboardFilter] =
+    useAtomState(dashboardFilterState);
 
   const setDraftFilter = (
     key: keyof typeof EMPTY_DASHBOARD_FILTERS,
     value: string,
   ) => {
-    setDashboardFilters((currentDashboardFilters) => ({
-      ...currentDashboardFilters,
+    setDashboardFilter((currentDashboardFilter) => ({
+      ...currentDashboardFilter,
       draftFilters: {
-        ...currentDashboardFilters.draftFilters,
+        ...currentDashboardFilter.draftFilters,
         [key]: value,
       },
     }));
   };
 
   return {
-    draftFilters: dashboardFilters.draftFilters,
-    appliedFilters: dashboardFilters.appliedFilters,
+    draftFilters: dashboardFilter.draftFilters,
+    appliedFilters: dashboardFilter.appliedFilters,
     setOwnerId: (ownerId: string) => setDraftFilter('ownerId', ownerId),
     setStartDate: (startDate: string) => setDraftFilter('startDate', startDate),
     setEndDate: (endDate: string) => setDraftFilter('endDate', endDate),
     setStageId: (stageId: string) => setDraftFilter('stageId', stageId),
     applyFilters: () =>
-      setDashboardFilters((currentDashboardFilters) => ({
-        ...currentDashboardFilters,
-        appliedFilters: currentDashboardFilters.draftFilters,
+      setDashboardFilter((currentDashboardFilter) => ({
+        ...currentDashboardFilter,
+        appliedFilters: currentDashboardFilter.draftFilters,
       })),
+    applyPresetFilters: (filters: typeof EMPTY_DASHBOARD_FILTERS) =>
+      setDashboardFilter({
+        draftFilters: filters,
+        appliedFilters: filters,
+      }),
     clearFilters: () =>
-      setDashboardFilters({
+      setDashboardFilter({
         draftFilters: EMPTY_DASHBOARD_FILTERS,
         appliedFilters: EMPTY_DASHBOARD_FILTERS,
       }),
