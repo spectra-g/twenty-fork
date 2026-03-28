@@ -1,3 +1,5 @@
+import { useDashboardFilters } from '@/dashboard-filters/hooks/useDashboardFilters';
+import { buildDashboardFilterQuery } from '@/dashboard-filters/utils/buildDashboardFilterQuery';
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
 import { type ObjectMetadataItem } from '@/object-metadata/types/ObjectMetadataItem';
 import { PIE_CHART_DATA } from '@/page-layout/widgets/graph/graphql/queries/pieChartData';
@@ -40,10 +42,27 @@ export const useGraphPieChartWidgetData = ({
   const { objectMetadataItem } = useObjectMetadataItemById({
     objectId: objectMetadataItemId,
   });
+  const { appliedFilters } = useDashboardFilters();
+
+  const dashboardFilter = buildDashboardFilterQuery({
+    dashboardFilters: appliedFilters,
+    fields: objectMetadataItem.fields,
+  });
+
+  const effectiveConfiguration = useMemo(
+    () =>
+      dashboardFilter
+        ? {
+            ...configuration,
+            filter: dashboardFilter,
+          }
+        : configuration,
+    [configuration, dashboardFilter],
+  );
 
   const dataConfiguration = useMemo(
-    () => extractPieChartDataConfiguration(configuration),
-    [configuration],
+    () => extractPieChartDataConfiguration(effectiveConfiguration),
+    [effectiveConfiguration],
   );
 
   const {
@@ -65,7 +84,7 @@ export const useGraphPieChartWidgetData = ({
 
   const groupByField = objectMetadataItem?.fields?.find(
     (field: { id: string }) =>
-      field.id === configuration.groupByFieldMetadataId,
+      field.id === effectiveConfiguration.groupByFieldMetadataId,
   );
 
   const selectFieldOptions =
