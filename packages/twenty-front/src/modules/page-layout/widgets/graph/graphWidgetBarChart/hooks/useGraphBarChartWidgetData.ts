@@ -1,4 +1,5 @@
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
+import { useDashboardFilters } from '@/page-layout/hooks/useDashboardFilters';
 import { type FieldMetadataItemOption } from '@/object-metadata/types/FieldMetadataItem';
 import { BAR_CHART_DATA } from '@/page-layout/widgets/graph/graphql/queries/barChartData';
 import { type BarChartSeriesWithColor } from '@/page-layout/widgets/graph/graphWidgetBarChart/types/BarChartSeries';
@@ -13,7 +14,9 @@ import { parseGraphColor } from '@/page-layout/widgets/graph/utils/parseGraphCol
 import { useQuery } from '@apollo/client';
 import { isString } from '@sniptt/guards';
 import { useMemo } from 'react';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import { FieldMetadataType } from 'twenty-shared/types';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import { isDefined } from 'twenty-shared/utils';
 import {
   type BarChartConfiguration,
@@ -52,13 +55,40 @@ export const useGraphBarChartWidgetData = ({
   objectMetadataItemId,
   configuration,
 }: UseGraphBarChartWidgetDataProps): UseGraphBarChartWidgetDataResult => {
+  const { dashboardFilters } = useDashboardFilters();
   const { objectMetadataItem } = useObjectMetadataItemById({
     objectId: objectMetadataItemId,
   });
 
+  const activeDashboardFilters = useMemo(
+    () =>
+      dashboardFilters.filter(
+        (dashboardFilter) => dashboardFilter.value.trim().length > 0,
+      ),
+    [dashboardFilters],
+  );
+
+  const configurationHasLocalFilters =
+    (configuration.filter?.recordFilters?.length ?? 0) > 0 ||
+    (configuration.filter?.recordFilterGroups?.length ?? 0) > 0;
+
+  const effectiveConfiguration = useMemo(() => {
+    if (configurationHasLocalFilters || activeDashboardFilters.length === 0) {
+      return configuration;
+    }
+
+    return {
+      ...configuration,
+      filter: {
+        recordFilters: activeDashboardFilters,
+        recordFilterGroups: [],
+      },
+    };
+  }, [activeDashboardFilters, configuration, configurationHasLocalFilters]);
+
   const dataConfiguration = useMemo(
-    () => extractBarChartDataConfiguration(configuration),
-    [configuration],
+    () => extractBarChartDataConfiguration(effectiveConfiguration),
+    [effectiveConfiguration],
   );
 
   const {
@@ -90,10 +120,10 @@ export const useGraphBarChartWidgetData = ({
     : new Map();
 
   const colorDeterminingFieldId = isDefined(
-    configuration.secondaryAxisGroupByFieldMetadataId,
+    effectiveConfiguration.secondaryAxisGroupByFieldMetadataId,
   )
-    ? configuration.secondaryAxisGroupByFieldMetadataId
-    : configuration.primaryAxisGroupByFieldMetadataId;
+    ? effectiveConfiguration.secondaryAxisGroupByFieldMetadataId
+    : effectiveConfiguration.primaryAxisGroupByFieldMetadataId;
 
   const colorDeterminingField = objectMetadataItem?.fields?.find(
     (field: { id: string }) => field.id === colorDeterminingFieldId,
@@ -115,7 +145,7 @@ export const useGraphBarChartWidgetData = ({
     return colorDeterminingField.options;
   }, [colorDeterminingField]);
 
-  const configurationColor = parseGraphColor(configuration.color);
+  const configurationColor = parseGraphColor(effectiveConfiguration.color);
 
   const colorMode = determineGraphColorMode({
     configurationColor,
@@ -147,12 +177,12 @@ export const useGraphBarChartWidgetData = ({
     series,
     xAxisLabel: effectiveQueryData?.barChartData?.xAxisLabel ?? '',
     yAxisLabel: effectiveQueryData?.barChartData?.yAxisLabel ?? '',
-    showDataLabels: configuration.displayDataLabel ?? false,
-    showLegend: configuration.displayLegend ?? true,
+    showDataLabels: effectiveConfiguration.displayDataLabel ?? false,
+    showLegend: effectiveConfiguration.displayLegend ?? true,
     layout: effectiveQueryData?.barChartData?.layout,
     groupMode: getEffectiveGroupMode(
-      configuration.groupMode,
-      isDefined(configuration.secondaryAxisGroupByFieldMetadataId),
+      effectiveConfiguration.groupMode,
+      isDefined(effectiveConfiguration.secondaryAxisGroupByFieldMetadataId),
     ),
     hasTooManyGroups:
       effectiveQueryData?.barChartData?.hasTooManyGroups ?? false,
