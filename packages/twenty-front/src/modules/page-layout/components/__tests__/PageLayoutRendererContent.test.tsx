@@ -5,10 +5,14 @@ import qs from 'qs';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 
 import { currentUserState } from '@/auth/states/currentUserState';
+import { currentUserWorkspaceState } from '@/auth/states/currentUserWorkspaceState';
 import { currentWorkspaceState } from '@/auth/states/currentWorkspaceState';
 import { PageLayoutRendererContent } from '@/page-layout/components/PageLayoutRendererContent';
 import { resetJotaiStore } from '@/ui/utilities/state/jotai/jotaiStore';
-import { PageLayoutType } from '~/generated-metadata/graphql';
+import {
+  PageLayoutType,
+  PermissionFlagType,
+} from '~/generated-metadata/graphql';
 
 const mockUseCurrentPageLayout = jest.fn();
 const mockUseLayoutRenderingContext = jest.fn();
@@ -173,6 +177,11 @@ const renderComponent = ({
     defaultRole: null,
     workspaceCustomApplication: null,
   });
+  store.set(currentUserWorkspaceState.atom, {
+    permissionFlags: [PermissionFlagType.LAYOUTS],
+    twoFactorAuthenticationMethodSummary: null,
+    objectsPermissions: [],
+  });
 
   return render(
     <MemoryRouter
@@ -243,6 +252,89 @@ describe('PageLayoutRendererContent', () => {
     expect(screen.getByLabelText('Start date')).toHaveValue('');
     expect(screen.getByLabelText('End date')).toHaveValue('');
     expect(screen.getByLabelText('Stage')).toHaveValue('');
+  });
+
+  it('hides the dashboard filter controls when the user lacks layouts permission', () => {
+    const store = resetJotaiStore();
+
+    store.set(currentUserState.atom, {
+      id: 'user-1',
+      email: 'user-1@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+      supportUserHash: null,
+      canAccessFullAdminPanel: false,
+      canImpersonate: false,
+      onboardingStatus: null,
+      userVars: null,
+      hasPassword: true,
+    });
+    store.set(currentWorkspaceState.atom, {
+      id: 'workspace-1',
+      inviteHash: null,
+      logo: null,
+      displayName: 'Workspace',
+      allowImpersonation: false,
+      featureFlags: [],
+      activationStatus: 'ACTIVE',
+      billingSubscriptions: [],
+      billingEntitlements: [],
+      currentBillingSubscription: null,
+      workspaceMembersCount: 1,
+      isPublicInviteLinkEnabled: false,
+      isGoogleAuthEnabled: false,
+      isGoogleAuthBypassEnabled: false,
+      isMicrosoftAuthEnabled: false,
+      isMicrosoftAuthBypassEnabled: false,
+      isPasswordAuthEnabled: true,
+      isPasswordAuthBypassEnabled: false,
+      isCustomDomainEnabled: false,
+      hasValidEnterpriseKey: false,
+      subdomain: 'workspace',
+      customDomain: null,
+      workspaceUrls: {
+        subdomainUrl: 'https://workspace.example.com',
+        customUrl: null,
+      },
+      metadataVersion: 1,
+      isTwoFactorAuthenticationEnforced: false,
+      trashRetentionDays: 30,
+      eventLogRetentionDays: 30,
+      fastModel: 'gpt-4.1-mini',
+      smartModel: 'gpt-4.1',
+      aiAdditionalInstructions: null,
+      editableProfileFields: [],
+      autoEnableNewAiModels: false,
+      disabledAiModelIds: [],
+      enabledAiModelIds: [],
+      useRecommendedModels: true,
+      defaultRole: null,
+      workspaceCustomApplication: null,
+    });
+    store.set(currentUserWorkspaceState.atom, {
+      permissionFlags: [],
+      twoFactorAuthenticationMethodSummary: null,
+      objectsPermissions: [],
+    });
+
+    render(
+      <MemoryRouter
+        initialEntries={['/dashboard']}
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
+        <JotaiProvider store={store}>
+          <PageLayoutRendererContent />
+          <LocationSearch />
+        </JotaiProvider>
+      </MemoryRouter>,
+    );
+
+    expect(
+      screen.queryByRole('button', { name: 'Filters' }),
+    ).not.toBeInTheDocument();
   });
 
   it('disables saving a preset until the name is non-empty and lists the saved preset', async () => {
