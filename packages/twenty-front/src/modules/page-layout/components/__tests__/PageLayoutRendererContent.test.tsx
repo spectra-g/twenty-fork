@@ -1,6 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider as JotaiProvider } from 'jotai';
+import qs from 'qs';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 
 import { PageLayoutRendererContent } from '@/page-layout/components/PageLayoutRendererContent';
 import { resetJotaiStore } from '@/ui/utilities/state/jotai/jotaiStore';
@@ -49,9 +51,12 @@ jest.mock('@/ui/layout/contexts/LayoutRenderingContext', () => ({
   useLayoutRenderingContext: () => mockUseLayoutRenderingContext(),
 }));
 
-jest.mock('@/ui/utilities/state/jotai/hooks/useAtomComponentStateValue', () => ({
-  useAtomComponentStateValue: () => mockUseAtomComponentStateValue(),
-}));
+jest.mock(
+  '@/ui/utilities/state/jotai/hooks/useAtomComponentStateValue',
+  () => ({
+    useAtomComponentStateValue: () => mockUseAtomComponentStateValue(),
+  }),
+);
 
 jest.mock('@/page-layout/hooks/useCreatePageLayoutTab', () => ({
   useCreatePageLayoutTab: () => mockUseCreatePageLayoutTab(),
@@ -61,9 +66,13 @@ jest.mock('@/page-layout/hooks/useReorderPageLayoutTabs', () => ({
   useReorderPageLayoutTabs: () => mockUseReorderPageLayoutTabs(),
 }));
 
-jest.mock('@/command-menu/pages/page-layout/hooks/useNavigatePageLayoutCommandMenu', () => ({
-  useNavigatePageLayoutCommandMenu: () => mockUseNavigatePageLayoutCommandMenu(),
-}));
+jest.mock(
+  '@/command-menu/pages/page-layout/hooks/useNavigatePageLayoutCommandMenu',
+  () => ({
+    useNavigatePageLayoutCommandMenu: () =>
+      mockUseNavigatePageLayoutCommandMenu(),
+  }),
+);
 
 jest.mock('@/ui/utilities/state/jotai/hooks/useSetAtomComponentState', () => ({
   useSetAtomComponentState: () => mockUseSetAtomComponentState(),
@@ -74,7 +83,8 @@ jest.mock('twenty-ui/utilities', () => ({
 }));
 
 jest.mock('@/page-layout/utils/getTabsWithVisibleWidgets', () => ({
-  getTabsWithVisibleWidgets: (args: unknown) => mockGetTabsWithVisibleWidgets(args),
+  getTabsWithVisibleWidgets: (args: unknown) =>
+    mockGetTabsWithVisibleWidgets(args),
 }));
 
 jest.mock('@/page-layout/utils/getTabsByDisplayMode', () => ({
@@ -90,13 +100,36 @@ jest.mock('@/page-layout/utils/shouldEnableTabEditingFeatures', () => ({
     mockShouldEnableTabEditingFeatures(...args),
 }));
 
-const renderComponent = () => {
+const LocationSearch = () => {
+  const location = useLocation();
+
+  return (
+    <div data-testid="location-search">
+      {location.search.replace(/^\?/, '')}
+    </div>
+  );
+};
+
+const renderComponent = ({
+  initialEntry = '/dashboard',
+}: {
+  initialEntry?: string;
+} = {}) => {
   const store = resetJotaiStore();
 
   return render(
-    <JotaiProvider store={store}>
-      <PageLayoutRendererContent />
-    </JotaiProvider>,
+    <MemoryRouter
+      initialEntries={[initialEntry]}
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
+      <JotaiProvider store={store}>
+        <PageLayoutRendererContent />
+        <LocationSearch />
+      </JotaiProvider>
+    </MemoryRouter>,
   );
 };
 
@@ -152,5 +185,57 @@ describe('PageLayoutRendererContent', () => {
     expect(screen.getByLabelText('Start date')).toHaveValue('');
     expect(screen.getByLabelText('End date')).toHaveValue('');
     expect(screen.getByLabelText('Stage')).toHaveValue('');
+  });
+
+  it('serializes applied dashboard filters into the URL while preserving unrelated query params', async () => {
+    const user = userEvent.setup();
+
+    renderComponent({
+      initialEntry: '/dashboard?tab=overview',
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+    await user.selectOptions(screen.getByLabelText('Owner'), 'owner-1');
+    await user.type(screen.getByLabelText('Start date'), '2026-03-01');
+    await user.type(screen.getByLabelText('End date'), '2026-03-31');
+    await user.selectOptions(screen.getByLabelText('Stage'), 'QUALIFIED');
+    await user.click(screen.getByRole('button', { name: 'Apply' }));
+
+    expect(
+      qs.parse(screen.getByTestId('location-search').textContent ?? ''),
+    ).toEqual({
+      tab: 'overview',
+      filter: {
+        'owner.workspaceMemberId': {
+          IS: JSON.stringify({
+            isCurrentWorkspaceMemberSelected: false,
+            selectedRecordIds: ['owner-1'],
+          }),
+        },
+        closeDate: {
+          GREATER_THAN_OR_EQUAL: '2026-03-01',
+          LESS_THAN_OR_EQUAL: '2026-03-31',
+        },
+        stage: {
+          IS: 'QUALIFIED',
+        },
+      },
+    });
+  });
+
+  it('hydrates dashboard filters from the URL when the dashboard page loads', async () => {
+    const user = userEvent.setup();
+
+    renderComponent({
+      initialEntry:
+        '/dashboard?filter[owner.workspaceMemberId][IS]=%7B%22isCurrentWorkspaceMemberSelected%22%3Afalse%2C%22selectedRecordIds%22%3A%5B%22owner-2%22%5D%7D&filter[closeDate][GREATER_THAN_OR_EQUAL]=2026-02-01&filter[closeDate][LESS_THAN_OR_EQUAL]=2026-02-28&filter[stage][IS]=NEW',
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+
+    expect(screen.getByLabelText('Owner')).toHaveValue('owner-2');
+    expect(screen.getByLabelText('Start date')).toHaveValue('2026-02-01');
+    expect(screen.getByLabelText('End date')).toHaveValue('2026-02-28');
+    expect(screen.getByLabelText('Stage')).toHaveValue('NEW');
   });
 });
