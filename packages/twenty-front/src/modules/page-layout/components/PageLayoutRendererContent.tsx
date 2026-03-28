@@ -1,4 +1,5 @@
 import { DashboardFilterPanel } from '@/dashboard-filters/components/DashboardFilterPanel';
+import { DashboardFilterUrlSyncEffect } from '@/dashboard-filters/components/DashboardFilterUrlSyncEffect';
 import { useNavigatePageLayoutCommandMenu } from '@/command-menu/pages/page-layout/hooks/useNavigatePageLayoutCommandMenu';
 import { PageLayoutLeftPanel } from '@/page-layout/components/PageLayoutLeftPanel';
 import { PageLayoutTabList } from '@/page-layout/components/PageLayoutTabList';
@@ -128,6 +129,7 @@ export const PageLayoutRendererContent = () => {
       <StyledTabsAndDashboardContainer>
         {isDashboardLayout && (
           <div>
+            <DashboardFilterUrlSyncEffect />
             <button
               type="button"
               onClick={() =>
