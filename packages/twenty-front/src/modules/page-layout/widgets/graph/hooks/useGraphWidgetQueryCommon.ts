@@ -1,5 +1,6 @@
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
 import { useUserTimezone } from '@/ui/input/components/internal/date/hooks/useUserTimezone';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import {
   computeRecordGqlOperationFilter,
   isDefined,
@@ -14,6 +15,7 @@ import {
 export const useGraphWidgetQueryCommon = ({
   objectMetadataItemId,
   configuration,
+  dashboardFilters,
 }: {
   objectMetadataItemId: string;
   configuration:
@@ -21,6 +23,7 @@ export const useGraphWidgetQueryCommon = ({
     | AggregateChartConfiguration
     | LineChartConfiguration
     | PieChartConfiguration;
+  dashboardFilters?: unknown;
 }) => {
   const { objectMetadataItem } = useObjectMetadataItemById({
     objectId: objectMetadataItemId,
@@ -51,5 +54,6 @@ export const useGraphWidgetQueryCommon = ({
     objectMetadataItem,
     gqlOperationFilter,
     aggregateField,
+    dashboardFilters,
   };
 };

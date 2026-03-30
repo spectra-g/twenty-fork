@@ -692,6 +692,9 @@ export const STANDARD_OBJECTS = {
       timelineActivities: {
         universalIdentifier: '99c330c0-5b7d-4276-a764-aed84499dfb5',
       },
+      presets: {
+        universalIdentifier: '20202020-bd91-4828-9a42-58d8f8d9b201',
+      },
       favorites: {
         universalIdentifier: '20202020-f032-478f-88fa-6426ff6f1e4c',
       },
@@ -724,6 +727,36 @@ export const STANDARD_OBJECTS = {
             universalIdentifier: '20202020-af12-4a12-8a12-da5ab0b0af04',
           },
         },
+      },
+    },
+  },
+  dashboardPreset: {
+    universalIdentifier: '20202020-0a7b-4ed2-8db7-0aa56d4f1021',
+    fields: {
+      id: { universalIdentifier: '20202020-0a7b-4ed2-8db7-0aa56d4f1022' },
+      createdAt: {
+        universalIdentifier: '20202020-0a7b-4ed2-8db7-0aa56d4f1023',
+      },
+      updatedAt: {
+        universalIdentifier: '20202020-0a7b-4ed2-8db7-0aa56d4f1024',
+      },
+      deletedAt: {
+        universalIdentifier: '20202020-0a7b-4ed2-8db7-0aa56d4f1025',
+      },
+      name: { universalIdentifier: '20202020-0a7b-4ed2-8db7-0aa56d4f1026' },
+      dashboard: {
+        universalIdentifier: '20202020-0a7b-4ed2-8db7-0aa56d4f1027',
+      },
+      filterState: {
+        universalIdentifier: '20202020-0a7b-4ed2-8db7-0aa56d4f1028',
+      },
+      lastUsedAt: {
+        universalIdentifier: '20202020-0a7b-4ed2-8db7-0aa56d4f1029',
+      },
+    },
+    indexes: {
+      dashboardLastUsedAtIndex: {
+        universalIdentifier: '20202020-0a7b-4ed2-8db7-0aa56d4f1030',
       },
     },
   },
