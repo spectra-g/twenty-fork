@@ -94,6 +94,8 @@ describe('DashboardFilterBar URL effects', () => {
     mockedUseDashboardPresets.mockReturnValue({
       loading: false,
       presets: [],
+      renamePreset: jest.fn(),
+      deletePreset: jest.fn(),
     });
     mockedUseSnackBar.mockReturnValue({
       enqueueErrorSnackBar,
@@ -134,6 +136,8 @@ describe('DashboardFilterBar URL effects', () => {
       presets: [
         {
           id: 'preset-1',
+          name: 'Preset 1',
+          canEdit: false,
           filterState: {
             ownerId: 'sales-team',
             dateRange: 'last-30-days',

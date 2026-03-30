@@ -1,5 +1,6 @@
 import { DashboardFilterBar } from '@/dashboards/components/DashboardFilterBar';
 import { useDashboardPresets } from '@/dashboards/hooks/useDashboardPresets';
+import { useSnackBar } from '@/ui/feedback/snack-bar-manager/hooks/useSnackBar';
 import { ThemeProvider } from '@emotion/react';
 import { i18n } from '@lingui/core';
 import { I18nProvider } from '@lingui/react';
@@ -9,6 +10,7 @@ import { type PropsWithChildren } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 
 jest.mock('@/dashboards/hooks/useDashboardPresets');
+jest.mock('@/ui/feedback/snack-bar-manager/hooks/useSnackBar');
 jest.mock('@/ui/input/components/Select', () => ({
   Select: ({
     disabled,
@@ -34,6 +36,8 @@ jest.mock('@/ui/input/components/Select', () => ({
 }));
 
 const mockedUseDashboardPresets = useDashboardPresets as jest.Mock;
+const mockedUseSnackBar = useSnackBar as jest.Mock;
+const enqueueErrorSnackBar = jest.fn();
 const testTheme = {
   spacing: (value: number) => `${value * 4}px`,
 };
@@ -65,10 +69,18 @@ const getWrapper =
   };
 
 describe('DashboardFilterBar', () => {
+  beforeEach(() => {
+    mockedUseSnackBar.mockReturnValue({
+      enqueueErrorSnackBar,
+    });
+  });
+
   it('should render all filters disabled while presets are loading', () => {
     mockedUseDashboardPresets.mockReturnValue({
       presets: [],
       loading: true,
+      renamePreset: jest.fn(),
+      deletePreset: jest.fn(),
     });
 
     render(<DashboardFilterBar dashboardId="dashboard-a" />, {
@@ -86,6 +98,8 @@ describe('DashboardFilterBar', () => {
     mockedUseDashboardPresets.mockReturnValue({
       presets: [],
       loading: false,
+      renamePreset: jest.fn(),
+      deletePreset: jest.fn(),
     });
 
     render(<DashboardFilterBar dashboardId="dashboard-a" />, {
@@ -100,5 +114,63 @@ describe('DashboardFilterBar', () => {
     expect(
       screen.getByRole('button', { name: 'Date Range:empty' }),
     ).toBeVisible();
+  });
+
+  it('should show rename and delete controls for an editable selected preset', () => {
+    mockedUseDashboardPresets.mockReturnValue({
+      presets: [
+        {
+          id: 'preset-1',
+          name: 'Owned Pipeline Preset',
+          canEdit: true,
+          filterState: {
+            ownerId: 'sales-team',
+          },
+        },
+      ],
+      loading: false,
+      renamePreset: jest.fn(),
+      deletePreset: jest.fn(),
+    });
+
+    render(<DashboardFilterBar dashboardId="dashboard-a" />, {
+      wrapper: getWrapper(),
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Preset:empty' }));
+
+    expect(screen.getByRole('button', { name: 'Rename Preset' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Delete Preset' })).toBeVisible();
+  });
+
+  it('should hide rename and delete controls for a read-only selected preset', () => {
+    mockedUseDashboardPresets.mockReturnValue({
+      presets: [
+        {
+          id: 'preset-1',
+          name: 'Shared Revenue Preset',
+          canEdit: false,
+          filterState: {
+            ownerId: 'sales-team',
+          },
+        },
+      ],
+      loading: false,
+      renamePreset: jest.fn(),
+      deletePreset: jest.fn(),
+    });
+
+    render(<DashboardFilterBar dashboardId="dashboard-a" />, {
+      wrapper: getWrapper(),
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Preset:empty' }));
+
+    expect(
+      screen.queryByRole('button', { name: 'Rename Preset' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Delete Preset' }),
+    ).not.toBeInTheDocument();
   });
 });

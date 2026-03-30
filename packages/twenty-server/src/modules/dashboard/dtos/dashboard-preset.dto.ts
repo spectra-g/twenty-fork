@@ -13,6 +13,9 @@ export class DashboardPresetDTO {
   @Field(() => GraphQLJSON, { nullable: true })
   filterState: Record<string, unknown> | null;
 
+  @Field(() => Boolean)
+  canEdit: boolean;
+
   @Field(() => String)
   lastUsedAt: string;
 }

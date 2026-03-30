@@ -6,6 +6,7 @@ export class DashboardPresetWorkspaceEntity extends BaseWorkspaceEntity {
   name: string;
   dashboard: EntityRelation<DashboardWorkspaceEntity>;
   dashboardId: string;
+  createdByUserWorkspaceId?: string | null;
   filterState: Record<string, unknown> | null;
   lastUsedAt: Date;
 }

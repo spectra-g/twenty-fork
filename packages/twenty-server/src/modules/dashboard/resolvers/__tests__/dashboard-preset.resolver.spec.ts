@@ -6,7 +6,7 @@ import { ResolverValidationPipe } from 'src/engine/core-modules/graphql/pipes/re
 import { DashboardPresetController } from 'src/modules/dashboard/controllers/dashboard-preset.controller';
 import { SaveDashboardPresetInput } from 'src/modules/dashboard/dtos/save-dashboard-preset.input';
 import { DashboardPresetResolver } from 'src/modules/dashboard/resolvers/dashboard-preset.resolver';
-import { DashboardPresetService } from 'src/modules/dashboard/services/dashboard-preset.service';
+import { type DashboardPresetService } from 'src/modules/dashboard/services/dashboard-preset.service';
 
 describe('DashboardPresetResolver', () => {
   const dashboardPresetService = {
@@ -14,6 +14,8 @@ describe('DashboardPresetResolver', () => {
     getActiveFilterState: jest.fn(),
     savePreset: jest.fn(),
     touchPreset: jest.fn(),
+    renamePreset: jest.fn(),
+    deletePreset: jest.fn(),
     validateFilterState: jest.fn(),
   } as unknown as DashboardPresetService;
 
@@ -136,6 +138,63 @@ describe('DashboardPresetResolver', () => {
       },
     });
     expect(dashboardPresetService.touchPreset).toHaveBeenCalledWith(
+      'preset-1',
+      authContext,
+    );
+  });
+
+  it('should rename a dashboard preset and return the updated preset payload', async () => {
+    dashboardPresetService.renamePreset = jest.fn().mockResolvedValue({
+      id: 'preset-1',
+      name: 'Renamed Preset',
+      filterState: { recordFilters: [] },
+      canEdit: true,
+      lastUsedAt: '2026-03-30T13:00:00.000Z',
+    });
+
+    const result = await resolver.renameDashboardPreset(
+      'preset-1',
+      'Renamed Preset',
+      authContext.workspace as never,
+      authContext.user as never,
+      authContext.workspaceMemberId!,
+      authContext.userWorkspaceId!,
+    );
+
+    expect(result).toEqual({
+      success: true,
+      preset: {
+        id: 'preset-1',
+        name: 'Renamed Preset',
+        filterState: { recordFilters: [] },
+        canEdit: true,
+        lastUsedAt: '2026-03-30T13:00:00.000Z',
+      },
+    });
+    expect(dashboardPresetService.renamePreset).toHaveBeenCalledWith(
+      'preset-1',
+      'Renamed Preset',
+      authContext,
+    );
+  });
+
+  it('should delete a dashboard preset and return success', async () => {
+    dashboardPresetService.deletePreset = jest
+      .fn()
+      .mockResolvedValue(undefined);
+
+    const result = await resolver.deleteDashboardPreset(
+      'preset-1',
+      authContext.workspace as never,
+      authContext.user as never,
+      authContext.workspaceMemberId!,
+      authContext.userWorkspaceId!,
+    );
+
+    expect(result).toEqual({
+      success: true,
+    });
+    expect(dashboardPresetService.deletePreset).toHaveBeenCalledWith(
       'preset-1',
       authContext,
     );

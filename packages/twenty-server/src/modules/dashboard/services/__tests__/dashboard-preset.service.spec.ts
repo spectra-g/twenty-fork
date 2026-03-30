@@ -1,6 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 
 import { type AuthContext } from 'src/engine/core-modules/auth/types/auth-context.type';
+import { ForbiddenError } from 'src/engine/core-modules/graphql/utils/graphql-errors.util';
 import { GlobalWorkspaceOrmManager } from 'src/engine/twenty-orm/global-workspace-datasource/global-workspace-orm.manager';
 import { DashboardPresetService } from 'src/modules/dashboard/services/dashboard-preset.service';
 
@@ -64,6 +65,7 @@ describe('DashboardPresetService', () => {
       id: 'preset-id',
       name: 'My Preset',
       dashboardId: 'dashboard-id',
+      createdByUserWorkspaceId: 'user-workspace-id',
       filterState,
       lastUsedAt: new Date('2026-03-30T10:00:00.000Z'),
     };
@@ -90,6 +92,7 @@ describe('DashboardPresetService', () => {
     expect(insert).toHaveBeenCalledWith({
       dashboardId: 'dashboard-id',
       name: 'My Preset',
+      createdByUserWorkspaceId: 'user-workspace-id',
       filterState,
       lastUsedAt: expect.any(Date),
     });
@@ -100,6 +103,7 @@ describe('DashboardPresetService', () => {
       id: 'preset-id',
       name: 'My Preset',
       filterState,
+      canEdit: true,
       lastUsedAt: '2026-03-30T10:00:00.000Z',
     });
   });
@@ -109,12 +113,14 @@ describe('DashboardPresetService', () => {
       {
         id: 'preset-c',
         name: 'Preset C',
+        createdByUserWorkspaceId: 'user-workspace-id',
         filterState: { recordFilters: [] },
         lastUsedAt: new Date('2026-03-30T12:00:00.000Z'),
       },
       {
         id: 'preset-a',
         name: 'Preset A',
+        createdByUserWorkspaceId: 'another-user-workspace-id',
         filterState: { recordFilters: [] },
         lastUsedAt: new Date('2026-03-30T11:00:00.000Z'),
       },
@@ -134,12 +140,14 @@ describe('DashboardPresetService', () => {
         id: 'preset-c',
         name: 'Preset C',
         filterState: { recordFilters: [] },
+        canEdit: true,
         lastUsedAt: '2026-03-30T12:00:00.000Z',
       },
       {
         id: 'preset-a',
         name: 'Preset A',
         filterState: { recordFilters: [] },
+        canEdit: false,
         lastUsedAt: '2026-03-30T11:00:00.000Z',
       },
     ]);
@@ -151,6 +159,7 @@ describe('DashboardPresetService', () => {
     findOne.mockResolvedValue({
       id: 'preset-id',
       name: 'Preset A',
+      createdByUserWorkspaceId: null,
       filterState: { recordFilters: [] },
       lastUsedAt: touchedAt,
     });
@@ -167,7 +176,83 @@ describe('DashboardPresetService', () => {
       id: 'preset-id',
       name: 'Preset A',
       filterState: { recordFilters: [] },
+      canEdit: false,
       lastUsedAt: '2026-03-30T13:00:00.000Z',
     });
+  });
+
+  it('should rename an owned preset', async () => {
+    findOne
+      .mockResolvedValueOnce({
+        id: 'preset-id',
+        name: 'Preset A',
+        createdByUserWorkspaceId: 'user-workspace-id',
+        filterState: { recordFilters: [] },
+        lastUsedAt: new Date('2026-03-30T13:00:00.000Z'),
+      })
+      .mockResolvedValueOnce({
+        id: 'preset-id',
+        name: 'Renamed Preset',
+        createdByUserWorkspaceId: 'user-workspace-id',
+        filterState: { recordFilters: [] },
+        lastUsedAt: new Date('2026-03-30T13:00:00.000Z'),
+      });
+
+    const result = await service.renamePreset(
+      'preset-id',
+      'Renamed Preset',
+      authContext,
+    );
+
+    expect(update).toHaveBeenCalledWith('preset-id', {
+      name: 'Renamed Preset',
+    });
+    expect(result).toEqual({
+      id: 'preset-id',
+      name: 'Renamed Preset',
+      filterState: { recordFilters: [] },
+      canEdit: true,
+      lastUsedAt: '2026-03-30T13:00:00.000Z',
+    });
+  });
+
+  it('should reject renaming a preset owned by another user', async () => {
+    findOne.mockResolvedValue({
+      id: 'preset-id',
+      name: 'Preset A',
+      createdByUserWorkspaceId: 'another-user-workspace-id',
+      filterState: { recordFilters: [] },
+      lastUsedAt: new Date('2026-03-30T13:00:00.000Z'),
+    });
+
+    await expect(
+      service.renamePreset('preset-id', 'Renamed Preset', authContext),
+    ).rejects.toThrow(ForbiddenError);
+
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('should delete an owned preset', async () => {
+    findOne.mockResolvedValue({
+      id: 'preset-id',
+      name: 'Preset A',
+      createdByUserWorkspaceId: 'user-workspace-id',
+      filterState: { recordFilters: [] },
+      lastUsedAt: new Date('2026-03-30T13:00:00.000Z'),
+    });
+
+    const deleteOne = jest.fn().mockResolvedValue(undefined);
+
+    getRepository.mockResolvedValue({
+      insert,
+      findOne,
+      find,
+      update,
+      delete: deleteOne,
+    });
+
+    await service.deletePreset('preset-id', authContext);
+
+    expect(deleteOne).toHaveBeenCalledWith('preset-id');
   });
 });

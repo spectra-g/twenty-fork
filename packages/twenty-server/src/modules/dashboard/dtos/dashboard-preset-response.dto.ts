@@ -21,3 +21,9 @@ export class SaveDashboardPresetResponseDTO {
   @Field(() => DashboardPresetDTO)
   preset: DashboardPresetDTO;
 }
+
+@ObjectType()
+export class DeleteDashboardPresetResponseDTO {
+  @Field(() => Boolean)
+  success: boolean;
+}
