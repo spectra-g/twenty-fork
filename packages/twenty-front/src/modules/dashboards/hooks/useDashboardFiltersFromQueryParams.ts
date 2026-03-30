@@ -3,7 +3,6 @@ import { filterUrlQueryParamsSchema } from '@/views/schemas/filterUrlQueryParams
 import qs from 'qs';
 import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { isDefined } from 'twenty-shared/utils';
 
 const dashboardFilterFields = ['ownerId', 'dateRange', 'stageId'] as const;
 
@@ -11,6 +10,12 @@ const isDashboardFilterField = (
   value: string,
 ): value is DashboardFilterField => {
   return dashboardFilterFields.includes(value as DashboardFilterField);
+};
+
+const hasDashboardFilterQueryParams = (searchParams: URLSearchParams) => {
+  return Array.from(searchParams.keys()).some((key) =>
+    key.startsWith('filter['),
+  );
 };
 
 export const useDashboardFiltersFromQueryParams = () => {
@@ -21,29 +26,44 @@ export const useDashboardFiltersFromQueryParams = () => {
       qs.parse(searchParams.toString()),
     );
 
-    if (!queryParamsValidation.success || !isDefined(queryParamsValidation.data.filter)) {
-      return {};
+    if (
+      !queryParamsValidation.success ||
+      queryParamsValidation.data.filter === undefined
+    ) {
+      return {
+        dashboardFiltersFromQueryParams: {},
+        hasInvalidFilterQueryParams:
+          hasDashboardFilterQueryParams(searchParams),
+      };
     }
 
-    return Object.entries(queryParamsValidation.data.filter).reduce<
-      Partial<Record<DashboardFilterField, string>>
-    >((dashboardFilters, [fieldName, operandValues]) => {
-      if (!isDashboardFilterField(fieldName) || !isDefined(operandValues)) {
-        return dashboardFilters;
-      }
+    const dashboardFiltersFromQueryParams = Object.entries(
+      queryParamsValidation.data.filter,
+    ).reduce<Partial<Record<DashboardFilterField, string>>>(
+      (dashboardFilters, [fieldName, operandValues]) => {
+        if (!isDashboardFilterField(fieldName) || operandValues === undefined) {
+          return dashboardFilters;
+        }
 
-      const firstFilterValue = Object.values(operandValues).find(
-        (value): value is string => typeof value === 'string',
-      );
+        const firstFilterValue = Object.values(operandValues).find(
+          (value): value is string => typeof value === 'string',
+        );
 
-      if (!isDefined(firstFilterValue)) {
-        return dashboardFilters;
-      }
+        if (firstFilterValue === undefined) {
+          return dashboardFilters;
+        }
 
-      return {
-        ...dashboardFilters,
-        [fieldName]: firstFilterValue,
-      };
-    }, {});
+        return {
+          ...dashboardFilters,
+          [fieldName]: firstFilterValue,
+        };
+      },
+      {},
+    );
+
+    return {
+      dashboardFiltersFromQueryParams,
+      hasInvalidFilterQueryParams: false,
+    };
   }, [searchParams]);
 };

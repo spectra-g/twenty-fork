@@ -6,7 +6,9 @@ import {
 import { useDashboardFilters } from '@/dashboards/hooks/useDashboardFilters';
 import { useSyncDashboardFiltersToUrl } from '@/dashboards/hooks/useSyncDashboardFiltersToUrl';
 import { EMPTY_DASHBOARD_FILTERS } from '@/dashboards/states/dashboardFiltersState';
-import { useEffect, useMemo, useRef } from 'react';
+import { useSnackBar } from '@/ui/feedback/snack-bar-manager/hooks/useSnackBar';
+import { t } from '@lingui/core/macro';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 const areDashboardFiltersEqual = (
@@ -31,6 +33,14 @@ const getPresetFilters = ({
   return presets.find((preset) => preset.id === presetId)?.filterState ?? {};
 };
 
+const removeDashboardFilterQueryParams = (searchParams: URLSearchParams) => {
+  Array.from(searchParams.keys())
+    .filter((key) => key.startsWith('filter['))
+    .forEach((key) => {
+      searchParams.delete(key);
+    });
+};
+
 type DashboardUrlFiltersEffectProps = {
   dashboardId: string;
 };
@@ -38,15 +48,27 @@ type DashboardUrlFiltersEffectProps = {
 export const DashboardUrlFiltersEffect = ({
   dashboardId,
 }: DashboardUrlFiltersEffectProps) => {
-  const hasHydratedRef = useRef(false);
-  const [searchParams] = useSearchParams();
-  const filtersFromQueryParams = useDashboardFiltersFromQueryParams();
-  const { presets } = useDashboardPresets();
+  const [hasHydrated, setHasHydrated] = useState(false);
+  const [lastCleanedInvalidSearchParams, setLastCleanedInvalidSearchParams] =
+    useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { dashboardFiltersFromQueryParams, hasInvalidFilterQueryParams } =
+    useDashboardFiltersFromQueryParams();
+  const { presets, loading } = useDashboardPresets();
   const { dashboardFilters, replaceDashboardFilters } =
     useDashboardFilters(dashboardId);
+  const { enqueueErrorSnackBar } = useSnackBar();
+  const searchParamsString = searchParams.toString();
   const presetId = searchParams.get('presetId');
+  const hasMissingPreset =
+    presetId !== null &&
+    !loading &&
+    !presets.some((preset) => preset.id === presetId);
   const shouldHydrateFromExternalState =
-    presetId !== null || Object.keys(filtersFromQueryParams).length > 0;
+    (!hasMissingPreset && presetId !== null) ||
+    Object.keys(dashboardFiltersFromQueryParams).length > 0;
+  const hasInvalidExternalState =
+    hasInvalidFilterQueryParams || hasMissingPreset;
 
   const nextDashboardFilters = useMemo(
     () => ({
@@ -55,14 +77,51 @@ export const DashboardUrlFiltersEffect = ({
         presetId,
         presets,
       }),
-      ...filtersFromQueryParams,
+      ...dashboardFiltersFromQueryParams,
     }),
-    [filtersFromQueryParams, presetId, presets],
+    [dashboardFiltersFromQueryParams, presetId, presets],
   );
 
   useEffect(() => {
+    if (
+      !hasInvalidExternalState ||
+      lastCleanedInvalidSearchParams === searchParamsString
+    ) {
+      return;
+    }
+
+    const nextSearchParams = new URLSearchParams(searchParams);
+
+    if (hasInvalidFilterQueryParams) {
+      removeDashboardFilterQueryParams(nextSearchParams);
+    }
+
+    if (hasMissingPreset) {
+      nextSearchParams.delete('presetId');
+    }
+
+    enqueueErrorSnackBar({
+      message: t`Shared filters could not be applied`,
+      options: {
+        dedupeKey: 'dashboard-invalid-shared-filters',
+      },
+    });
+    setSearchParams(nextSearchParams, { replace: true });
+    setLastCleanedInvalidSearchParams(searchParamsString);
+  }, [
+    enqueueErrorSnackBar,
+    hasInvalidExternalState,
+    hasInvalidFilterQueryParams,
+    hasMissingPreset,
+    lastCleanedInvalidSearchParams,
+    searchParams,
+    searchParamsString,
+    setSearchParams,
+  ]);
+
+  useEffect(() => {
     if (!shouldHydrateFromExternalState) {
-      hasHydratedRef.current = true;
+      setHasHydrated(true);
 
       return;
     }
@@ -71,7 +130,7 @@ export const DashboardUrlFiltersEffect = ({
       replaceDashboardFilters(nextDashboardFilters);
     }
 
-    hasHydratedRef.current = true;
+    setHasHydrated(true);
   }, [
     dashboardFilters,
     nextDashboardFilters,
@@ -79,7 +138,7 @@ export const DashboardUrlFiltersEffect = ({
     shouldHydrateFromExternalState,
   ]);
 
-  useSyncDashboardFiltersToUrl(dashboardFilters, hasHydratedRef.current);
+  useSyncDashboardFiltersToUrl(dashboardFilters, hasHydrated);
 
   return null;
 };
