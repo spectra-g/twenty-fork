@@ -14,6 +14,7 @@ import {
 type DashboardPreset = {
   id: string;
   name: string;
+  lastUsedAt: string;
   filterState: {
     recordFilters?: Array<Record<string, unknown>>;
     recordFilterGroups?: Array<Record<string, unknown>>;
@@ -44,6 +45,7 @@ const findDashboardFiltersAndPresets = async (dashboardId: string) => {
             id
             name
             filterState
+            lastUsedAt
           }
         }
       }
@@ -80,6 +82,7 @@ const saveDashboardPreset = async ({
             id
             name
             filterState
+            lastUsedAt
           }
         }
       }
@@ -90,6 +93,34 @@ const saveDashboardPreset = async ({
       filterState,
     },
   })) as GraphQLResponse<SaveDashboardPresetResponse>;
+};
+
+type TouchDashboardPresetResponse = {
+  touchDashboardPreset: {
+    success: boolean;
+    preset: DashboardPreset;
+  };
+};
+
+const touchDashboardPreset = async (presetId: string) => {
+  return (await makeGraphqlAPIRequest({
+    query: gql`
+      mutation TouchDashboardPreset($presetId: UUID!) {
+        touchDashboardPreset(presetId: $presetId) {
+          success
+          preset {
+            id
+            name
+            filterState
+            lastUsedAt
+          }
+        }
+      }
+    `,
+    variables: {
+      presetId,
+    },
+  })) as GraphQLResponse<TouchDashboardPresetResponse>;
 };
 
 describe('Dashboard preset resolver', () => {
@@ -144,10 +175,25 @@ describe('Dashboard preset resolver', () => {
     expect(response.body.data?.saveDashboardPreset).toMatchObject({
       success: true,
       preset: {
-        id: 'stub-preset-id',
         name: 'My Pipeline Preset',
         filterState,
+        lastUsedAt: expect.any(String),
       },
+    });
+
+    const presetsResponse = await findDashboardFiltersAndPresets(dashboardId);
+
+    assertGraphQLSuccessfulResponse(presetsResponse);
+    expect(presetsResponse.body.data?.dashboardFiltersAndPresets).toEqual({
+      activeFilterState: null,
+      presets: [
+        expect.objectContaining({
+          id: response.body.data?.saveDashboardPreset.preset.id,
+          name: 'My Pipeline Preset',
+          filterState,
+          lastUsedAt: expect.any(String),
+        }),
+      ],
     });
   });
 
@@ -163,5 +209,91 @@ describe('Dashboard preset resolver', () => {
       ErrorCode.BAD_USER_INPUT,
       'Filter state is required',
     );
+  });
+
+  it('should return presets ordered by most recently used after an explicit touch', async () => {
+    const firstResponse = await saveDashboardPreset({
+      dashboardId,
+      name: 'Preset A',
+      filterState: {
+        recordFilters: [
+          {
+            fieldMetadataId: 'company-id',
+            operand: 'contains',
+            value: 'Acme',
+          },
+        ],
+      },
+    });
+    const secondResponse = await saveDashboardPreset({
+      dashboardId,
+      name: 'Preset B',
+      filterState: {
+        recordFilters: [
+          {
+            fieldMetadataId: 'company-id',
+            operand: 'contains',
+            value: 'Globex',
+          },
+        ],
+      },
+    });
+    const thirdResponse = await saveDashboardPreset({
+      dashboardId,
+      name: 'Preset C',
+      filterState: {
+        recordFilters: [
+          {
+            fieldMetadataId: 'company-id',
+            operand: 'contains',
+            value: 'Initech',
+          },
+        ],
+      },
+    });
+
+    assertGraphQLSuccessfulResponse(firstResponse);
+    assertGraphQLSuccessfulResponse(secondResponse);
+    assertGraphQLSuccessfulResponse(thirdResponse);
+
+    const secondPresetId =
+      secondResponse.body.data?.saveDashboardPreset.preset.id;
+    const firstPresetId =
+      firstResponse.body.data?.saveDashboardPreset.preset.id;
+    const thirdPresetId =
+      thirdResponse.body.data?.saveDashboardPreset.preset.id;
+
+    if (!secondPresetId || !firstPresetId || !thirdPresetId) {
+      throw new Error('Expected dashboard preset identifiers to be returned');
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    const touchSecondResponse = await touchDashboardPreset(secondPresetId);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    const touchFirstResponse = await touchDashboardPreset(firstPresetId);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    const touchThirdResponse = await touchDashboardPreset(thirdPresetId);
+
+    assertGraphQLSuccessfulResponse(touchSecondResponse);
+    assertGraphQLSuccessfulResponse(touchFirstResponse);
+    assertGraphQLSuccessfulResponse(touchThirdResponse);
+
+    expect(touchThirdResponse.body.data?.touchDashboardPreset).toMatchObject({
+      success: true,
+      preset: {
+        id: thirdPresetId,
+        name: 'Preset C',
+        lastUsedAt: expect.any(String),
+      },
+    });
+
+    const response = await findDashboardFiltersAndPresets(dashboardId);
+
+    assertGraphQLSuccessfulResponse(response);
+    expect(
+      response.body.data?.dashboardFiltersAndPresets.presets.map(
+        (preset) => preset.name,
+      ),
+    ).toEqual(['Preset C', 'Preset A', 'Preset B']);
   });
 });

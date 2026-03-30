@@ -1,5 +1,6 @@
 import { type ArgumentMetadata } from '@nestjs/common';
 
+import { type AuthContext } from 'src/engine/core-modules/auth/types/auth-context.type';
 import { ErrorCode } from 'src/engine/core-modules/graphql/utils/graphql-errors.util';
 import { ResolverValidationPipe } from 'src/engine/core-modules/graphql/pipes/resolver-validation.pipe';
 import { DashboardPresetController } from 'src/modules/dashboard/controllers/dashboard-preset.controller';
@@ -12,12 +13,19 @@ describe('DashboardPresetResolver', () => {
     getPresetsForDashboard: jest.fn(),
     getActiveFilterState: jest.fn(),
     savePreset: jest.fn(),
+    touchPreset: jest.fn(),
     validateFilterState: jest.fn(),
   } as unknown as DashboardPresetService;
 
   const resolver = new DashboardPresetResolver(dashboardPresetService);
   const controller = new DashboardPresetController(dashboardPresetService);
   const validationPipe = new ResolverValidationPipe();
+  const authContext = {
+    workspace: { id: 'workspace-1' },
+    user: { id: 'user-1' },
+    workspaceMemberId: 'workspace-member-1',
+    userWorkspaceId: 'user-workspace-1',
+  } as AuthContext;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -33,7 +41,10 @@ describe('DashboardPresetResolver', () => {
 
     const result = await resolver.dashboardFiltersAndPresets(
       'dashboard-1',
-      {} as any,
+      authContext.workspace as never,
+      authContext.user as never,
+      authContext.workspaceMemberId!,
+      authContext.userWorkspaceId!,
     );
 
     expect(result).toEqual({
@@ -42,9 +53,11 @@ describe('DashboardPresetResolver', () => {
     });
     expect(dashboardPresetService.getPresetsForDashboard).toHaveBeenCalledWith(
       'dashboard-1',
+      authContext,
     );
     expect(dashboardPresetService.getActiveFilterState).toHaveBeenCalledWith(
       'dashboard-1',
+      authContext,
     );
   });
 
@@ -75,7 +88,10 @@ describe('DashboardPresetResolver', () => {
       'dashboard-1',
       'My Preset',
       filterState,
-      {} as any,
+      authContext.workspace as never,
+      authContext.user as never,
+      authContext.workspaceMemberId!,
+      authContext.userWorkspaceId!,
     );
 
     expect(result).toEqual({
@@ -90,6 +106,38 @@ describe('DashboardPresetResolver', () => {
       'dashboard-1',
       'My Preset',
       filterState,
+      authContext,
+    );
+  });
+
+  it('should touch a dashboard preset and return the updated preset payload', async () => {
+    dashboardPresetService.touchPreset = jest.fn().mockResolvedValue({
+      id: 'preset-1',
+      name: 'Preset 1',
+      filterState: { recordFilters: [] },
+      lastUsedAt: '2026-03-30T13:00:00.000Z',
+    });
+
+    const result = await resolver.touchDashboardPreset(
+      'preset-1',
+      authContext.workspace as never,
+      authContext.user as never,
+      authContext.workspaceMemberId!,
+      authContext.userWorkspaceId!,
+    );
+
+    expect(result).toEqual({
+      success: true,
+      preset: {
+        id: 'preset-1',
+        name: 'Preset 1',
+        filterState: { recordFilters: [] },
+        lastUsedAt: '2026-03-30T13:00:00.000Z',
+      },
+    });
+    expect(dashboardPresetService.touchPreset).toHaveBeenCalledWith(
+      'preset-1',
+      authContext,
     );
   });
 
@@ -132,6 +180,7 @@ describe('DashboardPresetResolver', () => {
       id: 'stub-preset-id',
       name: 'REST Preset',
       filterState,
+      lastUsedAt: '2026-03-30T12:00:00.000Z',
     });
     dashboardPresetService.getPresetsForDashboard = jest
       .fn()
@@ -155,6 +204,7 @@ describe('DashboardPresetResolver', () => {
         id: 'stub-preset-id',
         name: 'REST Preset',
         filterState,
+        lastUsedAt: '2026-03-30T12:00:00.000Z',
       },
     });
   });

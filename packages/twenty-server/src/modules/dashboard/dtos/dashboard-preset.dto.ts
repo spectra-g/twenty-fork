@@ -12,4 +12,7 @@ export class DashboardPresetDTO {
 
   @Field(() => GraphQLJSON, { nullable: true })
   filterState: Record<string, unknown> | null;
+
+  @Field(() => String)
+  lastUsedAt: string;
 }
