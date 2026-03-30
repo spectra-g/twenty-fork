@@ -1,6 +1,12 @@
+import { type DashboardFilters } from '@/dashboards/states/dashboardFiltersState';
 import { useEffect, useState } from 'react';
 
 export const DASHBOARD_PRESETS_LOADING_DELAY_MS = 2000;
+
+export type DashboardPreset = {
+  id: string;
+  filterState: Partial<DashboardFilters>;
+};
 
 export const useDashboardPresets = () => {
   const [loading, setLoading] = useState(true);
@@ -16,7 +22,7 @@ export const useDashboardPresets = () => {
   }, []);
 
   return {
-    presets: [],
+    presets: [] as DashboardPreset[],
     loading,
   };
 };
