@@ -7,8 +7,11 @@ import { TwentyORMModule } from 'src/engine/twenty-orm/twenty-orm.module';
 import { WorkspaceCacheStorageModule } from 'src/engine/workspace-cache-storage/workspace-cache-storage.module';
 import { ChartDataModule } from 'src/modules/dashboard/chart-data/chart-data.module';
 import { DashboardController } from 'src/modules/dashboard/controllers/dashboard.controller';
+import { DashboardPresetController } from 'src/modules/dashboard/controllers/dashboard-preset.controller';
 import { DashboardResolver } from 'src/modules/dashboard/resolvers/dashboard.resolver';
+import { DashboardPresetResolver } from 'src/modules/dashboard/resolvers/dashboard-preset.resolver';
 import { DashboardDuplicationService } from 'src/modules/dashboard/services/dashboard-duplication.service';
+import { DashboardPresetService } from 'src/modules/dashboard/services/dashboard-preset.service';
 
 @Module({
   imports: [
@@ -19,8 +22,13 @@ import { DashboardDuplicationService } from 'src/modules/dashboard/services/dash
     TwentyORMModule,
     WorkspaceCacheStorageModule,
   ],
-  controllers: [DashboardController],
-  providers: [DashboardDuplicationService, DashboardResolver],
-  exports: [DashboardDuplicationService],
+  controllers: [DashboardController, DashboardPresetController],
+  providers: [
+    DashboardDuplicationService,
+    DashboardPresetService,
+    DashboardResolver,
+    DashboardPresetResolver,
+  ],
+  exports: [DashboardDuplicationService, DashboardPresetService],
 })
 export class DashboardModule {}
