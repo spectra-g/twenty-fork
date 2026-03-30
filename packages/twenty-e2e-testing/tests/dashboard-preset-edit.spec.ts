@@ -1,8 +1,17 @@
 // Acceptance: requires live stack — enable in CI or local dev with full environment running.
 import { expect, test } from '../lib/fixtures/screenshot';
+import { isLiveStackAcceptanceEnabled } from '../lib/acceptance/isLiveStackAcceptanceEnabled';
 import { LoginPage } from '../lib/pom/loginPage';
 
+const shouldSkipDashboardPresetEditAcceptance =
+  !isLiveStackAcceptanceEnabled(process.env);
+
 test.skip(
+  shouldSkipDashboardPresetEditAcceptance,
+  'Acceptance: requires live stack — enable in CI or local dev with RUN_LIVE_STACK_ACCEPTANCE=true.',
+);
+
+test(
   'shows rename and delete affordances for a user who can edit a dashboard preset',
   async ({ page }) => {
     const loginPage = new LoginPage(page);
@@ -25,7 +34,7 @@ test.skip(
   },
 );
 
-test.skip(
+test(
   'hides rename and delete affordances for a user without preset edit rights',
   async ({ page }) => {
     const loginPage = new LoginPage(page);
@@ -50,7 +59,7 @@ test.skip(
   },
 );
 
-test.skip(
+test(
   'renames a preset with immediate UI feedback and keeps the new name after reload',
   async ({ page }) => {
     const loginPage = new LoginPage(page);
@@ -78,7 +87,7 @@ test.skip(
   },
 );
 
-test.skip(
+test(
   'deletes a preset, removes it from selection, and prevents reselection',
   async ({ page }) => {
     const loginPage = new LoginPage(page);
