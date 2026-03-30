@@ -534,7 +534,8 @@ export class PageLayoutUpdateService {
           flatEntityMaps: flatPageLayoutWidgetMaps,
         });
 
-        const updatedConfiguration = widgetInput.configuration ?? null;
+        const updatedConfiguration =
+          widgetInput.configuration ?? existingWidget.configuration;
 
         const {
           pageLayoutTabUniversalIdentifier,
@@ -585,7 +586,8 @@ export class PageLayoutUpdateService {
           flatEntityMaps: flatPageLayoutWidgetMaps,
         });
 
-        const restoredConfiguration = widgetInput.configuration ?? null;
+        const restoredConfiguration =
+          widgetInput.configuration ?? existingWidget.configuration;
 
         const {
           pageLayoutTabUniversalIdentifier,

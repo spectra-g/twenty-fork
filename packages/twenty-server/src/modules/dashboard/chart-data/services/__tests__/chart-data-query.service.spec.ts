@@ -203,6 +203,46 @@ describe('ChartDataQueryService', () => {
     );
   });
 
+  it('should treat a null widget filter as empty and still execute (AC-001)', async () => {
+    await service.executeGroupByQuery({
+      ...baseParams,
+      filter: null as never,
+    });
+
+    expect(mockExecute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filter: {},
+      }),
+      expect.anything(),
+    );
+  });
+
+  it('should treat a null dashboard filter as absent and preserve widget filters (AC-002)', async () => {
+    const widgetFilter: ChartFilter = {
+      recordFilters: [
+        {
+          fieldMetadataId: stageField.id,
+          operand: ViewFilterOperand.IS,
+          value: '["WON"]',
+        },
+      ],
+      recordFilterGroups: [],
+    };
+
+    await service.executeGroupByQuery({
+      ...baseParams,
+      filter: widgetFilter,
+      dashboardFilter: null as never,
+    });
+
+    expect(mockExecute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filter: { stage: { in: ['WON'] } },
+      }),
+      expect.anything(),
+    );
+  });
+
   it('should ignore empty dashboard filters and apply only widget filters (AC-003)', async () => {
     const widgetFilter: ChartFilter = {
       recordFilters: [
