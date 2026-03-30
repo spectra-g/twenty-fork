@@ -1,8 +1,11 @@
+import { DashboardFilterBar } from '@/dashboards/components/DashboardFilterBar';
+import { DashboardFilterRefreshIndicator } from '@/dashboards/components/DashboardFilterRefreshIndicator';
 import { PageLayoutContent } from '@/page-layout/components/PageLayoutContent';
 import { PageLayoutContentProvider } from '@/page-layout/contexts/PageLayoutContentContext';
 import { useCurrentPageLayoutOrThrow } from '@/page-layout/hooks/useCurrentPageLayoutOrThrow';
 import { usePageLayoutTabWithVisibleWidgetsOrThrow } from '@/page-layout/hooks/usePageLayoutTabWithVisibleWidgetsOrThrow';
 import { getTabLayoutMode } from '@/page-layout/utils/getTabLayoutMode';
+import { PageLayoutType } from '~/generated-metadata/graphql';
 
 type PageLayoutMainContentProps = {
   tabId: string;
@@ -26,6 +29,14 @@ export const PageLayoutMainContent = ({
         layoutMode,
       }}
     >
+      {currentPageLayout.type === PageLayoutType.DASHBOARD ? (
+        <>
+          <DashboardFilterBar pageLayoutId={currentPageLayout.id} />
+          <DashboardFilterRefreshIndicator
+            pageLayoutId={currentPageLayout.id}
+          />
+        </>
+      ) : null}
       <PageLayoutContent />
     </PageLayoutContentProvider>
   );
