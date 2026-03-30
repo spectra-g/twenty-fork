@@ -1,39 +1,20 @@
+import { useLingui } from '@lingui/react/macro';
+import { DashboardUrlFiltersEffect } from '@/dashboards/components/DashboardUrlFiltersEffect';
 import { useDashboardFilters } from '@/dashboards/hooks/useDashboardFilters';
 import { useDashboardPresets } from '@/dashboards/hooks/useDashboardPresets';
 import { Select } from '@/ui/input/components/Select';
 import styled from '@emotion/styled';
-import { type SelectOption } from 'twenty-ui/input';
+
+type DashboardSelectOption = {
+  label: string;
+  value: string;
+};
 
 const StyledContainer = styled.div`
   display: flex;
   gap: ${({ theme }) => theme.spacing(2)};
   padding: ${({ theme }) => theme.spacing(2)};
 `;
-
-const OWNER_OPTIONS: SelectOption<string>[] = [
-  {
-    label: 'Sales Team',
-    value: 'sales-team',
-  },
-];
-
-const DATE_RANGE_OPTIONS: SelectOption<string>[] = [
-  {
-    label: 'Last 7 days',
-    value: 'last-7-days',
-  },
-  {
-    label: 'Last 30 days',
-    value: 'last-30-days',
-  },
-];
-
-const STAGE_OPTIONS: SelectOption<string>[] = [
-  {
-    label: 'Qualified',
-    value: 'qualified',
-  },
-];
 
 type DashboardFilterBarProps = {
   dashboardId: string;
@@ -42,16 +23,43 @@ type DashboardFilterBarProps = {
 export const DashboardFilterBar = ({
   dashboardId,
 }: DashboardFilterBarProps) => {
+  const { t } = useLingui();
   const { loading } = useDashboardPresets();
   const { dashboardFilters, setDashboardFilter } =
     useDashboardFilters(dashboardId);
 
+  const ownerOptions: DashboardSelectOption[] = [
+    {
+      label: t`Sales Team`,
+      value: 'sales-team',
+    },
+  ];
+
+  const dateRangeOptions: DashboardSelectOption[] = [
+    {
+      label: t`Last 7 days`,
+      value: 'last-7-days',
+    },
+    {
+      label: t`Last 30 days`,
+      value: 'last-30-days',
+    },
+  ];
+
+  const stageOptions: DashboardSelectOption[] = [
+    {
+      label: t`Qualified`,
+      value: 'qualified',
+    },
+  ];
+
   return (
     <StyledContainer>
+      <DashboardUrlFiltersEffect dashboardId={dashboardId} />
       <Select
         dropdownId={`dashboard-filter-owner-${dashboardId}`}
         label="Owner"
-        options={OWNER_OPTIONS}
+        options={ownerOptions}
         value={dashboardFilters.ownerId}
         disabled={loading}
         emptyOption={{
@@ -63,7 +71,7 @@ export const DashboardFilterBar = ({
       <Select
         dropdownId={`dashboard-filter-date-range-${dashboardId}`}
         label="Date Range"
-        options={DATE_RANGE_OPTIONS}
+        options={dateRangeOptions}
         value={dashboardFilters.dateRange}
         disabled={loading}
         emptyOption={{
@@ -75,7 +83,7 @@ export const DashboardFilterBar = ({
       <Select
         dropdownId={`dashboard-filter-stage-${dashboardId}`}
         label="Stage"
-        options={STAGE_OPTIONS}
+        options={stageOptions}
         value={dashboardFilters.stageId}
         disabled={loading}
         emptyOption={{

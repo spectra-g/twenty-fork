@@ -1,16 +1,18 @@
 import {
   type DashboardFilterField,
+  type DashboardFilters,
   dashboardFiltersState,
   EMPTY_DASHBOARD_FILTERS,
 } from '@/dashboards/states/dashboardFiltersState';
 import { useAtomState } from '@/ui/utilities/state/jotai/hooks/useAtomState';
 
 export const useDashboardFilters = (dashboardId: string | undefined) => {
-  const [dashboardFiltersById, setDashboardFiltersById] =
-    useAtomState(dashboardFiltersState);
+  const [dashboardFilters, setDashboardFilters] = useAtomState(
+    dashboardFiltersState,
+  );
 
-  const dashboardFilters = dashboardId
-    ? (dashboardFiltersById[dashboardId] ?? EMPTY_DASHBOARD_FILTERS)
+  const currentDashboardFilters = dashboardId
+    ? (dashboardFilters[dashboardId] ?? EMPTY_DASHBOARD_FILTERS)
     : EMPTY_DASHBOARD_FILTERS;
 
   const setDashboardFilter = (
@@ -21,7 +23,7 @@ export const useDashboardFilters = (dashboardId: string | undefined) => {
       return;
     }
 
-    setDashboardFiltersById((currentDashboardFiltersById) => ({
+    setDashboardFilters((currentDashboardFiltersById) => ({
       ...currentDashboardFiltersById,
       [dashboardId]: {
         ...(currentDashboardFiltersById[dashboardId] ??
@@ -31,8 +33,20 @@ export const useDashboardFilters = (dashboardId: string | undefined) => {
     }));
   };
 
+  const replaceDashboardFilters = (nextDashboardFilters: DashboardFilters) => {
+    if (!dashboardId) {
+      return;
+    }
+
+    setDashboardFilters((currentDashboardFiltersById) => ({
+      ...currentDashboardFiltersById,
+      [dashboardId]: nextDashboardFilters,
+    }));
+  };
+
   return {
-    dashboardFilters,
+    dashboardFilters: currentDashboardFilters,
+    replaceDashboardFilters,
     setDashboardFilter,
   };
 };
