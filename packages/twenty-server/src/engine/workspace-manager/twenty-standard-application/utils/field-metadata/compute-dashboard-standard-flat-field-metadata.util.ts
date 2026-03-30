@@ -250,6 +250,28 @@ export const buildDashboardStandardFlatFieldMetadatas = ({
     twentyStandardApplicationId,
     now,
   }),
+  presets: createStandardRelationFieldFlatMetadata({
+    objectName,
+    workspaceId,
+    context: {
+      type: FieldMetadataType.RELATION,
+      morphId: null,
+      fieldName: 'presets',
+      label: 'Presets',
+      description: 'Saved filter presets linked to the dashboard',
+      icon: 'IconFilter',
+      isNullable: true,
+      targetObjectName: 'dashboardPreset',
+      targetFieldName: 'dashboard',
+      settings: {
+        relationType: RelationType.ONE_TO_MANY,
+      },
+    },
+    standardObjectMetadataRelatedEntityIds,
+    dependencyFlatEntityMaps,
+    twentyStandardApplicationId,
+    now,
+  }),
   favorites: createStandardRelationFieldFlatMetadata({
     objectName,
     workspaceId,
