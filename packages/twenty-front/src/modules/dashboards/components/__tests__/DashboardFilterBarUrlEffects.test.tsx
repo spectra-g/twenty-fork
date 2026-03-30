@@ -1,5 +1,6 @@
 import { DashboardFilterBar } from '@/dashboards/components/DashboardFilterBar';
 import { useDashboardPresets } from '@/dashboards/hooks/useDashboardPresets';
+import { useSnackBar } from '@/ui/feedback/snack-bar-manager/hooks/useSnackBar';
 import { ThemeProvider } from '@emotion/react';
 import { i18n } from '@lingui/core';
 import { I18nProvider } from '@lingui/react';
@@ -9,6 +10,7 @@ import { type PropsWithChildren } from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 
 jest.mock('@/dashboards/hooks/useDashboardPresets');
+jest.mock('@/ui/feedback/snack-bar-manager/hooks/useSnackBar');
 jest.mock('@/ui/input/components/Select', () => ({
   Select: ({
     disabled,
@@ -34,6 +36,8 @@ jest.mock('@/ui/input/components/Select', () => ({
 }));
 
 const mockedUseDashboardPresets = useDashboardPresets as jest.Mock;
+const mockedUseSnackBar = useSnackBar as jest.Mock;
+const enqueueErrorSnackBar = jest.fn();
 const testTheme = {
   spacing: (value: number) => `${value * 4}px`,
 };
@@ -91,6 +95,10 @@ describe('DashboardFilterBar URL effects', () => {
       loading: false,
       presets: [],
     });
+    mockedUseSnackBar.mockReturnValue({
+      enqueueErrorSnackBar,
+    });
+    enqueueErrorSnackBar.mockClear();
   });
 
   it('should sync dashboard filters to human-readable query params', () => {
@@ -150,5 +158,69 @@ describe('DashboardFilterBar URL effects', () => {
     expect(
       screen.getByRole('button', { name: 'Stage:qualified' }),
     ).toBeVisible();
+  });
+
+  it('should clear malformed dashboard filters from the url and show a snackbar', () => {
+    render(<DashboardFilterBar dashboardId="dashboard-a" />, {
+      wrapper: getWrapper(
+        '/dashboard/dashboard-a?filter%5BownerId%5D=sales-team',
+      ),
+    });
+
+    expect(screen.getByRole('button', { name: 'Owner:empty' })).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: 'Date Range:empty' }),
+    ).toBeVisible();
+    expect(screen.getByTestId('location-search')).toHaveTextContent(
+      '/dashboard/dashboard-a',
+    );
+    expect(enqueueErrorSnackBar).toHaveBeenCalledWith({
+      message: 'Shared filters could not be applied',
+      options: {
+        dedupeKey: 'dashboard-invalid-shared-filters',
+      },
+    });
+  });
+
+  it('should clear an expired preset id from the url and show a snackbar', () => {
+    render(<DashboardFilterBar dashboardId="dashboard-a" />, {
+      wrapper: getWrapper('/dashboard/dashboard-a?presetId=missing-preset'),
+    });
+
+    expect(screen.getByRole('button', { name: 'Owner:empty' })).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: 'Date Range:empty' }),
+    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Stage:empty' })).toBeVisible();
+    expect(screen.getByTestId('location-search')).toHaveTextContent(
+      '/dashboard/dashboard-a',
+    );
+    expect(enqueueErrorSnackBar).toHaveBeenCalledWith({
+      message: 'Shared filters could not be applied',
+      options: {
+        dedupeKey: 'dashboard-invalid-shared-filters',
+      },
+    });
+  });
+
+  it('should keep valid direct filters when an expired preset id is removed', () => {
+    render(<DashboardFilterBar dashboardId="dashboard-a" />, {
+      wrapper: getWrapper(
+        '/dashboard/dashboard-a?presetId=missing-preset&filter%5BownerId%5D%5BIS%5D=sales-team',
+      ),
+    });
+
+    expect(
+      screen.getByRole('button', { name: 'Owner:sales-team' }),
+    ).toBeVisible();
+    expect(screen.getByTestId('location-search')).toHaveTextContent(
+      '/dashboard/dashboard-a?filter%5BownerId%5D%5BIS%5D=sales-team',
+    );
+    expect(enqueueErrorSnackBar).toHaveBeenCalledWith({
+      message: 'Shared filters could not be applied',
+      options: {
+        dedupeKey: 'dashboard-invalid-shared-filters',
+      },
+    });
   });
 });
