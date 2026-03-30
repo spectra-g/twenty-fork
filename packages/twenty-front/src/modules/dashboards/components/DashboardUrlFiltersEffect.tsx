@@ -54,7 +54,7 @@ export const DashboardUrlFiltersEffect = ({
   const [searchParams, setSearchParams] = useSearchParams();
   const { dashboardFiltersFromQueryParams, hasInvalidFilterQueryParams } =
     useDashboardFiltersFromQueryParams();
-  const { presets, loading } = useDashboardPresets();
+  const { presets, loading } = useDashboardPresets(dashboardId);
   const { dashboardFilters, replaceDashboardFilters } =
     useDashboardFilters(dashboardId);
   const { enqueueErrorSnackBar } = useSnackBar();

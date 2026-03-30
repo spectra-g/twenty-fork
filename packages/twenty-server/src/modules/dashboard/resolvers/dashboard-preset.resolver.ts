@@ -16,6 +16,7 @@ import { AuthWorkspace } from 'src/engine/decorators/auth/auth-workspace.decorat
 import { NoPermissionGuard } from 'src/engine/guards/no-permission.guard';
 import { WorkspaceAuthGuard } from 'src/engine/guards/workspace-auth.guard';
 import {
+  DeleteDashboardPresetResponseDTO,
   DashboardFiltersAndPresetsDTO,
   SaveDashboardPresetResponseDTO,
 } from 'src/modules/dashboard/dtos/dashboard-preset-response.dto';
@@ -118,6 +119,58 @@ export class DashboardPresetResolver {
     return {
       success: true,
       preset,
+    };
+  }
+
+  @Mutation(() => SaveDashboardPresetResponseDTO)
+  @UseGuards(NoPermissionGuard)
+  async renameDashboardPreset(
+    @Args('presetId', { type: () => UUIDScalarType }) presetId: string,
+    @Args('name', { type: () => String }) name: string,
+    @AuthWorkspace() workspace: WorkspaceEntity,
+    @AuthUser() user: UserEntity,
+    @AuthWorkspaceMemberId() workspaceMemberId: string,
+    @AuthUserWorkspaceId() userWorkspaceId: string,
+  ): Promise<SaveDashboardPresetResponseDTO> {
+    const authContext: AuthContext = {
+      user,
+      workspace,
+      workspaceMemberId,
+      userWorkspaceId,
+    };
+
+    const preset = await this.dashboardPresetService.renamePreset(
+      presetId,
+      name,
+      authContext,
+    );
+
+    return {
+      success: true,
+      preset,
+    };
+  }
+
+  @Mutation(() => DeleteDashboardPresetResponseDTO)
+  @UseGuards(NoPermissionGuard)
+  async deleteDashboardPreset(
+    @Args('presetId', { type: () => UUIDScalarType }) presetId: string,
+    @AuthWorkspace() workspace: WorkspaceEntity,
+    @AuthUser() user: UserEntity,
+    @AuthWorkspaceMemberId() workspaceMemberId: string,
+    @AuthUserWorkspaceId() userWorkspaceId: string,
+  ): Promise<DeleteDashboardPresetResponseDTO> {
+    const authContext: AuthContext = {
+      user,
+      workspace,
+      workspaceMemberId,
+      userWorkspaceId,
+    };
+
+    await this.dashboardPresetService.deletePreset(presetId, authContext);
+
+    return {
+      success: true,
     };
   }
 }

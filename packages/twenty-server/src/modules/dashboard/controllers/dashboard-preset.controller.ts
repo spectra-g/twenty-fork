@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 
 import { type AuthContext } from 'src/engine/core-modules/auth/types/auth-context.type';
 import { UserEntity } from 'src/engine/core-modules/user/user.entity';
@@ -11,6 +20,7 @@ import { JwtAuthGuard } from 'src/engine/guards/jwt-auth.guard';
 import { NoPermissionGuard } from 'src/engine/guards/no-permission.guard';
 import { WorkspaceAuthGuard } from 'src/engine/guards/workspace-auth.guard';
 import {
+  DeleteDashboardPresetResponseDTO,
   DashboardFiltersAndPresetsDTO,
   SaveDashboardPresetResponseDTO,
 } from 'src/modules/dashboard/dtos/dashboard-preset-response.dto';
@@ -108,6 +118,56 @@ export class DashboardPresetController {
     return {
       success: true,
       preset,
+    };
+  }
+
+  @Patch('presets/:presetId')
+  async rename(
+    @Param('presetId') presetId: string,
+    @Body() body: { name: string },
+    @AuthWorkspace() workspace: WorkspaceEntity,
+    @AuthUser() user: UserEntity,
+    @AuthWorkspaceMemberId() workspaceMemberId: string,
+    @AuthUserWorkspaceId() userWorkspaceId: string,
+  ): Promise<SaveDashboardPresetResponseDTO> {
+    const authContext: AuthContext = {
+      user,
+      workspace,
+      workspaceMemberId,
+      userWorkspaceId,
+    };
+
+    const preset = await this.dashboardPresetService.renamePreset(
+      presetId,
+      body.name,
+      authContext,
+    );
+
+    return {
+      success: true,
+      preset,
+    };
+  }
+
+  @Delete('presets/:presetId')
+  async delete(
+    @Param('presetId') presetId: string,
+    @AuthWorkspace() workspace: WorkspaceEntity,
+    @AuthUser() user: UserEntity,
+    @AuthWorkspaceMemberId() workspaceMemberId: string,
+    @AuthUserWorkspaceId() userWorkspaceId: string,
+  ): Promise<DeleteDashboardPresetResponseDTO> {
+    const authContext: AuthContext = {
+      user,
+      workspace,
+      workspaceMemberId,
+      userWorkspaceId,
+    };
+
+    await this.dashboardPresetService.deletePreset(presetId, authContext);
+
+    return {
+      success: true,
     };
   }
 }
