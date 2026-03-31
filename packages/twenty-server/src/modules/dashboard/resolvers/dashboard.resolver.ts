@@ -16,6 +16,8 @@ import { WorkspaceAuthGuard } from 'src/engine/guards/workspace-auth.guard';
 import { PageLayoutGraphqlApiExceptionFilter } from 'src/engine/metadata-modules/page-layout/utils/page-layout-graphql-api-exception.filter';
 import { PermissionsGraphqlApiExceptionFilter } from 'src/engine/metadata-modules/permissions/utils/permissions-graphql-api-exception.filter';
 import { CreateDashboardPresetInput } from 'src/modules/dashboard/dtos/create-dashboard-preset.input';
+import { CreateDashboardPresetPermissionGuard } from 'src/modules/dashboard/guards/create-dashboard-preset-permission.guard';
+import { UpdateDashboardPresetPermissionGuard } from 'src/modules/dashboard/guards/update-dashboard-preset-permission.guard';
 import {
   DashboardFilterPresetDTO,
   DashboardFiltersOutput,
@@ -105,7 +107,7 @@ export class DashboardResolver {
   }
 
   @Mutation(() => DashboardFilterPresetDTO)
-  @UseGuards(NoPermissionGuard)
+  @UseGuards(CreateDashboardPresetPermissionGuard)
   async createDashboardPreset(
     @Args('input') input: CreateDashboardPresetInput,
     @AuthWorkspace() workspace: WorkspaceEntity,
@@ -127,7 +129,7 @@ export class DashboardResolver {
   }
 
   @Mutation(() => DashboardFilterPresetDTO)
-  @UseGuards(NoPermissionGuard)
+  @UseGuards(UpdateDashboardPresetPermissionGuard)
   async renameDashboardPreset(
     @Args('id', { type: () => UUIDScalarType }) id: string,
     @Args('name', { type: () => String }) name: string,

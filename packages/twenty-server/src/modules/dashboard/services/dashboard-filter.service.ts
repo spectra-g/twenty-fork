@@ -243,6 +243,36 @@ export class DashboardFilterService {
       );
   }
 
+  async findDashboardPresetById({
+    id,
+    workspaceId,
+  }: {
+    id: string;
+    workspaceId: string;
+  }): Promise<DashboardFilterPresetDTO | null> {
+    const preset = this.dashboardPresetRecords.find(
+      (dashboardPresetRecord) =>
+        dashboardPresetRecord.id === id &&
+        dashboardPresetRecord.workspaceId === workspaceId,
+    );
+
+    if (!preset) {
+      return null;
+    }
+
+    const {
+      dashboardId: _dashboardId,
+      workspaceId: _workspaceId,
+      ...dashboardPreset
+    } = preset;
+
+    return {
+      ...dashboardPreset,
+      createdBy: { ...dashboardPreset.createdBy },
+      filter: cloneDashboardFilters(dashboardPreset.filter),
+    };
+  }
+
   async getDashboardFilters({
     dashboardId,
     authContext,

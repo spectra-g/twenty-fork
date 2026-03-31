@@ -1,4 +1,5 @@
 import { type AuthContext } from 'src/engine/core-modules/auth/types/auth-context.type';
+import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { type UserEntity } from 'src/engine/core-modules/user/user.entity';
 import { type WorkspaceEntity } from 'src/engine/core-modules/workspace/workspace.entity';
 import {
@@ -6,6 +7,8 @@ import {
   PermissionsExceptionCode,
   PermissionsExceptionMessage,
 } from 'src/engine/metadata-modules/permissions/permissions.exception';
+import { CreateDashboardPresetPermissionGuard } from 'src/modules/dashboard/guards/create-dashboard-preset-permission.guard';
+import { UpdateDashboardPresetPermissionGuard } from 'src/modules/dashboard/guards/update-dashboard-preset-permission.guard';
 import { type UpdateDashboardFiltersInput } from 'src/modules/dashboard/dtos/update-dashboard-filters.input';
 import { DashboardFilterService } from 'src/modules/dashboard/services/dashboard-filter.service';
 
@@ -311,5 +314,25 @@ describe('DashboardResolver', () => {
       code: PermissionsExceptionCode.PERMISSION_DENIED,
       message: PermissionsExceptionMessage.PERMISSION_DENIED,
     });
+  });
+
+  it('uses the create preset permission guard on createDashboardPreset', () => {
+    const guards =
+      Reflect.getMetadata(
+        GUARDS_METADATA,
+        DashboardResolver.prototype.createDashboardPreset,
+      ) ?? [];
+
+    expect(guards).toContain(CreateDashboardPresetPermissionGuard);
+  });
+
+  it('uses the update preset permission guard on renameDashboardPreset', () => {
+    const guards =
+      Reflect.getMetadata(
+        GUARDS_METADATA,
+        DashboardResolver.prototype.renameDashboardPreset,
+      ) ?? [];
+
+    expect(guards).toContain(UpdateDashboardPresetPermissionGuard);
   });
 });
