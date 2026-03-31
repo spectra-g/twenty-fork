@@ -1,5 +1,5 @@
 import { UseFilters, UseGuards, UsePipes } from '@nestjs/common';
-import { Args, Mutation } from '@nestjs/graphql';
+import { Args, Mutation, Query } from '@nestjs/graphql';
 
 import { UUIDScalarType } from 'src/engine/api/graphql/workspace-schema-builder/graphql-types/scalars';
 import { MetadataResolver } from 'src/engine/api/graphql/graphql-config/decorators/metadata-resolver.decorator';
@@ -14,8 +14,12 @@ import { AuthWorkspace } from 'src/engine/decorators/auth/auth-workspace.decorat
 import { NoPermissionGuard } from 'src/engine/guards/no-permission.guard';
 import { WorkspaceAuthGuard } from 'src/engine/guards/workspace-auth.guard';
 import { PageLayoutGraphqlApiExceptionFilter } from 'src/engine/metadata-modules/page-layout/utils/page-layout-graphql-api-exception.filter';
+import { DashboardFiltersOutput } from 'src/modules/dashboard/dtos/dashboard-filters.output';
 import { DuplicatedDashboardDTO } from 'src/modules/dashboard/dtos/duplicated-dashboard.dto';
+import { UpdateDashboardFiltersInput } from 'src/modules/dashboard/dtos/update-dashboard-filters.input';
+import { UpdateDashboardFiltersOutput } from 'src/modules/dashboard/dtos/update-dashboard-filters.output';
 import { DashboardDuplicationService } from 'src/modules/dashboard/services/dashboard-duplication.service';
+import { DashboardFilterService } from 'src/modules/dashboard/services/dashboard-filter.service';
 import { DashboardGraphqlApiExceptionFilter } from 'src/modules/dashboard/utils/dashboard-graphql-api-exception.filter';
 
 @MetadataResolver()
@@ -28,7 +32,30 @@ import { DashboardGraphqlApiExceptionFilter } from 'src/modules/dashboard/utils/
 export class DashboardResolver {
   constructor(
     private readonly dashboardDuplicationService: DashboardDuplicationService,
+    private readonly dashboardFilterService: DashboardFilterService,
   ) {}
+
+  @Query(() => DashboardFiltersOutput)
+  @UseGuards(NoPermissionGuard)
+  async getDashboardFilters(
+    @Args('dashboardId', { type: () => UUIDScalarType }) dashboardId: string,
+    @AuthWorkspace() workspace: WorkspaceEntity,
+    @AuthUser() user: UserEntity,
+    @AuthWorkspaceMemberId() workspaceMemberId: string,
+    @AuthUserWorkspaceId() userWorkspaceId: string,
+  ): Promise<DashboardFiltersOutput> {
+    const authContext: AuthContext = {
+      user,
+      workspace,
+      workspaceMemberId,
+      userWorkspaceId,
+    };
+
+    return this.dashboardFilterService.getDashboardFilters({
+      dashboardId,
+      authContext,
+    });
+  }
 
   @Mutation(() => DuplicatedDashboardDTO)
   @UseGuards(NoPermissionGuard)
@@ -47,5 +74,27 @@ export class DashboardResolver {
     };
 
     return this.dashboardDuplicationService.duplicateDashboard(id, authContext);
+  }
+
+  @Mutation(() => UpdateDashboardFiltersOutput)
+  @UseGuards(NoPermissionGuard)
+  async updateDashboardFilters(
+    @Args('input') input: UpdateDashboardFiltersInput,
+    @AuthWorkspace() workspace: WorkspaceEntity,
+    @AuthUser() user: UserEntity,
+    @AuthWorkspaceMemberId() workspaceMemberId: string,
+    @AuthUserWorkspaceId() userWorkspaceId: string,
+  ): Promise<UpdateDashboardFiltersOutput> {
+    const authContext: AuthContext = {
+      user,
+      workspace,
+      workspaceMemberId,
+      userWorkspaceId,
+    };
+
+    return this.dashboardFilterService.updateDashboardFilters({
+      input,
+      authContext,
+    });
   }
 }
