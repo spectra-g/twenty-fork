@@ -49,11 +49,14 @@ jest.mock('@/page-layout/hooks/useReorderPageLayoutTabs', () => ({
   }),
 }));
 
-jest.mock('@/command-menu/pages/page-layout/hooks/useNavigatePageLayoutCommandMenu', () => ({
-  useNavigatePageLayoutCommandMenu: () => ({
-    navigatePageLayoutCommandMenu: jest.fn(),
+jest.mock(
+  '@/command-menu/pages/page-layout/hooks/useNavigatePageLayoutCommandMenu',
+  () => ({
+    useNavigatePageLayoutCommandMenu: () => ({
+      navigatePageLayoutCommandMenu: jest.fn(),
+    }),
   }),
-}));
+);
 
 jest.mock('@/page-layout/utils/getTabsWithVisibleWidgets', () => ({
   getTabsWithVisibleWidgets: ({ tabs }: { tabs: any[] }) => tabs,
@@ -167,6 +170,15 @@ describe('PageLayoutRendererContent dashboard filter bar', () => {
     expect(screen.getByTestId('stage-filter')).toBeVisible();
   });
 
+  it('derives stage options from dashboard widget compatibility metadata', () => {
+    renderPageLayoutRendererContent(PageLayoutType.DASHBOARD);
+
+    expect(screen.getByRole('option', { name: 'Proposal' })).toBeVisible();
+    expect(
+      screen.queryByRole('option', { name: 'Open' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('changes owner and triggers the widget refresh contract', async () => {
     const user = userEvent.setup();
 
@@ -180,7 +192,9 @@ describe('PageLayoutRendererContent dashboard filter bar', () => {
     expect(screen.getByTestId('owner-filter-dropdown')).toHaveValue(
       mockWorkspaceMembers[1].id,
     );
-    expect(screen.getAllByTestId('widget-refreshing')[0]).toHaveTextContent('1');
+    expect(screen.getAllByTestId('widget-refreshing')[0]).toHaveTextContent(
+      '1',
+    );
   });
 
   it('changes date range and triggers the widget refresh contract', async () => {
@@ -194,12 +208,16 @@ describe('PageLayoutRendererContent dashboard filter bar', () => {
     expect(screen.getByTestId('date-range-filter-value')).toHaveTextContent(
       '1 Mar, 2026 - 15 Mar, 2026',
     );
-    expect(screen.getAllByTestId('widget-refreshing')[0]).toHaveTextContent('2');
+    expect(screen.getAllByTestId('widget-refreshing')[0]).toHaveTextContent(
+      '2',
+    );
   });
 
   it('does not render the filter bar on non-dashboard layouts', () => {
     renderPageLayoutRendererContent(PageLayoutType.RECORD_PAGE);
 
-    expect(screen.queryByTestId('dashboard-filter-bar')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('dashboard-filter-bar'),
+    ).not.toBeInTheDocument();
   });
 });

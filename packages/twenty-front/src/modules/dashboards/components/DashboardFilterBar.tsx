@@ -1,5 +1,6 @@
 import { useDateTimeFormat } from '@/localization/hooks/useDateTimeFormat';
 import { useDashboardFilters } from '@/dashboards/hooks/useDashboardFilters';
+import { getDashboardFilterStageOptions } from '@/page-layout/widgets/utils/widgetFilterApplicability';
 import { currentWorkspaceMembersState } from '@/auth/states/currentWorkspaceMembersState';
 import { useAtomStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomStateValue';
 import styled from '@emotion/styled';
@@ -66,9 +67,6 @@ const formatFilterDate = ({
   });
 };
 
-// @clawdence-stub: STORY-093 - Real stage options should be resolved from dashboard widget compatibility metadata.
-const STAGE_OPTIONS = ['Open', 'Closed', 'In Progress'];
-
 type DashboardFilterBarProps = {
   pageLayoutId: string;
 };
@@ -92,6 +90,7 @@ export const DashboardFilterBar = ({
     dateFormat,
     localeCatalog,
   });
+  const stageOptions = getDashboardFilterStageOptions();
 
   const dateRangeLabel =
     filters.startDate !== null && filters.endDate !== null
@@ -149,7 +148,7 @@ export const DashboardFilterBar = ({
           onChange={(event) => setStage(event.target.value)}
         >
           <option value="">All stages</option>
-          {STAGE_OPTIONS.map((stageOption) => (
+          {stageOptions.map((stageOption) => (
             <option key={stageOption} value={stageOption}>
               {stageOption}
             </option>

@@ -185,7 +185,11 @@ export const WidgetRenderer = ({ widget }: WidgetRendererProps) => {
                 widget.objectMetadataId,
               ]}
             >
-              <WidgetContentRenderer widget={widget} />
+              <WidgetContentRenderer
+                widget={widget}
+                // @clawdence-stub: STORY-090 - Dashboard-global filter bar to provide active filter array
+                dashboardFilters={[]}
+              />
             </ErrorBoundary>
           ) : (
             <StyledNoAccessContainer>

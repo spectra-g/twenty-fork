@@ -1,4 +1,12 @@
-import { type BarChartConfiguration } from '~/generated-metadata/graphql';
+import {
+  WidgetType,
+  type BarChartConfiguration,
+} from '~/generated-metadata/graphql';
+
+import {
+  type DashboardWidgetFilter,
+  mergeWidgetFilters,
+} from '@/page-layout/widgets/utils/mergeWidgetFilters';
 
 type BarChartStyleFields =
   | 'displayDataLabel'
@@ -14,6 +22,7 @@ export type BarChartDataConfiguration = Omit<
 
 export const extractBarChartDataConfiguration = (
   configuration: BarChartConfiguration,
+  dashboardFilters: DashboardWidgetFilter[] = [],
 ): BarChartDataConfiguration => {
   const {
     displayDataLabel: _displayDataLabel,
@@ -24,5 +33,12 @@ export const extractBarChartDataConfiguration = (
     ...dataConfiguration
   } = configuration;
 
-  return dataConfiguration;
+  return {
+    ...dataConfiguration,
+    filter: mergeWidgetFilters({
+      widgetType: WidgetType.GRAPH,
+      widgetFilter: dataConfiguration.filter,
+      dashboardFilters,
+    }),
+  };
 };
