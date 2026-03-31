@@ -1,8 +1,9 @@
 import { usePageLayoutGlobalFilters } from '@/dashboard/hooks/usePageLayoutGlobalFilters';
 import { dashboardGlobalFiltersState } from '@/dashboard/states/dashboardGlobalFiltersState';
 import { currentPageLayoutIdState } from '@/page-layout/states/currentPageLayoutIdState';
+import { useUpdatePageLayoutWithTabsAndWidgets } from '@/page-layout/hooks/useUpdatePageLayoutWithTabsAndWidgets';
 import { useQuery } from '@apollo/client';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { createStore, Provider as JotaiProvider } from 'jotai';
 import { type ReactNode } from 'react';
 
@@ -13,7 +14,15 @@ jest.mock('@apollo/client', () => ({
   useQuery: jest.fn(),
 }));
 
+jest.mock('@/page-layout/hooks/useUpdatePageLayoutWithTabsAndWidgets', () => ({
+  useUpdatePageLayoutWithTabsAndWidgets: jest.fn(),
+}));
+
 const mockedUseQuery = jest.mocked(useQuery);
+const mockedUseUpdatePageLayoutWithTabsAndWidgets = jest.mocked(
+  useUpdatePageLayoutWithTabsAndWidgets,
+);
+const updatePageLayoutWithTabsAndWidgets = jest.fn();
 
 const getWrapper = () => {
   const store = createStore();
@@ -28,9 +37,19 @@ const getWrapper = () => {
 
 describe('usePageLayoutGlobalFilters', () => {
   beforeEach(() => {
+    updatePageLayoutWithTabsAndWidgets.mockResolvedValue({
+      status: 'successful',
+    });
+    mockedUseUpdatePageLayoutWithTabsAndWidgets.mockReturnValue({
+      updatePageLayoutWithTabsAndWidgets,
+    } as never);
     mockedUseQuery.mockReturnValue({
       data: {
         getPageLayout: {
+          id: pageLayoutId,
+          name: 'Dashboard',
+          type: 'DASHBOARD',
+          objectMetadataId: null,
           recordFilters: [
             {
               id: 'filter-1',
@@ -52,6 +71,14 @@ describe('usePageLayoutGlobalFilters', () => {
             },
           ],
           recordFilterGroups: [],
+          tabs: [
+            {
+              id: 'tab-1',
+              title: 'Tab 1',
+              position: 0,
+              widgets: [],
+            },
+          ],
         },
       },
     } as never);
@@ -116,5 +143,81 @@ describe('usePageLayoutGlobalFilters', () => {
       ],
       recordFilterGroups: [],
     });
+  });
+
+  it('persists filter updates to the page layout mutation when setting, removing, and clearing filters', async () => {
+    const { result } = renderHook(() => usePageLayoutGlobalFilters(), {
+      wrapper: getWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.activeFilters).toHaveLength(2);
+    });
+
+    await act(async () => {
+      result.current.setFilterValue('status', 'active');
+    });
+
+    await act(async () => {
+      result.current.removeFilterValue('owner');
+    });
+
+    await act(async () => {
+      result.current.clearFilters();
+    });
+
+    expect(updatePageLayoutWithTabsAndWidgets).toHaveBeenNthCalledWith(
+      1,
+      pageLayoutId,
+      expect.objectContaining({
+        name: 'Dashboard',
+        type: 'DASHBOARD',
+        objectMetadataId: null,
+        recordFilters: [
+          expect.objectContaining({
+            id: 'filter-2',
+            fieldMetadataId: 'owner',
+            value: 'assigned',
+          }),
+          expect.objectContaining({
+            id: 'filter-1',
+            fieldMetadataId: 'status',
+            value: 'active',
+          }),
+        ],
+        recordFilterGroups: [],
+        tabs: [
+          expect.objectContaining({
+            id: 'tab-1',
+            title: 'Tab 1',
+            widgets: [],
+          }),
+        ],
+      }),
+    );
+
+    expect(updatePageLayoutWithTabsAndWidgets).toHaveBeenNthCalledWith(
+      2,
+      pageLayoutId,
+      expect.objectContaining({
+        recordFilters: [
+          expect.objectContaining({
+            id: 'filter-1',
+            fieldMetadataId: 'status',
+            value: 'active',
+          }),
+        ],
+        recordFilterGroups: [],
+      }),
+    );
+
+    expect(updatePageLayoutWithTabsAndWidgets).toHaveBeenNthCalledWith(
+      3,
+      pageLayoutId,
+      expect.objectContaining({
+        recordFilters: [],
+        recordFilterGroups: [],
+      }),
+    );
   });
 });

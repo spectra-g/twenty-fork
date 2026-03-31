@@ -1,3 +1,4 @@
+/* eslint-disable @nx/enforce-module-boundaries */
 import { type ActorMetadata, FieldMetadataType } from 'twenty-shared/types';
 
 import { BaseWorkspaceEntity } from 'src/engine/twenty-orm/base.workspace-entity';
@@ -16,6 +17,8 @@ export const SEARCH_FIELDS_FOR_DASHBOARD: FieldTypeAndNameMetadata[] = [
 export class DashboardWorkspaceEntity extends BaseWorkspaceEntity {
   title: string | null;
   pageLayoutId: string | null;
+  recordFilters: unknown[] | null;
+  recordFilterGroups: unknown[] | null;
   position: number;
   createdBy: ActorMetadata;
   updatedBy: ActorMetadata;

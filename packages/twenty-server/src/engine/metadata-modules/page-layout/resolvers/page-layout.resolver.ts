@@ -73,7 +73,10 @@ export class PageLayoutResolver {
     });
 
     return this.pageLayoutDashboardFilterStateService.getPageLayoutWithDashboardFilterState(
-      pageLayout,
+      {
+        pageLayout,
+        workspaceId: workspace.id,
+      },
     );
   }
 
@@ -130,8 +133,9 @@ export class PageLayoutResolver {
       });
 
     // @clawdence-stub: STORY-104 - Sanitize filter values against user permissions before applying to queries
-    this.pageLayoutDashboardFilterStateService.saveDashboardFilterStateForPageLayout(
+    await this.pageLayoutDashboardFilterStateService.saveDashboardFilterStateForPageLayout(
       {
+        workspaceId: workspace.id,
         pageLayoutId: id,
         recordFilters: input.recordFilters,
         recordFilterGroups: input.recordFilterGroups,
@@ -139,7 +143,10 @@ export class PageLayoutResolver {
     );
 
     return this.pageLayoutDashboardFilterStateService.getPageLayoutWithDashboardFilterState(
-      updatedPageLayout,
+      {
+        pageLayout: updatedPageLayout,
+        workspaceId: workspace.id,
+      },
     );
   }
 }

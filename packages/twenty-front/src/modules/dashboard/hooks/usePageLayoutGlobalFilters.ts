@@ -5,7 +5,10 @@ import {
 } from '@/page-layout/types/PageLayoutFilter';
 import { FIND_ONE_PAGE_LAYOUT } from '@/dashboards/graphql/queries/findOnePageLayout';
 import { dashboardGlobalFiltersState } from '@/dashboard/states/dashboardGlobalFiltersState';
+import { useUpdatePageLayoutWithTabsAndWidgets } from '@/page-layout/hooks/useUpdatePageLayoutWithTabsAndWidgets';
 import { currentPageLayoutIdState } from '@/page-layout/states/currentPageLayoutIdState';
+import { convertPageLayoutDraftToUpdateInput } from '@/page-layout/utils/convertPageLayoutDraftToUpdateInput';
+import { transformPageLayout } from '@/page-layout/utils/transformPageLayout';
 import { useAtomStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomStateValue';
 import { useQuery } from '@apollo/client';
 import { useAtom } from 'jotai';
@@ -35,6 +38,11 @@ type PageLayoutRecordFilter = {
 
 type GetPageLayoutResponse = {
   getPageLayout?: {
+    id: string;
+    name: string;
+    type: string;
+    objectMetadataId?: string | null;
+    tabs?: unknown[] | null;
     recordFilters?: PageLayoutRecordFilter[] | null;
     recordFilterGroups?: RecordFilterGroup[] | null;
   } | null;
@@ -95,6 +103,16 @@ export const usePageLayoutGlobalFilters = () => {
     },
     skip: !isDefined(currentPageLayoutId),
   });
+  const { updatePageLayoutWithTabsAndWidgets } =
+    useUpdatePageLayoutWithTabsAndWidgets();
+
+  const persistedPageLayout = useMemo(() => {
+    if (!isDefined(data?.getPageLayout)) {
+      return null;
+    }
+
+    return transformPageLayout(data.getPageLayout as never);
+  }, [data?.getPageLayout]);
 
   const persistedRecordFilters = useMemo(
     () => data?.getPageLayout?.recordFilters ?? [],
@@ -128,8 +146,9 @@ export const usePageLayoutGlobalFilters = () => {
         value: recordFilter.value,
         type: recordFilter.type ?? 'TEXT',
         recordFilterGroupId: recordFilter.recordFilterGroupId ?? undefined,
-        subFieldName: (recordFilter.subFieldName ??
-          undefined) as CompositeFieldSubFieldName | undefined,
+        subFieldName: (recordFilter.subFieldName ?? undefined) as
+          | CompositeFieldSubFieldName
+          | undefined,
       }));
     const referencedGroupIds = new Set(
       recordFilters
@@ -169,28 +188,76 @@ export const usePageLayoutGlobalFilters = () => {
       value,
     };
 
-    // @clawdence-stub: STORY-101 - Persist global filter state to backend via pageLayout mutations
     // @clawdence-stub: STORY-104 - Filter out values user lacks permission to access before applying filters
-    setActiveFilters((currentActiveFilters) => [
-      ...currentActiveFilters.filter(
-        (activeFilter) => activeFilter.field !== field,
-      ),
-      nextActiveFilter,
-    ]);
+    setActiveFilters((currentActiveFilters) => {
+      const nextActiveFilters = [
+        ...currentActiveFilters.filter(
+          (activeFilter) => activeFilter.field !== field,
+        ),
+        nextActiveFilter,
+      ];
+
+      void persistActiveFilters(nextActiveFilters);
+
+      return nextActiveFilters;
+    });
   };
 
   const removeFilterValue = (field: string) => {
-    // @clawdence-stub: STORY-101 - Persist global filter state to backend via pageLayout mutations
-    setActiveFilters((currentActiveFilters) =>
-      currentActiveFilters.filter(
+    setActiveFilters((currentActiveFilters) => {
+      const nextActiveFilters = currentActiveFilters.filter(
         (activeFilter) => activeFilter.field !== field,
-      ),
-    );
+      );
+
+      void persistActiveFilters(nextActiveFilters);
+
+      return nextActiveFilters;
+    });
   };
 
   const clearFilters = () => {
-    // @clawdence-stub: STORY-101 - Persist global filter state to backend via pageLayout mutations
+    void persistActiveFilters([]);
     setActiveFilters([]);
+  };
+
+  const persistActiveFilters = async (
+    nextActiveFilters: PageLayoutActiveFilter[],
+  ) => {
+    if (!isDefined(currentPageLayoutId) || !isDefined(persistedPageLayout)) {
+      return;
+    }
+
+    const persistedFiltersByKey = new Map(
+      persistedRecordFilters.map((recordFilter) => [
+        `${recordFilter.fieldMetadataId}:${recordFilter.value}`,
+        recordFilter,
+      ]),
+    );
+    const nextRecordFilters = nextActiveFilters
+      .map(
+        (activeFilter) =>
+          persistedFiltersByKey.get(
+            `${activeFilter.field}:${activeFilter.value}`,
+          ) ?? null,
+      )
+      .filter(isDefined);
+    const nextRecordFilterGroupIds = new Set(
+      nextRecordFilters
+        .map((recordFilter) => recordFilter.recordFilterGroupId)
+        .filter(isDefined),
+    );
+    const nextRecordFilterGroups = persistedRecordFilterGroups.filter((group) =>
+      nextRecordFilterGroupIds.has(group.id),
+    );
+
+    const updateInput =
+      convertPageLayoutDraftToUpdateInput(persistedPageLayout);
+
+    await updatePageLayoutWithTabsAndWidgets(currentPageLayoutId, {
+      ...updateInput,
+      recordFilters: nextRecordFilters,
+      recordFilterGroups: nextRecordFilterGroups,
+    });
   };
 
   return {
