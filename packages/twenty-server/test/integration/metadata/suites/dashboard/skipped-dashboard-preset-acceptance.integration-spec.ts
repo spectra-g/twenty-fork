@@ -12,6 +12,8 @@ import { PageLayoutEntity } from 'src/engine/metadata-modules/page-layout/entiti
 
 describe.skip('Dashboard preset acceptance boundary', () => {
   let pageLayoutId: string;
+  let workspaceId: string;
+  let applicationId: string;
   let createdDashboardPresetIds: string[] = [];
 
   beforeAll(async () => {
@@ -23,6 +25,13 @@ describe.skip('Dashboard preset acceptance boundary', () => {
     });
 
     pageLayoutId = data.createPageLayout.id;
+
+    const pageLayout = await global.testDataSource
+      .getRepository(PageLayoutEntity)
+      .findOneOrFail({ where: { id: pageLayoutId } });
+
+    workspaceId = pageLayout.workspaceId;
+    applicationId = pageLayout.applicationId;
   });
 
   afterEach(async () => {
@@ -363,5 +372,157 @@ describe.skip('Dashboard preset acceptance boundary', () => {
     expect(activePreset).toBeNull();
     expect(deletedPreset?.deletedAt).toEqual(expect.any(Date));
     expect(deletedPreset?.id).toBe(seededPreset.id);
+  });
+
+  it('should list WORKSPACE presets to another workspace member', async () => {
+    const creatorId = '00000000-0000-0000-0000-0000000000a1';
+
+    const seededPreset = await global.testDataSource
+      .getRepository(DashboardPresetEntity)
+      .save({
+        pageLayoutId,
+        name: 'Shared pipeline preset',
+        filter: {
+          recordFilters: [],
+          recordFilterGroups: [],
+        },
+        creatorId,
+        visibility: ViewVisibility.WORKSPACE,
+        workspaceId,
+        applicationId,
+        universalIdentifier: randomUUID(),
+      });
+
+    createdDashboardPresetIds.push(seededPreset.id);
+
+    const response = await request(global.app.getHttpServer())
+      .post('/metadata')
+      .send({
+        query: `
+          query DashboardPresets($pageLayoutId: UUID!, $userId: UUID!) {
+            dashboardPresets(pageLayoutId: $pageLayoutId, userId: $userId) {
+              id
+              name
+              visibility
+              createdBy {
+                id
+              }
+            }
+          }
+        `,
+        variables: {
+          pageLayoutId,
+          userId: '00000000-0000-0000-0000-0000000000b2',
+        },
+      });
+
+    expect(response.body.errors).toBeUndefined();
+    expect(response.body.data.dashboardPresets).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: seededPreset.id,
+          name: 'Shared pipeline preset',
+          visibility: ViewVisibility.WORKSPACE,
+          createdBy: {
+            id: creatorId,
+          },
+        }),
+      ]),
+    );
+  });
+
+  it('should hide UNLISTED presets from other workspace members', async () => {
+    const seededPreset = await global.testDataSource
+      .getRepository(DashboardPresetEntity)
+      .save({
+        pageLayoutId,
+        name: 'Private pipeline preset',
+        filter: {
+          recordFilters: [],
+          recordFilterGroups: [],
+        },
+        creatorId: '00000000-0000-0000-0000-0000000000a1',
+        visibility: ViewVisibility.UNLISTED,
+        workspaceId,
+        applicationId,
+        universalIdentifier: randomUUID(),
+      });
+
+    createdDashboardPresetIds.push(seededPreset.id);
+
+    const response = await request(global.app.getHttpServer())
+      .post('/metadata')
+      .send({
+        query: `
+          query DashboardPresets($pageLayoutId: UUID!, $userId: UUID!) {
+            dashboardPresets(pageLayoutId: $pageLayoutId, userId: $userId) {
+              id
+              name
+              visibility
+            }
+          }
+        `,
+        variables: {
+          pageLayoutId,
+          userId: '00000000-0000-0000-0000-0000000000b2',
+        },
+      });
+
+    expect(response.body.errors).toBeUndefined();
+    expect(
+      response.body.data.dashboardPresets.map(
+        (dashboardPreset: { id: string }) => dashboardPreset.id,
+      ),
+    ).not.toContain(seededPreset.id);
+  });
+
+  it('should list a creator own UNLISTED presets', async () => {
+    const creatorId = '00000000-0000-0000-0000-0000000000a1';
+    const seededPreset = await global.testDataSource
+      .getRepository(DashboardPresetEntity)
+      .save({
+        pageLayoutId,
+        name: 'My private pipeline preset',
+        filter: {
+          recordFilters: [],
+          recordFilterGroups: [],
+        },
+        creatorId,
+        visibility: ViewVisibility.UNLISTED,
+        workspaceId,
+        applicationId,
+        universalIdentifier: randomUUID(),
+      });
+
+    createdDashboardPresetIds.push(seededPreset.id);
+
+    const response = await request(global.app.getHttpServer())
+      .post('/metadata')
+      .send({
+        query: `
+          query DashboardPresets($pageLayoutId: UUID!, $userId: UUID!) {
+            dashboardPresets(pageLayoutId: $pageLayoutId, userId: $userId) {
+              id
+              name
+              visibility
+            }
+          }
+        `,
+        variables: {
+          pageLayoutId,
+          userId: creatorId,
+        },
+      });
+
+    expect(response.body.errors).toBeUndefined();
+    expect(response.body.data.dashboardPresets).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: seededPreset.id,
+          name: 'My private pipeline preset',
+          visibility: ViewVisibility.UNLISTED,
+        }),
+      ]),
+    );
   });
 });
