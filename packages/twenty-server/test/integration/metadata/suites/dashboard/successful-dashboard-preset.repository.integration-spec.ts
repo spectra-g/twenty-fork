@@ -194,4 +194,86 @@ describe('DashboardPresetRepository', () => {
     expect(softDeletedPreset?.deletedAt).toEqual(expect.any(Date));
     expect(softDeletedPreset?.name).toBe('Stale Pipeline');
   });
+
+  it('lists WORKSPACE presets to another workspace member', async () => {
+    const preset = await global.testDataSource
+      .getRepository(DashboardPresetEntity)
+      .save({
+        pageLayoutId,
+        name: 'Shared preset',
+        filter: {
+          recordFilters: [],
+          recordFilterGroups: [],
+        },
+        creatorId: '00000000-0000-0000-0000-0000000000a1',
+        visibility: ViewVisibility.WORKSPACE,
+        workspaceId,
+        applicationId,
+        universalIdentifier: randomUUID(),
+      });
+
+    createdDashboardPresetIds.push(preset.id);
+
+    const presets = await dashboardPresetRepository.findAvailablePresets({
+      workspaceId,
+      userId: '00000000-0000-0000-0000-0000000000b2',
+    });
+
+    expect(presets.map(({ id }) => id)).toContain(preset.id);
+  });
+
+  it('does not list UNLISTED presets to another workspace member', async () => {
+    const preset = await global.testDataSource
+      .getRepository(DashboardPresetEntity)
+      .save({
+        pageLayoutId,
+        name: 'Private preset',
+        filter: {
+          recordFilters: [],
+          recordFilterGroups: [],
+        },
+        creatorId: '00000000-0000-0000-0000-0000000000a1',
+        visibility: ViewVisibility.UNLISTED,
+        workspaceId,
+        applicationId,
+        universalIdentifier: randomUUID(),
+      });
+
+    createdDashboardPresetIds.push(preset.id);
+
+    const presets = await dashboardPresetRepository.findAvailablePresets({
+      workspaceId,
+      userId: '00000000-0000-0000-0000-0000000000b2',
+    });
+
+    expect(presets.map(({ id }) => id)).not.toContain(preset.id);
+  });
+
+  it('lists a creator own UNLISTED presets', async () => {
+    const creatorId = '00000000-0000-0000-0000-0000000000a1';
+    const preset = await global.testDataSource
+      .getRepository(DashboardPresetEntity)
+      .save({
+        pageLayoutId,
+        name: 'My private preset',
+        filter: {
+          recordFilters: [],
+          recordFilterGroups: [],
+        },
+        creatorId,
+        visibility: ViewVisibility.UNLISTED,
+        workspaceId,
+        applicationId,
+        universalIdentifier: randomUUID(),
+      });
+
+    createdDashboardPresetIds.push(preset.id);
+
+    const presets = await dashboardPresetRepository.findAvailablePresets({
+      workspaceId,
+      userId: creatorId,
+    });
+
+    expect(presets.map(({ id }) => id)).toContain(preset.id);
+  });
 });

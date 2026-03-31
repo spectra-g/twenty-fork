@@ -1,4 +1,5 @@
 import { IsNull } from 'typeorm';
+import { ViewVisibility } from 'twenty-shared/types';
 
 import { DashboardPresetRepository } from 'src/modules/dashboard/repositories/dashboard-preset.repository';
 
@@ -71,6 +72,64 @@ describe('DashboardPresetRepository', () => {
         pageLayoutId: 'page-layout-id',
       },
       withDeleted: true,
+      order: {
+        createdAt: 'ASC',
+      },
+    });
+  });
+
+  it('should query WORKSPACE presets for other workspace members', async () => {
+    mockTypeormRepository.find.mockResolvedValue([]);
+
+    await repository.findAvailablePresets({
+      workspaceId: 'workspace-id',
+      userId: 'other-user-id',
+    });
+
+    expect(mockTypeormRepository.find).toHaveBeenCalledWith({
+      where: [
+        {
+          workspaceId: 'workspace-id',
+          visibility: ViewVisibility.WORKSPACE,
+          deletedAt: IsNull(),
+        },
+        {
+          workspaceId: 'workspace-id',
+          creatorId: 'other-user-id',
+          deletedAt: IsNull(),
+        },
+      ],
+      order: {
+        createdAt: 'ASC',
+      },
+    });
+  });
+
+  it('should include creator-owned UNLISTED presets in the same availability query', async () => {
+    const availablePresets = [{ id: 'preset-id' }];
+
+    mockTypeormRepository.find.mockResolvedValue(availablePresets);
+
+    await expect(
+      repository.findAvailablePresets({
+        workspaceId: 'workspace-id',
+        userId: 'creator-id',
+      }),
+    ).resolves.toEqual(availablePresets);
+
+    expect(mockTypeormRepository.find).toHaveBeenCalledWith({
+      where: [
+        {
+          workspaceId: 'workspace-id',
+          visibility: ViewVisibility.WORKSPACE,
+          deletedAt: IsNull(),
+        },
+        {
+          workspaceId: 'workspace-id',
+          creatorId: 'creator-id',
+          deletedAt: IsNull(),
+        },
+      ],
       order: {
         createdAt: 'ASC',
       },

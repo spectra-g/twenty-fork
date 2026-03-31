@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { IsNull, Repository } from 'typeorm';
+import { ViewVisibility } from 'twenty-shared/types';
 
 import { DashboardPresetEntity } from 'src/engine/metadata-modules/dashboard-preset/entities/dashboard-preset.entity';
 import { type JsonbProperty } from 'src/engine/workspace-manager/workspace-migration/universal-flat-entity/types/jsonb-property.type';
@@ -63,6 +64,32 @@ export class DashboardPresetRepository {
         pageLayoutId,
       },
       withDeleted: true,
+      order: {
+        createdAt: 'ASC',
+      },
+    });
+  }
+
+  async findAvailablePresets({
+    workspaceId,
+    userId,
+  }: {
+    workspaceId: string;
+    userId: string;
+  }): Promise<DashboardPresetEntity[]> {
+    return this.dashboardPresetEntityRepository.find({
+      where: [
+        {
+          workspaceId,
+          visibility: ViewVisibility.WORKSPACE,
+          deletedAt: IsNull(),
+        },
+        {
+          workspaceId,
+          creatorId: userId,
+          deletedAt: IsNull(),
+        },
+      ],
       order: {
         createdAt: 'ASC',
       },
