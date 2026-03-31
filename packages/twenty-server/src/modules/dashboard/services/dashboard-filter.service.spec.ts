@@ -242,9 +242,66 @@ describe('DashboardFilterService', () => {
         }),
       ]);
     });
+
+    it('should return isolated preset DTOs so consumer mutations do not leak into subsequent reads', async () => {
+      const [firstPreset] = await service.listSharedPresets({
+        dashboardId: 'dashboard-id',
+        authContext,
+      });
+
+      firstPreset.createdBy.name = 'Mutated Name';
+      firstPreset.filter.recordFilters[0].value = 'closed';
+
+      const [reloadedPreset] = await service.listSharedPresets({
+        dashboardId: 'dashboard-id',
+        authContext,
+      });
+
+      expect(reloadedPreset.createdBy.name).toBe('Alex Morgan');
+      expect(reloadedPreset.filter.recordFilters[0].value).toBe('open');
+    });
   });
 
   describe('getDashboardFilters', () => {
+    it('should forward api key permission context when loading dashboard filters', async () => {
+      await service.getDashboardFilters({
+        dashboardId: 'dashboard-id',
+        authContext: {
+          workspace: { id: 'workspace-id' },
+          apiKey: { id: 'api-key-id' },
+        } as AuthContext,
+      });
+
+      expect(
+        mockPermissionsService.userHasWorkspaceSettingPermission,
+      ).toHaveBeenCalledWith({
+        userWorkspaceId: undefined,
+        workspaceId: 'workspace-id',
+        setting: 'LAYOUTS',
+        apiKeyId: 'api-key-id',
+        applicationId: undefined,
+      });
+    });
+
+    it('should return isolated active filter DTOs so consumer mutations do not leak into subsequent reads', async () => {
+      const firstResponse = await service.getDashboardFilters({
+        dashboardId: 'dashboard-id',
+        authContext,
+      });
+
+      firstResponse.activeFilters.recordFilters[0].value = 'closed';
+      firstResponse.activeFilters.recordFilterGroups[0].logicalOperator = 'OR';
+
+      const secondResponse = await service.getDashboardFilters({
+        dashboardId: 'dashboard-id',
+        authContext,
+      });
+
+      expect(secondResponse.activeFilters.recordFilters[0].value).toBe('open');
+      expect(secondResponse.activeFilters.recordFilterGroups[0].logicalOperator)
+        .toBe('AND');
+    });
+
     it('should deny access when the user does not have layouts permission', async () => {
       mockPermissionsService.userHasWorkspaceSettingPermission.mockResolvedValue(
         false,
@@ -271,6 +328,32 @@ describe('DashboardFilterService', () => {
   });
 
   describe('updateDashboardFilters', () => {
+    it('should forward application permission context when updating dashboard filters', async () => {
+      await service.updateDashboardFilters({
+        input: {
+          dashboardId: 'dashboard-id',
+          activeFilters: {
+            recordFilters: [],
+            recordFilterGroups: [],
+          },
+        },
+        authContext: {
+          workspace: { id: 'workspace-id' },
+          application: { id: 'application-id' },
+        } as AuthContext,
+      });
+
+      expect(
+        mockPermissionsService.userHasWorkspaceSettingPermission,
+      ).toHaveBeenCalledWith({
+        userWorkspaceId: undefined,
+        workspaceId: 'workspace-id',
+        setting: 'LAYOUTS',
+        apiKeyId: undefined,
+        applicationId: 'application-id',
+      });
+    });
+
     it('should deny updates when the user does not have layouts permission', async () => {
       mockPermissionsService.userHasWorkspaceSettingPermission.mockResolvedValue(
         false,

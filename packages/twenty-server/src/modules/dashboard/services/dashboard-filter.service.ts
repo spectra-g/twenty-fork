@@ -66,6 +66,17 @@ const buildCreatedBy = ({
   name,
 });
 
+const cloneDashboardFilters = (
+  filters: DashboardFilterDTO,
+): DashboardFilterDTO => ({
+  recordFilters: filters.recordFilters.map((recordFilter) => ({
+    ...recordFilter,
+  })),
+  recordFilterGroups: filters.recordFilterGroups.map((recordFilterGroup) => ({
+    ...recordFilterGroup,
+  })),
+});
+
 const DASHBOARD_PRESET_RECORDS: DashboardPresetRecord[] = [
   {
     dashboardId: 'dashboard-id',
@@ -205,10 +216,11 @@ export class DashboardFilterService {
         preset.dashboardId === dashboardId &&
         preset.workspaceId === authContext.workspace.id &&
         preset.visibility === 'WORKSPACE',
-    ).map(
-      ({ dashboardId: _dashboardId, workspaceId: _workspaceId, ...preset }) =>
-        preset,
-    );
+    ).map(({ dashboardId: _dashboardId, workspaceId: _workspaceId, ...preset }) => ({
+      ...preset,
+      createdBy: { ...preset.createdBy },
+      filter: cloneDashboardFilters(preset.filter),
+    }));
   }
 
   async getDashboardFilters({
@@ -236,7 +248,7 @@ export class DashboardFilterService {
 
     // @clawdence-stub: STORY-091 - Implement actual persistence logic for dashboard filters and presets
     return {
-      activeFilters: DEFAULT_ACTIVE_FILTERS,
+      activeFilters: cloneDashboardFilters(DEFAULT_ACTIVE_FILTERS),
       presets: await this.listSharedPresets({ dashboardId, authContext }),
     };
   }
@@ -376,6 +388,8 @@ export class DashboardFilterService {
         userWorkspaceId: authContext.userWorkspaceId,
         workspaceId: authContext.workspace.id,
         setting: PermissionFlagType.LAYOUTS,
+        apiKeyId: authContext.apiKey?.id,
+        applicationId: authContext.application?.id,
       });
 
     if (!hasPermission) {
