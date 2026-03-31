@@ -1,6 +1,5 @@
 import { PageLayoutResolver } from 'src/engine/metadata-modules/page-layout/resolvers/page-layout.resolver';
 import { PageLayoutType } from 'src/engine/metadata-modules/page-layout/enums/page-layout-type.enum';
-import { PageLayoutDashboardFilterStateService } from 'src/engine/metadata-modules/page-layout/services/page-layout-dashboard-filter-state.service';
 
 describe('PageLayoutResolver dashboard filters', () => {
   let resolver: PageLayoutResolver;
@@ -13,11 +12,16 @@ describe('PageLayoutResolver dashboard filters', () => {
     updatePageLayoutWithTabs: jest.fn(),
   };
 
+  const pageLayoutDashboardFilterStateService = {
+    getPageLayoutWithDashboardFilterState: jest.fn(),
+    saveDashboardFilterStateForPageLayout: jest.fn(),
+  };
+
   beforeEach(() => {
     resolver = new PageLayoutResolver(
       pageLayoutService as never,
       pageLayoutUpdateService as never,
-      new PageLayoutDashboardFilterStateService(),
+      pageLayoutDashboardFilterStateService as never,
     );
   });
 
@@ -36,6 +40,13 @@ describe('PageLayoutResolver dashboard filters', () => {
       updatedAt: new Date('2026-03-31T00:00:00.000Z'),
       deletedAt: null,
     });
+    pageLayoutDashboardFilterStateService.getPageLayoutWithDashboardFilterState.mockResolvedValue(
+      {
+        id: 'page-layout-id',
+        recordFilters: null,
+        recordFilterGroups: null,
+      },
+    );
 
     await expect(
       resolver.getPageLayout('page-layout-id', { id: 'workspace-id' } as never),
@@ -71,6 +82,20 @@ describe('PageLayoutResolver dashboard filters', () => {
       updatedLayout,
     );
     pageLayoutService.findByIdOrThrow.mockResolvedValue(updatedLayout);
+    pageLayoutDashboardFilterStateService.saveDashboardFilterStateForPageLayout.mockResolvedValue(
+      undefined,
+    );
+    pageLayoutDashboardFilterStateService.getPageLayoutWithDashboardFilterState
+      .mockResolvedValueOnce({
+        id: 'page-layout-id',
+        recordFilters: input.recordFilters,
+        recordFilterGroups: input.recordFilterGroups,
+      })
+      .mockResolvedValueOnce({
+        id: 'page-layout-id',
+        recordFilters: input.recordFilters,
+        recordFilterGroups: input.recordFilterGroups,
+      });
 
     await expect(
       resolver.updatePageLayoutWithTabsAndWidgets(
@@ -80,6 +105,15 @@ describe('PageLayoutResolver dashboard filters', () => {
       ),
     ).resolves.toMatchObject({
       id: 'page-layout-id',
+      recordFilters: input.recordFilters,
+      recordFilterGroups: input.recordFilterGroups,
+    });
+
+    expect(
+      pageLayoutDashboardFilterStateService.saveDashboardFilterStateForPageLayout,
+    ).toHaveBeenCalledWith({
+      workspaceId: 'workspace-id',
+      pageLayoutId: 'page-layout-id',
       recordFilters: input.recordFilters,
       recordFilterGroups: input.recordFilterGroups,
     });

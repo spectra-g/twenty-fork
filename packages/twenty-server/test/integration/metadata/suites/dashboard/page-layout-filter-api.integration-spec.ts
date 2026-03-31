@@ -8,11 +8,18 @@ import { findPageLayoutTabs } from 'test/integration/metadata/suites/page-layout
 import { makeMetadataAPIRequest } from 'test/integration/metadata/suites/utils/make-metadata-api-request.util';
 import { isNonEmptyString } from '@sniptt/guards';
 
+import { SEED_APPLE_WORKSPACE_ID } from 'src/engine/workspace-manager/dev-seeder/core/constants/seeder-workspaces.constant';
+import { getWorkspaceSchemaName } from 'src/engine/workspace-datasource/utils/get-workspace-schema-name.util';
+
 const PAGE_LAYOUT_FILTER_GQL_FIELDS = `
   id
   recordFilters
   recordFilterGroups
 `;
+
+const TEST_WORKSPACE_SCHEMA_NAME = getWorkspaceSchemaName(
+  SEED_APPLE_WORKSPACE_ID,
+);
 
 const recordFilters = [
   {
@@ -120,5 +127,17 @@ describe('Page layout filter API', () => {
       recordFilters,
       recordFilterGroups,
     });
+
+    const persistedDashboardRows = await global.testDataSource.query(
+      `SELECT "recordFilters", "recordFilterGroups" FROM "${TEST_WORKSPACE_SCHEMA_NAME}"."dashboard" WHERE "id" = $1`,
+      [dashboardId],
+    );
+
+    expect(persistedDashboardRows).toEqual([
+      {
+        recordFilters,
+        recordFilterGroups,
+      },
+    ]);
   });
 });
