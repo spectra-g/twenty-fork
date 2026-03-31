@@ -1,5 +1,6 @@
 import { useDateTimeFormat } from '@/localization/hooks/useDateTimeFormat';
 import { useDashboardFilters } from '@/dashboards/hooks/useDashboardFilters';
+import { useSyncDashboardFiltersToUrl } from '@/dashboards/hooks/useSyncDashboardFiltersToUrl';
 import { getDashboardFilterStageOptions } from '@/page-layout/widgets/utils/widgetFilterApplicability';
 import { currentWorkspaceMembersState } from '@/auth/states/currentWorkspaceMembersState';
 import { useAtomStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomStateValue';
@@ -79,6 +80,10 @@ export const DashboardFilterBar = ({
   const { localeCatalog } = useAtomStateValue(dateLocaleState);
   const { filters, setOwnerId, setStartDate, setEndDate, setStage } =
     useDashboardFilters(pageLayoutId);
+  useSyncDashboardFiltersToUrl({
+    dashboardFilters: filters,
+    isEnabled: true,
+  });
 
   const formattedStartDate = formatFilterDate({
     value: filters.startDate,

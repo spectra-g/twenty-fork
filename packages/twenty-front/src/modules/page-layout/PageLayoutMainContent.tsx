@@ -1,5 +1,6 @@
 import { DashboardFilterBar } from '@/dashboards/components/DashboardFilterBar';
 import { DashboardFilterRefreshIndicator } from '@/dashboards/components/DashboardFilterRefreshIndicator';
+import { QueryParamsDashboardFiltersEffect } from '@/dashboards/components/QueryParamsDashboardFiltersEffect';
 import { PageLayoutContent } from '@/page-layout/components/PageLayoutContent';
 import { PageLayoutContentProvider } from '@/page-layout/contexts/PageLayoutContentContext';
 import { useCurrentPageLayoutOrThrow } from '@/page-layout/hooks/useCurrentPageLayoutOrThrow';
@@ -31,6 +32,9 @@ export const PageLayoutMainContent = ({
     >
       {currentPageLayout.type === PageLayoutType.DASHBOARD ? (
         <>
+          <QueryParamsDashboardFiltersEffect
+            pageLayoutId={currentPageLayout.id}
+          />
           <DashboardFilterBar pageLayoutId={currentPageLayout.id} />
           <DashboardFilterRefreshIndicator
             pageLayoutId={currentPageLayout.id}
