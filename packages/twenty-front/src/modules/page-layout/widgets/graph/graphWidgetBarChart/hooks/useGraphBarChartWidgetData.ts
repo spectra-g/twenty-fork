@@ -9,6 +9,7 @@ import { type RawDimensionValue } from '@/page-layout/widgets/graph/types/RawDim
 import { determineChartItemColor } from '@/page-layout/widgets/graph/utils/determineChartItemColor';
 import { determineGraphColorMode } from '@/page-layout/widgets/graph/utils/determineGraphColorMode';
 import { extractBarChartDataConfiguration } from '@/page-layout/widgets/graph/utils/extractBarChartDataConfiguration';
+import { useDashboardWidgetFilters } from '@/page-layout/widgets/states/contexts/DashboardWidgetFiltersContext';
 import { parseGraphColor } from '@/page-layout/widgets/graph/utils/parseGraphColor';
 import { useQuery } from '@apollo/client';
 import { isString } from '@sniptt/guards';
@@ -55,10 +56,11 @@ export const useGraphBarChartWidgetData = ({
   const { objectMetadataItem } = useObjectMetadataItemById({
     objectId: objectMetadataItemId,
   });
+  const dashboardFilters = useDashboardWidgetFilters();
 
   const dataConfiguration = useMemo(
-    () => extractBarChartDataConfiguration(configuration),
-    [configuration],
+    () => extractBarChartDataConfiguration(configuration, dashboardFilters),
+    [configuration, dashboardFilters],
   );
 
   const {

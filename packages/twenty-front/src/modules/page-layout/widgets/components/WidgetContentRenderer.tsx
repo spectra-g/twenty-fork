@@ -15,18 +15,26 @@ import { TimelineWidget } from '@/page-layout/widgets/timeline/components/Timeli
 import { WorkflowRunWidget } from '@/page-layout/widgets/workflow/components/WorkflowRunWidget';
 import { WorkflowVersionWidget } from '@/page-layout/widgets/workflow/components/WorkflowVersionWidget';
 import { WorkflowWidget } from '@/page-layout/widgets/workflow/components/WorkflowWidget';
+import { type DashboardWidgetFilter } from '@/page-layout/widgets/utils/mergeWidgetFilters';
 import { WidgetType } from '~/generated-metadata/graphql';
 
 type WidgetContentRendererProps = {
   widget: PageLayoutWidget;
+  dashboardFilters?: DashboardWidgetFilter[];
 };
 
 export const WidgetContentRenderer = ({
   widget,
+  dashboardFilters = [],
 }: WidgetContentRendererProps) => {
   switch (widget.type) {
     case WidgetType.GRAPH:
-      return <GraphWidgetRenderer widget={widget} />;
+      return (
+        <GraphWidgetRenderer
+          widget={widget}
+          dashboardFilters={dashboardFilters}
+        />
+      );
 
     case WidgetType.IFRAME:
       return <IframeWidget widget={widget} />;

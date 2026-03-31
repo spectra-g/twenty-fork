@@ -1,4 +1,12 @@
-import { type PieChartConfiguration } from '~/generated-metadata/graphql';
+import {
+  WidgetType,
+  type PieChartConfiguration,
+} from '~/generated-metadata/graphql';
+
+import {
+  type DashboardWidgetFilter,
+  mergeWidgetFilters,
+} from '@/page-layout/widgets/utils/mergeWidgetFilters';
 
 type PieChartStyleFields =
   | 'displayDataLabel'
@@ -14,6 +22,7 @@ export type PieChartDataConfiguration = Omit<
 
 export const extractPieChartDataConfiguration = (
   configuration: PieChartConfiguration,
+  dashboardFilters: DashboardWidgetFilter[] = [],
 ): PieChartDataConfiguration => {
   const {
     displayDataLabel: _displayDataLabel,
@@ -24,5 +33,12 @@ export const extractPieChartDataConfiguration = (
     ...dataConfiguration
   } = configuration;
 
-  return dataConfiguration;
+  return {
+    ...dataConfiguration,
+    filter: mergeWidgetFilters({
+      widgetType: WidgetType.GRAPH,
+      widgetFilter: dataConfiguration.filter,
+      dashboardFilters,
+    }),
+  };
 };
