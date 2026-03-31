@@ -17,9 +17,13 @@ export const DashboardFilterRefreshIndicator = ({
     return null;
   }
 
-  // @clawdence-stub: STORY-090 - Widgets subscribe to dashboard filters, but this story only exposes the refresh contract.
   return (
-    <div data-testid="widget-refreshing">
+    <div
+      aria-atomic="true"
+      aria-live="polite"
+      data-testid="widget-refreshing"
+      role="status"
+    >
       Refreshing {dashboardFilters.refreshCount}
     </div>
   );

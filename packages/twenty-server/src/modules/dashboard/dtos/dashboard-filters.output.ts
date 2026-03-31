@@ -4,6 +4,15 @@ import { UUIDScalarType } from 'src/engine/api/graphql/workspace-schema-builder/
 
 import { DashboardFilterDTO } from './dashboard-filter.dto';
 
+@ObjectType('DashboardFilterPresetCreatedBy')
+export class DashboardFilterPresetCreatedByDTO {
+  @Field(() => UUIDScalarType)
+  id: string;
+
+  @Field(() => String)
+  name: string;
+}
+
 @ObjectType('DashboardFilterPreset')
 export class DashboardFilterPresetDTO {
   @Field(() => UUIDScalarType)
@@ -17,6 +26,9 @@ export class DashboardFilterPresetDTO {
 
   @Field(() => Int)
   position: number;
+
+  @Field(() => DashboardFilterPresetCreatedByDTO)
+  createdBy: DashboardFilterPresetCreatedByDTO;
 
   @Field(() => DashboardFilterDTO)
   filter: DashboardFilterDTO;

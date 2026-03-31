@@ -1,11 +1,8 @@
-import { ForbiddenException } from '@nestjs/common';
-
 import { type AuthContext } from 'src/engine/core-modules/auth/types/auth-context.type';
 import { type UserEntity } from 'src/engine/core-modules/user/user.entity';
 import { type WorkspaceEntity } from 'src/engine/core-modules/workspace/workspace.entity';
+import { type UpdateDashboardFiltersInput } from 'src/modules/dashboard/dtos/update-dashboard-filters.input';
 import { DashboardFilterService } from 'src/modules/dashboard/services/dashboard-filter.service';
-
-import { UpdateDashboardFiltersInput } from '../dtos/update-dashboard-filters.input';
 
 import { DashboardResolver } from './dashboard.resolver';
 
@@ -26,10 +23,7 @@ describe('DashboardResolver', () => {
 
   beforeEach(() => {
     dashboardFilterService = new DashboardFilterService();
-    resolver = new DashboardResolver(
-      {} as never,
-      dashboardFilterService,
-    );
+    resolver = new DashboardResolver({} as never, dashboardFilterService);
   });
 
   it('returns active filters and presets for a dashboard', async () => {
@@ -76,12 +70,39 @@ describe('DashboardResolver', () => {
           name: 'Open deals',
           visibility: 'WORKSPACE',
           position: 0,
+          createdBy: {
+            id: '00000000-0000-0000-0000-000000000101',
+            name: 'Alex Morgan',
+          },
           filter: {
             recordFilters: [
               {
                 fieldMetadataId: '00000000-0000-0000-0000-000000000002',
                 operand: 'eq',
                 value: 'open',
+                type: 'TEXT',
+                recordFilterGroupId: null,
+                subFieldName: null,
+              },
+            ],
+            recordFilterGroups: [],
+          },
+        },
+        {
+          id: '00000000-0000-0000-0000-000000000005',
+          name: 'My pipeline',
+          visibility: 'WORKSPACE',
+          position: 1,
+          createdBy: {
+            id: '00000000-0000-0000-0000-000000000102',
+            name: 'Sam Taylor',
+          },
+          filter: {
+            recordFilters: [
+              {
+                fieldMetadataId: '00000000-0000-0000-0000-000000000102',
+                operand: 'eq',
+                value: 'qualified',
                 type: 'TEXT',
                 recordFilterGroupId: null,
                 subFieldName: null,
