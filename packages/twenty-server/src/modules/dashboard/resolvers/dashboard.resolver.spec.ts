@@ -1,6 +1,11 @@
 import { type AuthContext } from 'src/engine/core-modules/auth/types/auth-context.type';
 import { type UserEntity } from 'src/engine/core-modules/user/user.entity';
 import { type WorkspaceEntity } from 'src/engine/core-modules/workspace/workspace.entity';
+import {
+  type PermissionsException,
+  PermissionsExceptionCode,
+  PermissionsExceptionMessage,
+} from 'src/engine/metadata-modules/permissions/permissions.exception';
 import { type UpdateDashboardFiltersInput } from 'src/modules/dashboard/dtos/update-dashboard-filters.input';
 import { DashboardFilterService } from 'src/modules/dashboard/services/dashboard-filter.service';
 
@@ -9,6 +14,9 @@ import { DashboardResolver } from './dashboard.resolver';
 describe('DashboardResolver', () => {
   let resolver: DashboardResolver;
   let dashboardFilterService: DashboardFilterService;
+  let mockPermissionsService: {
+    userHasWorkspaceSettingPermission: jest.Mock;
+  };
 
   const workspace = { id: 'workspace-id' } as WorkspaceEntity;
   const user = { id: 'user-id' } as UserEntity;
@@ -22,7 +30,18 @@ describe('DashboardResolver', () => {
   };
 
   beforeEach(() => {
-    dashboardFilterService = new DashboardFilterService();
+    mockPermissionsService = {
+      userHasWorkspaceSettingPermission: jest.fn().mockResolvedValue(true),
+    };
+
+    const DashboardFilterServiceConstructor =
+      DashboardFilterService as unknown as new (dependencies: {
+        userHasWorkspaceSettingPermission: jest.Mock;
+      }) => DashboardFilterService;
+
+    dashboardFilterService = new DashboardFilterServiceConstructor(
+      mockPermissionsService,
+    );
     resolver = new DashboardResolver({} as never, dashboardFilterService);
   });
 
@@ -171,15 +190,22 @@ describe('DashboardResolver', () => {
     expect(result).toEqual({ success: true });
   });
 
-  it('propagates authorization failures when dashboard filters are not accessible', async () => {
+  it('propagates authorization failures when the user lacks layouts permission', async () => {
+    mockPermissionsService.userHasWorkspaceSettingPermission.mockResolvedValue(
+      false,
+    );
+
     await expect(
       resolver.getDashboardFilters(
-        '00000000-0000-0000-0000-000000000403',
+        'dashboard-id',
         workspace,
         user,
         workspaceMemberId,
         userWorkspaceId,
       ),
-    ).rejects.toThrow('Dashboard filters are not accessible');
+    ).rejects.toMatchObject<Partial<PermissionsException>>({
+      code: PermissionsExceptionCode.PERMISSION_DENIED,
+      message: PermissionsExceptionMessage.PERMISSION_DENIED,
+    });
   });
 });

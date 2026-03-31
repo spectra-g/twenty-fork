@@ -14,6 +14,7 @@ import { AuthWorkspace } from 'src/engine/decorators/auth/auth-workspace.decorat
 import { NoPermissionGuard } from 'src/engine/guards/no-permission.guard';
 import { WorkspaceAuthGuard } from 'src/engine/guards/workspace-auth.guard';
 import { PageLayoutGraphqlApiExceptionFilter } from 'src/engine/metadata-modules/page-layout/utils/page-layout-graphql-api-exception.filter';
+import { PermissionsGraphqlApiExceptionFilter } from 'src/engine/metadata-modules/permissions/utils/permissions-graphql-api-exception.filter';
 import { DashboardFiltersOutput } from 'src/modules/dashboard/dtos/dashboard-filters.output';
 import { DuplicatedDashboardDTO } from 'src/modules/dashboard/dtos/duplicated-dashboard.dto';
 import { UpdateDashboardFiltersInput } from 'src/modules/dashboard/dtos/update-dashboard-filters.input';
@@ -26,6 +27,7 @@ import { DashboardGraphqlApiExceptionFilter } from 'src/modules/dashboard/utils/
 @UseFilters(
   DashboardGraphqlApiExceptionFilter,
   PageLayoutGraphqlApiExceptionFilter,
+  PermissionsGraphqlApiExceptionFilter,
 )
 @UseGuards(WorkspaceAuthGuard)
 @UsePipes(ResolverValidationPipe)

@@ -1,8 +1,15 @@
 import { type AuthContext } from 'src/engine/core-modules/auth/types/auth-context.type';
+import {
+  type PermissionsException,
+  PermissionsExceptionCode,
+} from 'src/engine/metadata-modules/permissions/permissions.exception';
 import { DashboardFilterService } from 'src/modules/dashboard/services/dashboard-filter.service';
 
 describe('DashboardFilterService', () => {
   let service: DashboardFilterService;
+  let mockPermissionsService: {
+    userHasWorkspaceSettingPermission: jest.Mock;
+  };
 
   const authContext = {
     workspace: { id: 'workspace-id' },
@@ -12,7 +19,16 @@ describe('DashboardFilterService', () => {
   } as AuthContext;
 
   beforeEach(() => {
-    service = new DashboardFilterService();
+    mockPermissionsService = {
+      userHasWorkspaceSettingPermission: jest.fn().mockResolvedValue(true),
+    };
+
+    const DashboardFilterServiceConstructor =
+      DashboardFilterService as unknown as new (dependencies: {
+        userHasWorkspaceSettingPermission: jest.Mock;
+      }) => DashboardFilterService;
+
+    service = new DashboardFilterServiceConstructor(mockPermissionsService);
   });
 
   describe('computeEffectiveFilters', () => {
@@ -182,7 +198,63 @@ describe('DashboardFilterService', () => {
     });
   });
 
+  describe('getDashboardFilters', () => {
+    it('should deny access when the user does not have layouts permission', async () => {
+      mockPermissionsService.userHasWorkspaceSettingPermission.mockResolvedValue(
+        false,
+      );
+
+      await expect(
+        service.getDashboardFilters({
+          dashboardId: 'dashboard-id',
+          authContext,
+        }),
+      ).rejects.toMatchObject<Partial<PermissionsException>>({
+        code: PermissionsExceptionCode.PERMISSION_DENIED,
+        message: 'Entity performing the request does not have permission',
+      });
+
+      expect(
+        mockPermissionsService.userHasWorkspaceSettingPermission,
+      ).toHaveBeenCalledWith({
+        userWorkspaceId: authContext.userWorkspaceId,
+        workspaceId: authContext.workspace.id,
+        setting: 'LAYOUTS',
+      });
+    });
+  });
+
   describe('updateDashboardFilters', () => {
+    it('should deny updates when the user does not have layouts permission', async () => {
+      mockPermissionsService.userHasWorkspaceSettingPermission.mockResolvedValue(
+        false,
+      );
+
+      await expect(
+        service.updateDashboardFilters({
+          input: {
+            dashboardId: 'dashboard-id',
+            activeFilters: {
+              recordFilters: [],
+              recordFilterGroups: [],
+            },
+          },
+          authContext,
+        }),
+      ).rejects.toMatchObject<Partial<PermissionsException>>({
+        code: PermissionsExceptionCode.PERMISSION_DENIED,
+        message: 'Entity performing the request does not have permission',
+      });
+
+      expect(
+        mockPermissionsService.userHasWorkspaceSettingPermission,
+      ).toHaveBeenCalledWith({
+        userWorkspaceId: authContext.userWorkspaceId,
+        workspaceId: authContext.workspace.id,
+        setting: 'LAYOUTS',
+      });
+    });
+
     it('should validate the active filters through the orchestration path before reporting success', async () => {
       await expect(
         service.updateDashboardFilters({

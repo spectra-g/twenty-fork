@@ -1,6 +1,16 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+
+import { type MessageDescriptor } from '@lingui/core';
+import { msg } from '@lingui/core/macro';
+import { PermissionFlagType } from 'twenty-shared/constants';
 
 import { type AuthContext } from 'src/engine/core-modules/auth/types/auth-context.type';
+import {
+  PermissionsException,
+  PermissionsExceptionCode,
+  PermissionsExceptionMessage,
+} from 'src/engine/metadata-modules/permissions/permissions.exception';
+import { type PermissionsService } from 'src/engine/metadata-modules/permissions/permissions.service';
 import {
   type DashboardFiltersOutput,
   type DashboardFilterPresetCreatedByDTO,
@@ -14,7 +24,6 @@ import {
 import { type UpdateDashboardFiltersInput } from 'src/modules/dashboard/dtos/update-dashboard-filters.input';
 import { type UpdateDashboardFiltersOutput } from 'src/modules/dashboard/dtos/update-dashboard-filters.output';
 
-const FORBIDDEN_DASHBOARD_ID = '00000000-0000-0000-0000-000000000403';
 const EMPTY_DASHBOARD_ID = '00000000-0000-0000-0000-000000000003';
 const DEFAULT_FILTER_GROUP_ID = '00000000-0000-0000-0000-000000000001';
 const DEFAULT_FILTER_FIELD_METADATA_ID = '00000000-0000-0000-0000-000000000002';
@@ -128,6 +137,13 @@ const DASHBOARD_PRESET_RECORDS: DashboardPresetRecord[] = [
 
 @Injectable()
 export class DashboardFilterService {
+  constructor(
+    private readonly permissionsService: Pick<
+      PermissionsService,
+      'userHasWorkspaceSettingPermission'
+    >,
+  ) {}
+
   computeEffectiveFilters({
     dashboardFilters,
     widgetFilters,
@@ -202,10 +218,10 @@ export class DashboardFilterService {
     dashboardId: string;
     authContext: AuthContext;
   }): Promise<DashboardFiltersOutput> {
-    if (dashboardId === FORBIDDEN_DASHBOARD_ID) {
-      // @clawdence-stub: STORY-092 - Implement full dashboard filter permission checks
-      throw new ForbiddenException('Dashboard filters are not accessible');
-    }
+    await this.assertCanAccessDashboardFilters({
+      authContext,
+      userFriendlyMessage: msg`You do not have permission to access dashboard filters. Please contact your workspace administrator for access.`,
+    });
 
     if (dashboardId === EMPTY_DASHBOARD_ID) {
       // @clawdence-stub: STORY-091 - Implement actual persistence logic for dashboard filters and presets
@@ -227,14 +243,15 @@ export class DashboardFilterService {
 
   async updateDashboardFilters({
     input,
+    authContext,
   }: {
     input: UpdateDashboardFiltersInput;
     authContext: AuthContext;
   }): Promise<UpdateDashboardFiltersOutput> {
-    if (input.dashboardId === FORBIDDEN_DASHBOARD_ID) {
-      // @clawdence-stub: STORY-092 - Implement full dashboard filter permission checks
-      throw new ForbiddenException('Dashboard filters are not accessible');
-    }
+    await this.assertCanAccessDashboardFilters({
+      authContext,
+      userFriendlyMessage: msg`You do not have permission to update dashboard filters. Please contact your workspace administrator for access.`,
+    });
 
     // @clawdence-stub: STORY-091 - Implement actual persistence logic for dashboard filters and presets
     this.computeEffectiveFilters({
@@ -313,5 +330,28 @@ export class DashboardFilterService {
 
   private getRecordFilterKey(recordFilter: DashboardRecordFilterDTO): string {
     return `${recordFilter.fieldMetadataId}:${recordFilter.subFieldName ?? ''}`;
+  }
+
+  private async assertCanAccessDashboardFilters({
+    authContext,
+    userFriendlyMessage,
+  }: {
+    authContext: AuthContext;
+    userFriendlyMessage?: MessageDescriptor;
+  }): Promise<void> {
+    const hasPermission =
+      await this.permissionsService.userHasWorkspaceSettingPermission({
+        userWorkspaceId: authContext.userWorkspaceId,
+        workspaceId: authContext.workspace.id,
+        setting: PermissionFlagType.LAYOUTS,
+      });
+
+    if (!hasPermission) {
+      throw new PermissionsException(
+        PermissionsExceptionMessage.PERMISSION_DENIED,
+        PermissionsExceptionCode.PERMISSION_DENIED,
+        { userFriendlyMessage },
+      );
+    }
   }
 }
