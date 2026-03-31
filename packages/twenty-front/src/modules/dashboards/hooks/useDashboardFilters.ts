@@ -1,60 +1,58 @@
 import { currentWorkspaceMembersState } from '@/auth/states/currentWorkspaceMembersState';
+import { useDashboardFiltersFromQueryParams } from '@/dashboards/hooks/useDashboardFiltersFromQueryParams';
 import {
-  dashboardFiltersState,
   getEmptyDashboardFiltersState,
   type DashboardFiltersState,
 } from '@/dashboards/states/dashboardFiltersAtom';
-import { useAtomState } from '@/ui/utilities/state/jotai/hooks/useAtomState';
 import { useAtomStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomStateValue';
-import { useCallback, useEffect, useRef, useState } from 'react';
-
-const areDashboardFiltersEqual = (
-  left: DashboardFiltersState,
-  right: DashboardFiltersState,
-) => {
-  return (
-    left.pageLayoutId === right.pageLayoutId &&
-    left.ownerId === right.ownerId &&
-    left.ownerLabel === right.ownerLabel &&
-    left.startDate === right.startDate &&
-    left.endDate === right.endDate &&
-    left.stage === right.stage
-  );
-};
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export const useDashboardFilters = (pageLayoutId: string) => {
   const workspaceMembers = useAtomStateValue(currentWorkspaceMembersState);
-  const [, setDashboardFilters] = useAtomState(dashboardFiltersState);
-  const [filters, setFilters] = useState<DashboardFiltersState>(() =>
-    getEmptyDashboardFiltersState(pageLayoutId),
-  );
-  const refreshCountRef = useRef(0);
+  const { dashboardFiltersFromQueryParams } = useDashboardFiltersFromQueryParams();
 
-  useEffect(() => {
-    refreshCountRef.current = 0;
-    setFilters(getEmptyDashboardFiltersState(pageLayoutId));
-    setDashboardFilters(getEmptyDashboardFiltersState(pageLayoutId));
+  const initialFilters = useMemo(() => {
+    const emptyDashboardFilters = getEmptyDashboardFiltersState(pageLayoutId);
 
-    return () => {
-      refreshCountRef.current = 0;
-      setDashboardFilters(getEmptyDashboardFiltersState());
-    };
-  }, [pageLayoutId, setDashboardFilters]);
-
-  useEffect(() => {
-    const emptyFilters = getEmptyDashboardFiltersState(pageLayoutId);
-
-    if (areDashboardFiltersEqual(filters, emptyFilters)) {
-      setDashboardFilters(emptyFilters);
-      return;
+    if (dashboardFiltersFromQueryParams === null) {
+      return emptyDashboardFilters;
     }
 
-    refreshCountRef.current += 1;
-    setDashboardFilters({
-      ...filters,
-      refreshCount: refreshCountRef.current,
-    });
-  }, [filters, pageLayoutId, setDashboardFilters]);
+    const selectedWorkspaceMember =
+      dashboardFiltersFromQueryParams.ownerId === null
+        ? null
+        : workspaceMembers.find(
+            (workspaceMember) =>
+              workspaceMember.id === dashboardFiltersFromQueryParams.ownerId,
+          );
+
+    const ownerLabel =
+      selectedWorkspaceMember === undefined || selectedWorkspaceMember === null
+        ? null
+        : `${selectedWorkspaceMember.name.firstName} ${selectedWorkspaceMember.name.lastName}`.trim();
+
+    return {
+      ...emptyDashboardFilters,
+      ownerId: dashboardFiltersFromQueryParams.ownerId,
+      ownerLabel,
+      startDate: dashboardFiltersFromQueryParams.startDate,
+      endDate: dashboardFiltersFromQueryParams.endDate,
+      stage: dashboardFiltersFromQueryParams.stage,
+    };
+  }, [
+    dashboardFiltersFromQueryParams?.endDate,
+    dashboardFiltersFromQueryParams?.ownerId,
+    dashboardFiltersFromQueryParams?.stage,
+    dashboardFiltersFromQueryParams?.startDate,
+    pageLayoutId,
+    workspaceMembers,
+  ]);
+
+  const [filters, setFilters] = useState<DashboardFiltersState>(initialFilters);
+
+  useEffect(() => {
+    setFilters(initialFilters);
+  }, [initialFilters]);
 
   const updateFilters = useCallback(
     (
@@ -62,11 +60,6 @@ export const useDashboardFilters = (pageLayoutId: string) => {
     ) => {
       setFilters((currentFilters) => {
         const nextFilters = computeNextFilters(currentFilters);
-
-        if (areDashboardFiltersEqual(currentFilters, nextFilters)) {
-          return currentFilters;
-        }
-
         return nextFilters;
       });
     },
