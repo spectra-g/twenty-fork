@@ -1,3 +1,5 @@
+/* eslint-disable @nx/enforce-module-boundaries */
+import { usePageLayoutGlobalFilters } from '@/dashboard/hooks/usePageLayoutGlobalFilters';
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
 import { type ObjectMetadataItem } from '@/object-metadata/types/ObjectMetadataItem';
 import { PIE_CHART_DATA } from '@/page-layout/widgets/graph/graphql/queries/pieChartData';
@@ -40,6 +42,7 @@ export const useGraphPieChartWidgetData = ({
   const { objectMetadataItem } = useObjectMetadataItemById({
     objectId: objectMetadataItemId,
   });
+  const { chartDataFilter } = usePageLayoutGlobalFilters();
 
   const dataConfiguration = useMemo(
     () => extractPieChartDataConfiguration(configuration),
@@ -55,6 +58,8 @@ export const useGraphPieChartWidgetData = ({
       input: {
         objectMetadataId: objectMetadataItemId,
         configuration: dataConfiguration,
+        dashboardRecordFilters: chartDataFilter.recordFilters,
+        dashboardRecordFilterGroups: chartDataFilter.recordFilterGroups,
       },
     },
   });

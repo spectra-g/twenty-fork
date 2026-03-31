@@ -1,6 +1,7 @@
 import { ThemeProvider } from '@emotion/react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import React from 'react';
 
 import { PageLayoutRendererContent } from '@/page-layout/components/PageLayoutRendererContent';
 import { PageLayoutType } from '~/generated-metadata/graphql';
@@ -15,15 +16,69 @@ const mockCurrentPageLayout = {
   defaultTabToFocusOnMobileAndSidePanelId: null,
 };
 
-jest.mock('@/command-menu/pages/page-layout/hooks/useNavigatePageLayoutCommandMenu', () => ({
-  useNavigatePageLayoutCommandMenu: () => ({
-    navigatePageLayoutCommandMenu: jest.fn(),
+jest.mock(
+  '@/command-menu/pages/page-layout/hooks/useNavigatePageLayoutCommandMenu',
+  () => ({
+    useNavigatePageLayoutCommandMenu: () => ({
+      navigatePageLayoutCommandMenu: jest.fn(),
+    }),
   }),
-}));
+);
 
 jest.mock('@/page-layout/components/PageLayoutLeftPanel', () => ({
   PageLayoutLeftPanel: () => <div data-testid="page-layout-left-panel" />,
 }));
+
+jest.mock('@/dashboard/hooks/usePageLayoutGlobalFilters', () => {
+  const ReactModule = jest.requireActual('react') as typeof React;
+
+  return {
+    usePageLayoutGlobalFilters: () => {
+      const [activeFilters, setActiveFilters] = ReactModule.useState<
+        Array<{ field: string; label: string; value: string }>
+      >([]);
+
+      return {
+        availableFilters: [
+          {
+            field: 'status',
+            label: 'Status',
+            options: [{ value: 'Active Deals', label: 'Active Deals' }],
+          },
+          {
+            field: 'owner',
+            label: 'Owner',
+            options: [{ value: 'Assigned to me', label: 'Assigned to me' }],
+          },
+        ],
+        activeFilters,
+        setFilterValue: (field: string, value: string) => {
+          const label = field === 'status' ? 'Status' : 'Owner';
+
+          setActiveFilters((currentFilters) => [
+            ...currentFilters.filter(
+              (activeFilter) => activeFilter.field !== field,
+            ),
+            { field, label, value },
+          ]);
+        },
+        removeFilterValue: (field: string) => {
+          setActiveFilters((currentFilters) =>
+            currentFilters.filter(
+              (activeFilter) => activeFilter.field !== field,
+            ),
+          );
+        },
+        clearFilters: () => setActiveFilters([]),
+        presets: [],
+        chartDataFilter: {
+          recordFilters: [],
+          recordFilterGroups: [],
+        },
+      };
+    },
+  };
+});
 
 jest.mock('@/page-layout/components/PageLayoutTabList', () => ({
   PageLayoutTabList: () => <div data-testid="dashboard-tabs" />,
@@ -67,9 +122,12 @@ jest.mock(
   }),
 );
 
-jest.mock('@/page-layout/utils/getScrollWrapperInstanceIdFromPageLayoutId', () => ({
-  getScrollWrapperInstanceIdFromPageLayoutId: () => 'scroll-wrapper-id',
-}));
+jest.mock(
+  '@/page-layout/utils/getScrollWrapperInstanceIdFromPageLayoutId',
+  () => ({
+    getScrollWrapperInstanceIdFromPageLayoutId: () => 'scroll-wrapper-id',
+  }),
+);
 
 jest.mock(
   '@/page-layout/utils/getTabListInstanceIdFromPageLayoutAndRecord',
@@ -101,7 +159,10 @@ jest.mock('@/ui/layout/contexts/LayoutRenderingContext', () => ({
   useLayoutRenderingContext: () => ({
     isInRightDrawer: false,
     layoutType: PageLayoutType.DASHBOARD,
-    targetRecordIdentifier: { id: 'record-id', targetObjectNameSingular: 'dashboard' },
+    targetRecordIdentifier: {
+      id: 'record-id',
+      targetObjectNameSingular: 'dashboard',
+    },
   }),
 }));
 
@@ -157,7 +218,9 @@ describe('PageLayoutRendererContent', () => {
 
     renderPageLayoutRendererContent();
 
-    expect(screen.queryByTestId('dashboard-filter-bar')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('dashboard-filter-bar'),
+    ).not.toBeInTheDocument();
   });
 
   it('shows a filter pill and update indicator when a dashboard filter is selected', async () => {
@@ -178,6 +241,9 @@ describe('PageLayoutRendererContent', () => {
     expect(
       screen.getByTestId('dashboard-global-filter-update-indicator'),
     ).toHaveTextContent('Filters updated');
+    expect(
+      screen.getByTestId('dashboard-global-filter-composition-indicator'),
+    ).toHaveTextContent('Applied together with widget filters');
   });
 
   it('removes active filters individually and with clear all', async () => {

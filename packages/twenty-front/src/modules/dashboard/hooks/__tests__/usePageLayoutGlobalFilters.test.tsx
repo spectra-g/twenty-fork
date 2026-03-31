@@ -51,6 +51,7 @@ describe('usePageLayoutGlobalFilters', () => {
               operand: 'contains',
             },
           ],
+          recordFilterGroups: [],
         },
       },
     } as never);
@@ -92,5 +93,28 @@ describe('usePageLayoutGlobalFilters', () => {
         value: 'assigned',
       },
     ]);
+    expect(result.current.chartDataFilter).toEqual({
+      recordFilters: [
+        {
+          id: 'filter-1',
+          fieldMetadataId: 'status',
+          operand: 'is',
+          value: 'active',
+          type: 'SELECT',
+          recordFilterGroupId: undefined,
+          subFieldName: undefined,
+        },
+        {
+          id: 'filter-2',
+          fieldMetadataId: 'owner',
+          operand: 'contains',
+          value: 'assigned',
+          type: 'TEXT',
+          recordFilterGroupId: undefined,
+          subFieldName: undefined,
+        },
+      ],
+      recordFilterGroups: [],
+    });
   });
 });

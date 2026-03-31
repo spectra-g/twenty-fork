@@ -10,18 +10,33 @@ import { useAtomStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomState
 import { useQuery } from '@apollo/client';
 import { useAtom } from 'jotai';
 import { useEffect, useMemo } from 'react';
-import { isDefined } from 'twenty-shared/utils';
+import {
+  type CompositeFieldSubFieldName,
+  type FilterableAndTSVectorFieldType,
+  ViewFilterOperand,
+} from 'twenty-shared/types';
+import {
+  isDefined,
+  type RecordFilter,
+  type RecordFilterGroup,
+} from 'twenty-shared/utils';
 
 type PageLayoutRecordFilter = {
+  id?: string;
   fieldMetadataId: string;
   label: string;
   value: string;
   displayValue?: string | null;
+  type?: FilterableAndTSVectorFieldType | null;
+  operand?: ViewFilterOperand | null;
+  recordFilterGroupId?: string | null;
+  subFieldName?: string | null;
 };
 
 type GetPageLayoutResponse = {
   getPageLayout?: {
     recordFilters?: PageLayoutRecordFilter[] | null;
+    recordFilterGroups?: RecordFilterGroup[] | null;
   } | null;
 };
 
@@ -85,11 +100,51 @@ export const usePageLayoutGlobalFilters = () => {
     () => data?.getPageLayout?.recordFilters ?? [],
     [data?.getPageLayout?.recordFilters],
   );
+  const persistedRecordFilterGroups = useMemo(
+    () => data?.getPageLayout?.recordFilterGroups ?? [],
+    [data?.getPageLayout?.recordFilterGroups],
+  );
 
   const availableFilters = useMemo(
     () => getAvailableFiltersFromRecordFilters(persistedRecordFilters),
     [persistedRecordFilters],
   );
+  const chartDataFilter = useMemo(() => {
+    const recordFilters: RecordFilter[] = activeFilters
+      .map((activeFilter) =>
+        persistedRecordFilters.find(
+          (recordFilter) =>
+            recordFilter.fieldMetadataId === activeFilter.field &&
+            recordFilter.value === activeFilter.value,
+        ),
+      )
+      .filter(isDefined)
+      .map((recordFilter, index) => ({
+        id:
+          recordFilter.id ??
+          `${recordFilter.fieldMetadataId}-${recordFilter.value}-${index}`,
+        fieldMetadataId: recordFilter.fieldMetadataId,
+        operand: recordFilter.operand ?? ViewFilterOperand.IS,
+        value: recordFilter.value,
+        type: recordFilter.type ?? 'TEXT',
+        recordFilterGroupId: recordFilter.recordFilterGroupId ?? undefined,
+        subFieldName: (recordFilter.subFieldName ??
+          undefined) as CompositeFieldSubFieldName | undefined,
+      }));
+    const referencedGroupIds = new Set(
+      recordFilters
+        .map((recordFilter) => recordFilter.recordFilterGroupId)
+        .filter(isDefined),
+    );
+    const recordFilterGroups = persistedRecordFilterGroups.filter((group) =>
+      referencedGroupIds.has(group.id),
+    );
+
+    return {
+      recordFilters,
+      recordFilterGroups,
+    };
+  }, [activeFilters, persistedRecordFilterGroups, persistedRecordFilters]);
 
   useEffect(() => {
     if (persistedRecordFilters.length === 0) {
@@ -145,5 +200,6 @@ export const usePageLayoutGlobalFilters = () => {
     removeFilterValue,
     clearFilters,
     presets: [],
+    chartDataFilter,
   };
 };
