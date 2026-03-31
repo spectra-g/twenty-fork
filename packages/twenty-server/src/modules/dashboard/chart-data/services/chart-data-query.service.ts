@@ -8,6 +8,7 @@ import {
   OrderByWithGroupBy,
 } from 'twenty-shared/types';
 import {
+  combineFilters,
   isDefined,
   isFieldMetadataArrayKind,
   isFieldMetadataDateKind,
@@ -51,6 +52,7 @@ type ExecuteGroupByQueryParams = {
   aggregateFieldMetadataId: string;
   aggregateOperation: AggregateOperations;
   filter?: ChartFilter;
+  dashboardFilter?: ChartFilter;
   dateGranularity?: ObjectRecordGroupByDateGranularity;
   userTimezone: string;
   firstDayOfTheWeek: CalendarStartDay;
@@ -80,6 +82,7 @@ export class ChartDataQueryService {
     aggregateFieldMetadataId,
     aggregateOperation,
     filter,
+    dashboardFilter,
     dateGranularity,
     userTimezone,
     firstDayOfTheWeek,
@@ -91,12 +94,22 @@ export class ChartDataQueryService {
     secondaryAxisOrderBy,
     splitMultiValueFields,
   }: ExecuteGroupByQueryParams): Promise<GroupByRawResult[]> {
-    const gqlOperationFilter = convertChartFilterToGqlOperationFilter({
+    const widgetGqlOperationFilter = convertChartFilterToGqlOperationFilter({
       filter,
       flatObjectMetadata,
       flatFieldMetadataMaps,
       userTimezone,
     });
+    const dashboardGqlOperationFilter = convertChartFilterToGqlOperationFilter({
+      filter: dashboardFilter,
+      flatObjectMetadata,
+      flatFieldMetadataMaps,
+      userTimezone,
+    });
+    const gqlOperationFilter = combineFilters([
+      dashboardGqlOperationFilter,
+      widgetGqlOperationFilter,
+    ]);
 
     const primaryGroupByField = getFieldMetadata(
       groupByFieldMetadataId,

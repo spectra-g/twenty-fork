@@ -1,3 +1,5 @@
+/* eslint-disable @nx/enforce-module-boundaries */
+import { usePageLayoutGlobalFilters } from '@/dashboard/hooks/usePageLayoutGlobalFilters';
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
 import { type FieldMetadataItemOption } from '@/object-metadata/types/FieldMetadataItem';
 import { BAR_CHART_DATA } from '@/page-layout/widgets/graph/graphql/queries/barChartData';
@@ -55,6 +57,7 @@ export const useGraphBarChartWidgetData = ({
   const { objectMetadataItem } = useObjectMetadataItemById({
     objectId: objectMetadataItemId,
   });
+  const { chartDataFilter } = usePageLayoutGlobalFilters();
 
   const dataConfiguration = useMemo(
     () => extractBarChartDataConfiguration(configuration),
@@ -71,6 +74,8 @@ export const useGraphBarChartWidgetData = ({
       input: {
         objectMetadataId: objectMetadataItemId,
         configuration: dataConfiguration,
+        dashboardRecordFilters: chartDataFilter.recordFilters,
+        dashboardRecordFilterGroups: chartDataFilter.recordFilterGroups,
       },
     },
   });

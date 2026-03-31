@@ -1,6 +1,8 @@
 import { UseFilters, UseGuards, UsePipes } from '@nestjs/common';
 import { Args, Query } from '@nestjs/graphql';
 
+import { type ChartFilter } from 'twenty-shared/types';
+
 import { AuthContext } from 'src/engine/core-modules/auth/types/auth-context.type';
 import { MetadataResolver } from 'src/engine/api/graphql/graphql-config/decorators/metadata-resolver.decorator';
 import { ResolverValidationPipe } from 'src/engine/core-modules/graphql/pipes/resolver-validation.pipe';
@@ -40,10 +42,15 @@ export class BarChartDataResolver {
       userWorkspaceId,
     };
 
-    // @clawdence-stub: STORY-100 - Compose dashboard-level filters with widget-local filters using logical AND before querying
     return this.barChartDataService.getBarChartData({
       objectMetadataId: input.objectMetadataId,
       configuration: input.configuration,
+      dashboardFilter: {
+        recordFilters: (input.dashboardRecordFilters ??
+          []) as ChartFilter['recordFilters'],
+        recordFilterGroups: (input.dashboardRecordFilterGroups ??
+          []) as ChartFilter['recordFilterGroups'],
+      },
       workspaceId: workspace.id,
       authContext,
     });

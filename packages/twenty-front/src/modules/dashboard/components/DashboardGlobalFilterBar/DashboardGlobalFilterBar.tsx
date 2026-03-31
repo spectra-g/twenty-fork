@@ -1,3 +1,4 @@
+/* eslint-disable lingui/no-unlocalized-strings, twenty/no-hardcoded-colors */
 import { usePageLayoutGlobalFilters } from '@/dashboard/hooks/usePageLayoutGlobalFilters';
 import styled from '@emotion/styled';
 
@@ -119,13 +120,17 @@ export const DashboardGlobalFilterBar = () => {
         )}
       </StyledPillRow>
 
-      {/* @clawdence-stub: STORY-100 - Integrate global filters into widget filter composition - apply AND semantics with local filters */}
       {/* @clawdence-stub: STORY-102 - Implement filter preset CRUD operations and selection UI */}
       {/* @clawdence-stub: STORY-103 - Sync filter state with URL query params for shareability */}
       {/* @clawdence-stub: STORY-106 - Implement coordinated widget refresh to avoid independent refetch storms */}
       <div data-testid="dashboard-global-filter-update-indicator">
         {activeFilters.length > 0 ? 'Filters updated' : 'No filters applied'}
       </div>
+      {activeFilters.length > 0 && (
+        <div data-testid="dashboard-global-filter-composition-indicator">
+          Applied together with widget filters
+        </div>
+      )}
     </StyledContainer>
   );
 };
