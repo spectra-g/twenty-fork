@@ -7,6 +7,7 @@ import { type RawDimensionValue } from '@/page-layout/widgets/graph/types/RawDim
 import { determineChartItemColor } from '@/page-layout/widgets/graph/utils/determineChartItemColor';
 import { determineGraphColorMode } from '@/page-layout/widgets/graph/utils/determineGraphColorMode';
 import { extractLineChartDataConfiguration } from '@/page-layout/widgets/graph/utils/extractLineChartDataConfiguration';
+import { useDashboardWidgetFilters } from '@/page-layout/widgets/states/contexts/DashboardWidgetFiltersContext';
 import { parseGraphColor } from '@/page-layout/widgets/graph/utils/parseGraphColor';
 import { useQuery } from '@apollo/client';
 import { isString } from '@sniptt/guards';
@@ -44,8 +45,12 @@ export const useGraphLineChartWidgetData = ({
   const { objectMetadataItem } = useObjectMetadataItemById({
     objectId: objectMetadataItemId,
   });
+  const dashboardFilters = useDashboardWidgetFilters();
 
-  const dataConfiguration = extractLineChartDataConfiguration(configuration);
+  const dataConfiguration = extractLineChartDataConfiguration(
+    configuration,
+    dashboardFilters,
+  );
 
   const {
     data: queryData,
