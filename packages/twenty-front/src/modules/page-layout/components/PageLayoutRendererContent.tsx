@@ -15,6 +15,7 @@ import { getTabsByDisplayMode } from '@/page-layout/utils/getTabsByDisplayMode';
 import { getTabsWithVisibleWidgets } from '@/page-layout/utils/getTabsWithVisibleWidgets';
 import { shouldEnableTabEditingFeatures } from '@/page-layout/utils/shouldEnableTabEditingFeatures';
 import { sortTabsByPosition } from '@/page-layout/utils/sortTabsByPosition';
+import { DashboardGlobalFilterBar } from '@/dashboard/components/DashboardGlobalFilterBar';
 import { useLayoutRenderingContext } from '@/ui/layout/contexts/LayoutRenderingContext';
 import { activeTabIdComponentState } from '@/ui/layout/tab-list/states/activeTabIdComponentState';
 import { ScrollWrapper } from '@/ui/utilities/scroll/components/ScrollWrapper';
@@ -25,6 +26,7 @@ import { t } from '@lingui/core/macro';
 import { CommandMenuPages } from 'twenty-shared/types';
 import { isDefined } from 'twenty-shared/utils';
 import { useIsMobile } from 'twenty-ui/utilities';
+import { PageLayoutType } from '~/generated-metadata/graphql';
 
 const StyledContainer = styled.div<{ hasPinnedTab: boolean }>`
   display: grid;
@@ -128,6 +130,10 @@ export const PageLayoutRendererContent = () => {
             undefined
           }
         />
+        {/* @clawdence-stub: STORY-105 - Conditionally render filter bar based on dashboard V2 feature flag and layout version */}
+        {currentPageLayout.type === PageLayoutType.DASHBOARD && (
+          <DashboardGlobalFilterBar />
+        )}
         {(sortedTabs.length > 1 || isPageLayoutInEditMode) && (
           <StyledPageLayoutTabList
             tabs={sortedTabs}
