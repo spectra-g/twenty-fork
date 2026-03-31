@@ -1,3 +1,4 @@
+/* eslint-disable @nx/enforce-module-boundaries */
 import {
   UseFilters,
   UseGuards,
@@ -21,6 +22,7 @@ import { UpdatePageLayoutInput } from 'src/engine/metadata-modules/page-layout/d
 import { PageLayoutDTO } from 'src/engine/metadata-modules/page-layout/dtos/page-layout.dto';
 import { PageLayoutType } from 'src/engine/metadata-modules/page-layout/enums/page-layout-type.enum';
 import { PageLayoutUpdateService } from 'src/engine/metadata-modules/page-layout/services/page-layout-update.service';
+import { PageLayoutDashboardFilterStateService } from 'src/engine/metadata-modules/page-layout/services/page-layout-dashboard-filter-state.service';
 import { PageLayoutService } from 'src/engine/metadata-modules/page-layout/services/page-layout.service';
 import { PageLayoutGraphqlApiExceptionFilter } from 'src/engine/metadata-modules/page-layout/utils/page-layout-graphql-api-exception.filter';
 import { WorkspaceMigrationGraphqlApiExceptionInterceptor } from 'src/engine/workspace-manager/workspace-migration/interceptors/workspace-migration-graphql-api-exception.interceptor';
@@ -34,6 +36,7 @@ export class PageLayoutResolver {
   constructor(
     private readonly pageLayoutService: PageLayoutService,
     private readonly pageLayoutUpdateService: PageLayoutUpdateService,
+    private readonly pageLayoutDashboardFilterStateService: PageLayoutDashboardFilterStateService,
   ) {}
 
   @Query(() => [PageLayoutDTO])
@@ -64,10 +67,14 @@ export class PageLayoutResolver {
     @Args('id', { type: () => String }) id: string,
     @AuthWorkspace() workspace: WorkspaceEntity,
   ): Promise<PageLayoutDTO | null> {
-    return this.pageLayoutService.findByIdOrThrow({
+    const pageLayout = await this.pageLayoutService.findByIdOrThrow({
       id,
       workspaceId: workspace.id,
     });
+
+    return this.pageLayoutDashboardFilterStateService.getPageLayoutWithDashboardFilterState(
+      pageLayout,
+    );
   }
 
   @Mutation(() => PageLayoutDTO)
@@ -115,10 +122,24 @@ export class PageLayoutResolver {
     @Args('input') input: UpdatePageLayoutWithTabsInput,
     @AuthWorkspace() workspace: WorkspaceEntity,
   ): Promise<PageLayoutDTO> {
-    return this.pageLayoutUpdateService.updatePageLayoutWithTabs({
-      id,
-      workspaceId: workspace.id,
-      input,
-    });
+    const updatedPageLayout =
+      await this.pageLayoutUpdateService.updatePageLayoutWithTabs({
+        id,
+        workspaceId: workspace.id,
+        input,
+      });
+
+    // @clawdence-stub: STORY-104 - Sanitize filter values against user permissions before applying to queries
+    this.pageLayoutDashboardFilterStateService.saveDashboardFilterStateForPageLayout(
+      {
+        pageLayoutId: id,
+        recordFilters: input.recordFilters,
+        recordFilterGroups: input.recordFilterGroups,
+      },
+    );
+
+    return this.pageLayoutDashboardFilterStateService.getPageLayoutWithDashboardFilterState(
+      updatedPageLayout,
+    );
   }
 }

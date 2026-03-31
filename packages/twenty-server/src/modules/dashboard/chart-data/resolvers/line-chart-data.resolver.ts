@@ -40,6 +40,7 @@ export class LineChartDataResolver {
       userWorkspaceId,
     };
 
+    // @clawdence-stub: STORY-100 - Compose dashboard-level filters with widget-local filters using logical AND before querying
     return this.lineChartDataService.getLineChartData({
       objectMetadataId: input.objectMetadataId,
       configuration: input.configuration,

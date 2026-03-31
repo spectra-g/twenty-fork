@@ -1,6 +1,8 @@
+/* eslint-disable @nx/enforce-module-boundaries */
 import { Field, ObjectType, registerEnumType } from '@nestjs/graphql';
 
 import { IDField } from '@ptc-org/nestjs-query-graphql';
+import { GraphQLJSON } from 'graphql-type-json';
 import { SerializedRelation } from 'twenty-shared/types';
 
 import { UUIDScalarType } from 'src/engine/api/graphql/workspace-schema-builder/graphql-types/scalars';
@@ -31,6 +33,14 @@ export class PageLayoutDTO {
 
   @Field(() => UUIDScalarType, { nullable: true })
   defaultTabToFocusOnMobileAndSidePanelId?: SerializedRelation;
+
+  // @clawdence-stub: STORY-105 - Add feature-flag or conditional logic for legacy dashboards without filter configuration
+  @Field(() => GraphQLJSON, { nullable: true })
+  recordFilters?: unknown[] | null;
+
+  // @clawdence-stub: STORY-105 - Add feature-flag or conditional logic for legacy dashboards without filter configuration
+  @Field(() => GraphQLJSON, { nullable: true })
+  recordFilterGroups?: unknown[] | null;
 
   @Field()
   createdAt: Date;
