@@ -1,6 +1,14 @@
 import { type AuthContext } from 'src/engine/core-modules/auth/types/auth-context.type';
+import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { type UserEntity } from 'src/engine/core-modules/user/user.entity';
 import { type WorkspaceEntity } from 'src/engine/core-modules/workspace/workspace.entity';
+import {
+  type PermissionsException,
+  PermissionsExceptionCode,
+  PermissionsExceptionMessage,
+} from 'src/engine/metadata-modules/permissions/permissions.exception';
+import { CreateDashboardPresetPermissionGuard } from 'src/modules/dashboard/guards/create-dashboard-preset-permission.guard';
+import { UpdateDashboardPresetPermissionGuard } from 'src/modules/dashboard/guards/update-dashboard-preset-permission.guard';
 import { type UpdateDashboardFiltersInput } from 'src/modules/dashboard/dtos/update-dashboard-filters.input';
 import { DashboardFilterService } from 'src/modules/dashboard/services/dashboard-filter.service';
 
@@ -9,6 +17,9 @@ import { DashboardResolver } from './dashboard.resolver';
 describe('DashboardResolver', () => {
   let resolver: DashboardResolver;
   let dashboardFilterService: DashboardFilterService;
+  let mockPermissionsService: {
+    userHasWorkspaceSettingPermission: jest.Mock;
+  };
 
   const workspace = { id: 'workspace-id' } as WorkspaceEntity;
   const user = { id: 'user-id' } as UserEntity;
@@ -22,7 +33,18 @@ describe('DashboardResolver', () => {
   };
 
   beforeEach(() => {
-    dashboardFilterService = new DashboardFilterService();
+    mockPermissionsService = {
+      userHasWorkspaceSettingPermission: jest.fn().mockResolvedValue(true),
+    };
+
+    const DashboardFilterServiceConstructor =
+      DashboardFilterService as unknown as new (dependencies: {
+        userHasWorkspaceSettingPermission: jest.Mock;
+      }) => DashboardFilterService;
+
+    dashboardFilterService = new DashboardFilterServiceConstructor(
+      mockPermissionsService,
+    );
     resolver = new DashboardResolver({} as never, dashboardFilterService);
   });
 
@@ -171,15 +193,146 @@ describe('DashboardResolver', () => {
     expect(result).toEqual({ success: true });
   });
 
-  it('propagates authorization failures when dashboard filters are not accessible', async () => {
+  it('creates a dashboard preset and forwards the workspace auth context', async () => {
+    const createDashboardPresetSpy = jest
+      .spyOn(dashboardFilterService, 'createDashboardPreset')
+      .mockResolvedValue({
+        id: 'preset-id',
+        name: 'Team pipeline',
+        visibility: 'WORKSPACE',
+        position: 2,
+        createdBy: {
+          id: 'user-id',
+          name: 'Current User',
+        },
+        filter: {
+          recordFilters: [],
+          recordFilterGroups: [],
+        },
+      });
+
+    const input = {
+      dashboardId: 'dashboard-id',
+      name: 'Team pipeline',
+      visibility: 'WORKSPACE',
+      filter: {
+        recordFilters: [],
+        recordFilterGroups: [],
+      },
+    };
+
+    const result = await resolver.createDashboardPreset(
+      input,
+      workspace,
+      user,
+      workspaceMemberId,
+      userWorkspaceId,
+    );
+
+    expect(createDashboardPresetSpy).toHaveBeenCalledWith({
+      input,
+      authContext,
+    });
+    expect(result).toEqual({
+      id: 'preset-id',
+      name: 'Team pipeline',
+      visibility: 'WORKSPACE',
+      position: 2,
+      createdBy: {
+        id: 'user-id',
+        name: 'Current User',
+      },
+      filter: {
+        recordFilters: [],
+        recordFilterGroups: [],
+      },
+    });
+  });
+
+  it('renames a dashboard preset and forwards the workspace auth context', async () => {
+    const renameDashboardPresetSpy = jest
+      .spyOn(dashboardFilterService, 'renameDashboardPreset')
+      .mockResolvedValue({
+        id: 'preset-id',
+        name: 'Renamed preset',
+        visibility: 'WORKSPACE',
+        position: 2,
+        createdBy: {
+          id: 'user-id',
+          name: 'Current User',
+        },
+        filter: {
+          recordFilters: [],
+          recordFilterGroups: [],
+        },
+      });
+
+    const result = await resolver.renameDashboardPreset(
+      'preset-id',
+      'Renamed preset',
+      workspace,
+      user,
+      workspaceMemberId,
+      userWorkspaceId,
+    );
+
+    expect(renameDashboardPresetSpy).toHaveBeenCalledWith({
+      id: 'preset-id',
+      name: 'Renamed preset',
+      authContext,
+    });
+    expect(result).toEqual({
+      id: 'preset-id',
+      name: 'Renamed preset',
+      visibility: 'WORKSPACE',
+      position: 2,
+      createdBy: {
+        id: 'user-id',
+        name: 'Current User',
+      },
+      filter: {
+        recordFilters: [],
+        recordFilterGroups: [],
+      },
+    });
+  });
+
+  it('propagates authorization failures when the user lacks layouts permission', async () => {
+    mockPermissionsService.userHasWorkspaceSettingPermission.mockResolvedValue(
+      false,
+    );
+
     await expect(
       resolver.getDashboardFilters(
-        '00000000-0000-0000-0000-000000000403',
+        'dashboard-id',
         workspace,
         user,
         workspaceMemberId,
         userWorkspaceId,
       ),
-    ).rejects.toThrow('Dashboard filters are not accessible');
+    ).rejects.toMatchObject<Partial<PermissionsException>>({
+      code: PermissionsExceptionCode.PERMISSION_DENIED,
+      message: PermissionsExceptionMessage.PERMISSION_DENIED,
+    });
+  });
+
+  it('uses the create preset permission guard on createDashboardPreset', () => {
+    const guards =
+      Reflect.getMetadata(
+        GUARDS_METADATA,
+        DashboardResolver.prototype.createDashboardPreset,
+      ) ?? [];
+
+    expect(guards).toContain(CreateDashboardPresetPermissionGuard);
+  });
+
+  it('uses the update preset permission guard on renameDashboardPreset', () => {
+    const guards =
+      Reflect.getMetadata(
+        GUARDS_METADATA,
+        DashboardResolver.prototype.renameDashboardPreset,
+      ) ?? [];
+
+    expect(guards).toContain(UpdateDashboardPresetPermissionGuard);
   });
 });

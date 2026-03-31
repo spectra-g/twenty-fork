@@ -14,7 +14,14 @@ import { AuthWorkspace } from 'src/engine/decorators/auth/auth-workspace.decorat
 import { NoPermissionGuard } from 'src/engine/guards/no-permission.guard';
 import { WorkspaceAuthGuard } from 'src/engine/guards/workspace-auth.guard';
 import { PageLayoutGraphqlApiExceptionFilter } from 'src/engine/metadata-modules/page-layout/utils/page-layout-graphql-api-exception.filter';
-import { DashboardFiltersOutput } from 'src/modules/dashboard/dtos/dashboard-filters.output';
+import { PermissionsGraphqlApiExceptionFilter } from 'src/engine/metadata-modules/permissions/utils/permissions-graphql-api-exception.filter';
+import { CreateDashboardPresetInput } from 'src/modules/dashboard/dtos/create-dashboard-preset.input';
+import { CreateDashboardPresetPermissionGuard } from 'src/modules/dashboard/guards/create-dashboard-preset-permission.guard';
+import { UpdateDashboardPresetPermissionGuard } from 'src/modules/dashboard/guards/update-dashboard-preset-permission.guard';
+import {
+  DashboardFilterPresetDTO,
+  DashboardFiltersOutput,
+} from 'src/modules/dashboard/dtos/dashboard-filters.output';
 import { DuplicatedDashboardDTO } from 'src/modules/dashboard/dtos/duplicated-dashboard.dto';
 import { UpdateDashboardFiltersInput } from 'src/modules/dashboard/dtos/update-dashboard-filters.input';
 import { UpdateDashboardFiltersOutput } from 'src/modules/dashboard/dtos/update-dashboard-filters.output';
@@ -26,6 +33,7 @@ import { DashboardGraphqlApiExceptionFilter } from 'src/modules/dashboard/utils/
 @UseFilters(
   DashboardGraphqlApiExceptionFilter,
   PageLayoutGraphqlApiExceptionFilter,
+  PermissionsGraphqlApiExceptionFilter,
 )
 @UseGuards(WorkspaceAuthGuard)
 @UsePipes(ResolverValidationPipe)
@@ -94,6 +102,52 @@ export class DashboardResolver {
 
     return this.dashboardFilterService.updateDashboardFilters({
       input,
+      authContext,
+    });
+  }
+
+  @Mutation(() => DashboardFilterPresetDTO)
+  @UseGuards(CreateDashboardPresetPermissionGuard)
+  async createDashboardPreset(
+    @Args('input') input: CreateDashboardPresetInput,
+    @AuthWorkspace() workspace: WorkspaceEntity,
+    @AuthUser() user: UserEntity,
+    @AuthWorkspaceMemberId() workspaceMemberId: string,
+    @AuthUserWorkspaceId() userWorkspaceId: string,
+  ): Promise<DashboardFilterPresetDTO> {
+    const authContext: AuthContext = {
+      user,
+      workspace,
+      workspaceMemberId,
+      userWorkspaceId,
+    };
+
+    return this.dashboardFilterService.createDashboardPreset({
+      input,
+      authContext,
+    });
+  }
+
+  @Mutation(() => DashboardFilterPresetDTO)
+  @UseGuards(UpdateDashboardPresetPermissionGuard)
+  async renameDashboardPreset(
+    @Args('id', { type: () => UUIDScalarType }) id: string,
+    @Args('name', { type: () => String }) name: string,
+    @AuthWorkspace() workspace: WorkspaceEntity,
+    @AuthUser() user: UserEntity,
+    @AuthWorkspaceMemberId() workspaceMemberId: string,
+    @AuthUserWorkspaceId() userWorkspaceId: string,
+  ): Promise<DashboardFilterPresetDTO> {
+    const authContext: AuthContext = {
+      user,
+      workspace,
+      workspaceMemberId,
+      userWorkspaceId,
+    };
+
+    return this.dashboardFilterService.renameDashboardPreset({
+      id,
+      name,
       authContext,
     });
   }

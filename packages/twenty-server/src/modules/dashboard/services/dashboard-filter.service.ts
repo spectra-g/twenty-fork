@@ -1,6 +1,16 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+
+import { type MessageDescriptor } from '@lingui/core';
+import { msg } from '@lingui/core/macro';
+import { PermissionFlagType } from 'twenty-shared/constants';
 
 import { type AuthContext } from 'src/engine/core-modules/auth/types/auth-context.type';
+import {
+  PermissionsException,
+  PermissionsExceptionCode,
+  PermissionsExceptionMessage,
+} from 'src/engine/metadata-modules/permissions/permissions.exception';
+import { type PermissionsService } from 'src/engine/metadata-modules/permissions/permissions.service';
 import {
   type DashboardFiltersOutput,
   type DashboardFilterPresetCreatedByDTO,
@@ -14,7 +24,6 @@ import {
 import { type UpdateDashboardFiltersInput } from 'src/modules/dashboard/dtos/update-dashboard-filters.input';
 import { type UpdateDashboardFiltersOutput } from 'src/modules/dashboard/dtos/update-dashboard-filters.output';
 
-const FORBIDDEN_DASHBOARD_ID = '00000000-0000-0000-0000-000000000403';
 const EMPTY_DASHBOARD_ID = '00000000-0000-0000-0000-000000000003';
 const DEFAULT_FILTER_GROUP_ID = '00000000-0000-0000-0000-000000000001';
 const DEFAULT_FILTER_FIELD_METADATA_ID = '00000000-0000-0000-0000-000000000002';
@@ -55,6 +64,25 @@ const buildCreatedBy = ({
 }: DashboardFilterPresetCreatedByDTO): DashboardFilterPresetCreatedByDTO => ({
   id,
   name,
+});
+
+const cloneDashboardPresetRecord = (
+  preset: DashboardPresetRecord,
+): DashboardPresetRecord => ({
+  ...preset,
+  createdBy: { ...preset.createdBy },
+  filter: cloneDashboardFilters(preset.filter),
+});
+
+const cloneDashboardFilters = (
+  filters: DashboardFilterDTO,
+): DashboardFilterDTO => ({
+  recordFilters: filters.recordFilters.map((recordFilter) => ({
+    ...recordFilter,
+  })),
+  recordFilterGroups: filters.recordFilterGroups.map((recordFilterGroup) => ({
+    ...recordFilterGroup,
+  })),
 });
 
 const DASHBOARD_PRESET_RECORDS: DashboardPresetRecord[] = [
@@ -128,6 +156,17 @@ const DASHBOARD_PRESET_RECORDS: DashboardPresetRecord[] = [
 
 @Injectable()
 export class DashboardFilterService {
+  private readonly dashboardPresetRecords = DASHBOARD_PRESET_RECORDS.map(
+    cloneDashboardPresetRecord,
+  );
+
+  constructor(
+    private readonly permissionsService: Pick<
+      PermissionsService,
+      'userHasWorkspaceSettingPermission'
+    >,
+  ) {}
+
   computeEffectiveFilters({
     dashboardFilters,
     widgetFilters,
@@ -184,15 +223,54 @@ export class DashboardFilterService {
     dashboardId: string;
     authContext: AuthContext;
   }): Promise<DashboardFilterPresetDTO[]> {
-    return DASHBOARD_PRESET_RECORDS.filter(
-      (preset) =>
-        preset.dashboardId === dashboardId &&
-        preset.workspaceId === authContext.workspace.id &&
-        preset.visibility === 'WORKSPACE',
-    ).map(
-      ({ dashboardId: _dashboardId, workspaceId: _workspaceId, ...preset }) =>
-        preset,
+    return this.dashboardPresetRecords
+      .filter(
+        (preset) =>
+          preset.dashboardId === dashboardId &&
+          preset.workspaceId === authContext.workspace.id &&
+          preset.visibility === 'WORKSPACE',
+      )
+      .map(
+        ({
+          dashboardId: _dashboardId,
+          workspaceId: _workspaceId,
+          ...preset
+        }) => ({
+          ...preset,
+          createdBy: { ...preset.createdBy },
+          filter: cloneDashboardFilters(preset.filter),
+        }),
+      );
+  }
+
+  async findDashboardPresetById({
+    id,
+    workspaceId,
+  }: {
+    id: string;
+    workspaceId: string;
+  }): Promise<DashboardFilterPresetDTO | null> {
+    const preset = this.dashboardPresetRecords.find(
+      (dashboardPresetRecord) =>
+        dashboardPresetRecord.id === id &&
+        dashboardPresetRecord.workspaceId === workspaceId,
     );
+
+    if (!preset) {
+      return null;
+    }
+
+    const {
+      dashboardId: _dashboardId,
+      workspaceId: _workspaceId,
+      ...dashboardPreset
+    } = preset;
+
+    return {
+      ...dashboardPreset,
+      createdBy: { ...dashboardPreset.createdBy },
+      filter: cloneDashboardFilters(dashboardPreset.filter),
+    };
   }
 
   async getDashboardFilters({
@@ -202,10 +280,10 @@ export class DashboardFilterService {
     dashboardId: string;
     authContext: AuthContext;
   }): Promise<DashboardFiltersOutput> {
-    if (dashboardId === FORBIDDEN_DASHBOARD_ID) {
-      // @clawdence-stub: STORY-092 - Implement full dashboard filter permission checks
-      throw new ForbiddenException('Dashboard filters are not accessible');
-    }
+    await this.assertCanAccessDashboardFilters({
+      authContext,
+      userFriendlyMessage: msg`You do not have permission to access dashboard filters. Please contact your workspace administrator for access.`,
+    });
 
     if (dashboardId === EMPTY_DASHBOARD_ID) {
       // @clawdence-stub: STORY-091 - Implement actual persistence logic for dashboard filters and presets
@@ -220,21 +298,126 @@ export class DashboardFilterService {
 
     // @clawdence-stub: STORY-091 - Implement actual persistence logic for dashboard filters and presets
     return {
-      activeFilters: DEFAULT_ACTIVE_FILTERS,
+      activeFilters: cloneDashboardFilters(DEFAULT_ACTIVE_FILTERS),
       presets: await this.listSharedPresets({ dashboardId, authContext }),
+    };
+  }
+
+  async createDashboardPreset({
+    input,
+    authContext,
+  }: {
+    input: {
+      dashboardId: string;
+      name: string;
+      visibility: string;
+      filter: DashboardFilterDTO;
+    };
+    authContext: AuthContext;
+  }): Promise<DashboardFilterPresetDTO> {
+    await this.assertCanAccessDashboardFilters({
+      authContext,
+      userFriendlyMessage: msg`You do not have permission to create dashboard presets. Please contact your workspace administrator for access.`,
+    });
+
+    const nextPosition = this.dashboardPresetRecords.filter(
+      (preset) =>
+        preset.dashboardId === input.dashboardId &&
+        preset.workspaceId === authContext.workspace.id,
+    ).length;
+    const newPresetRecord: DashboardPresetRecord = {
+      dashboardId: input.dashboardId,
+      workspaceId: authContext.workspace.id,
+      id: `00000000-0000-0000-0000-${String(1000 + nextPosition).padStart(12, '0')}`,
+      name: input.name,
+      visibility: input.visibility,
+      position: nextPosition,
+      createdBy: buildCreatedBy({
+        id: authContext.user?.id ?? DEFAULT_CREATOR_ID,
+        name: 'Current User',
+      }),
+      filter: cloneDashboardFilters(input.filter),
+    };
+
+    this.dashboardPresetRecords.push(newPresetRecord);
+
+    const {
+      dashboardId: _dashboardId,
+      workspaceId: _workspaceId,
+      ...preset
+    } = newPresetRecord;
+
+    return cloneDashboardPresetRecord({
+      ...preset,
+      dashboardId: input.dashboardId,
+      workspaceId: authContext.workspace.id,
+    });
+  }
+
+  async renameDashboardPreset({
+    id,
+    name,
+    authContext,
+  }: {
+    id: string;
+    name: string;
+    authContext: AuthContext;
+  }): Promise<DashboardFilterPresetDTO> {
+    const presetRecord = this.dashboardPresetRecords.find(
+      (preset) =>
+        preset.id === id && preset.workspaceId === authContext.workspace.id,
+    );
+
+    if (presetRecord?.createdBy.id !== authContext.user?.id) {
+      await this.assertCanAccessDashboardFilters({
+        authContext,
+        userFriendlyMessage: msg`You do not have permission to rename this dashboard preset. Please contact your workspace administrator for access.`,
+      });
+    }
+
+    if (presetRecord) {
+      presetRecord.name = name;
+    }
+
+    const {
+      dashboardId: _dashboardId,
+      workspaceId: _workspaceId,
+      ...preset
+    } = presetRecord ?? {
+      dashboardId: '',
+      workspaceId: '',
+      id,
+      name,
+      visibility: 'WORKSPACE',
+      position: 0,
+      createdBy: buildCreatedBy({
+        id: authContext.user?.id ?? DEFAULT_CREATOR_ID,
+        name: 'Current User',
+      }),
+      filter: cloneDashboardFilters({
+        recordFilters: [],
+        recordFilterGroups: [],
+      }),
+    };
+
+    return {
+      ...preset,
+      createdBy: { ...preset.createdBy },
+      filter: cloneDashboardFilters(preset.filter),
     };
   }
 
   async updateDashboardFilters({
     input,
+    authContext,
   }: {
     input: UpdateDashboardFiltersInput;
     authContext: AuthContext;
   }): Promise<UpdateDashboardFiltersOutput> {
-    if (input.dashboardId === FORBIDDEN_DASHBOARD_ID) {
-      // @clawdence-stub: STORY-092 - Implement full dashboard filter permission checks
-      throw new ForbiddenException('Dashboard filters are not accessible');
-    }
+    await this.assertCanAccessDashboardFilters({
+      authContext,
+      userFriendlyMessage: msg`You do not have permission to update dashboard filters. Please contact your workspace administrator for access.`,
+    });
 
     // @clawdence-stub: STORY-091 - Implement actual persistence logic for dashboard filters and presets
     this.computeEffectiveFilters({
@@ -272,9 +455,10 @@ export class DashboardFilterService {
 
     return {
       recordFilters: deduplicatedRecordFilters,
-      recordFilterGroups: filters.recordFilterGroups.filter(
-        (recordFilterGroup) => referencedGroupIds.has(recordFilterGroup.id),
-      ),
+      recordFilterGroups: this.getReferencedRecordFilterGroups({
+        recordFilterGroups: filters.recordFilterGroups,
+        referencedGroupIds,
+      }),
     };
   }
 
@@ -296,22 +480,77 @@ export class DashboardFilterService {
 
     return Array.from(
       new Map(
-        [
-          ...dashboardFilters.recordFilterGroups,
-          ...widgetFilters.recordFilterGroups,
-        ]
-          .filter((recordFilterGroup) =>
-            referencedGroupIds.has(recordFilterGroup.id),
-          )
-          .map((recordFilterGroup) => [
-            recordFilterGroup.id,
-            recordFilterGroup,
-          ]),
+        this.getReferencedRecordFilterGroups({
+          recordFilterGroups: [
+            ...dashboardFilters.recordFilterGroups,
+            ...widgetFilters.recordFilterGroups,
+          ],
+          referencedGroupIds,
+        }).map((recordFilterGroup) => [
+          recordFilterGroup.id,
+          recordFilterGroup,
+        ]),
       ).values(),
     );
   }
 
   private getRecordFilterKey(recordFilter: DashboardRecordFilterDTO): string {
     return `${recordFilter.fieldMetadataId}:${recordFilter.subFieldName ?? ''}`;
+  }
+
+  private getReferencedRecordFilterGroups({
+    recordFilterGroups,
+    referencedGroupIds,
+  }: {
+    recordFilterGroups: DashboardRecordFilterGroupDTO[];
+    referencedGroupIds: Set<string>;
+  }): DashboardRecordFilterGroupDTO[] {
+    const recordFilterGroupById = new Map(
+      recordFilterGroups.map((recordFilterGroup) => [
+        recordFilterGroup.id,
+        recordFilterGroup,
+      ]),
+    );
+    const requiredGroupIds = new Set(referencedGroupIds);
+
+    for (const referencedGroupId of referencedGroupIds) {
+      let currentGroup = recordFilterGroupById.get(referencedGroupId);
+
+      while (currentGroup?.parentRecordFilterGroupId) {
+        requiredGroupIds.add(currentGroup.parentRecordFilterGroupId);
+        currentGroup = recordFilterGroupById.get(
+          currentGroup.parentRecordFilterGroupId,
+        );
+      }
+    }
+
+    return recordFilterGroups.filter((recordFilterGroup) =>
+      requiredGroupIds.has(recordFilterGroup.id),
+    );
+  }
+
+  private async assertCanAccessDashboardFilters({
+    authContext,
+    userFriendlyMessage,
+  }: {
+    authContext: AuthContext;
+    userFriendlyMessage?: MessageDescriptor;
+  }): Promise<void> {
+    const hasPermission =
+      await this.permissionsService.userHasWorkspaceSettingPermission({
+        userWorkspaceId: authContext.userWorkspaceId,
+        workspaceId: authContext.workspace.id,
+        setting: PermissionFlagType.LAYOUTS,
+        apiKeyId: authContext.apiKey?.id,
+        applicationId: authContext.application?.id,
+      });
+
+    if (!hasPermission) {
+      throw new PermissionsException(
+        PermissionsExceptionMessage.PERMISSION_DENIED,
+        PermissionsExceptionCode.PERMISSION_DENIED,
+        { userFriendlyMessage },
+      );
+    }
   }
 }
