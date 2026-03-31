@@ -66,6 +66,14 @@ const buildCreatedBy = ({
   name,
 });
 
+const cloneDashboardPresetRecord = (
+  preset: DashboardPresetRecord,
+): DashboardPresetRecord => ({
+  ...preset,
+  createdBy: { ...preset.createdBy },
+  filter: cloneDashboardFilters(preset.filter),
+});
+
 const cloneDashboardFilters = (
   filters: DashboardFilterDTO,
 ): DashboardFilterDTO => ({
@@ -148,6 +156,10 @@ const DASHBOARD_PRESET_RECORDS: DashboardPresetRecord[] = [
 
 @Injectable()
 export class DashboardFilterService {
+  private readonly dashboardPresetRecords = DASHBOARD_PRESET_RECORDS.map(
+    cloneDashboardPresetRecord,
+  );
+
   constructor(
     private readonly permissionsService: Pick<
       PermissionsService,
@@ -211,16 +223,24 @@ export class DashboardFilterService {
     dashboardId: string;
     authContext: AuthContext;
   }): Promise<DashboardFilterPresetDTO[]> {
-    return DASHBOARD_PRESET_RECORDS.filter(
-      (preset) =>
-        preset.dashboardId === dashboardId &&
-        preset.workspaceId === authContext.workspace.id &&
-        preset.visibility === 'WORKSPACE',
-    ).map(({ dashboardId: _dashboardId, workspaceId: _workspaceId, ...preset }) => ({
-      ...preset,
-      createdBy: { ...preset.createdBy },
-      filter: cloneDashboardFilters(preset.filter),
-    }));
+    return this.dashboardPresetRecords
+      .filter(
+        (preset) =>
+          preset.dashboardId === dashboardId &&
+          preset.workspaceId === authContext.workspace.id &&
+          preset.visibility === 'WORKSPACE',
+      )
+      .map(
+        ({
+          dashboardId: _dashboardId,
+          workspaceId: _workspaceId,
+          ...preset
+        }) => ({
+          ...preset,
+          createdBy: { ...preset.createdBy },
+          filter: cloneDashboardFilters(preset.filter),
+        }),
+      );
   }
 
   async getDashboardFilters({
@@ -250,6 +270,110 @@ export class DashboardFilterService {
     return {
       activeFilters: cloneDashboardFilters(DEFAULT_ACTIVE_FILTERS),
       presets: await this.listSharedPresets({ dashboardId, authContext }),
+    };
+  }
+
+  async createDashboardPreset({
+    input,
+    authContext,
+  }: {
+    input: {
+      dashboardId: string;
+      name: string;
+      visibility: string;
+      filter: DashboardFilterDTO;
+    };
+    authContext: AuthContext;
+  }): Promise<DashboardFilterPresetDTO> {
+    await this.assertCanAccessDashboardFilters({
+      authContext,
+      userFriendlyMessage: msg`You do not have permission to create dashboard presets. Please contact your workspace administrator for access.`,
+    });
+
+    const nextPosition = this.dashboardPresetRecords.filter(
+      (preset) =>
+        preset.dashboardId === input.dashboardId &&
+        preset.workspaceId === authContext.workspace.id,
+    ).length;
+    const newPresetRecord: DashboardPresetRecord = {
+      dashboardId: input.dashboardId,
+      workspaceId: authContext.workspace.id,
+      id: `00000000-0000-0000-0000-${String(1000 + nextPosition).padStart(12, '0')}`,
+      name: input.name,
+      visibility: input.visibility,
+      position: nextPosition,
+      createdBy: buildCreatedBy({
+        id: authContext.user?.id ?? DEFAULT_CREATOR_ID,
+        name: 'Current User',
+      }),
+      filter: cloneDashboardFilters(input.filter),
+    };
+
+    this.dashboardPresetRecords.push(newPresetRecord);
+
+    const {
+      dashboardId: _dashboardId,
+      workspaceId: _workspaceId,
+      ...preset
+    } = newPresetRecord;
+
+    return cloneDashboardPresetRecord({
+      ...preset,
+      dashboardId: input.dashboardId,
+      workspaceId: authContext.workspace.id,
+    });
+  }
+
+  async renameDashboardPreset({
+    id,
+    name,
+    authContext,
+  }: {
+    id: string;
+    name: string;
+    authContext: AuthContext;
+  }): Promise<DashboardFilterPresetDTO> {
+    const presetRecord = this.dashboardPresetRecords.find(
+      (preset) =>
+        preset.id === id && preset.workspaceId === authContext.workspace.id,
+    );
+
+    if (presetRecord?.createdBy.id !== authContext.user?.id) {
+      await this.assertCanAccessDashboardFilters({
+        authContext,
+        userFriendlyMessage: msg`You do not have permission to rename this dashboard preset. Please contact your workspace administrator for access.`,
+      });
+    }
+
+    if (presetRecord) {
+      presetRecord.name = name;
+    }
+
+    const {
+      dashboardId: _dashboardId,
+      workspaceId: _workspaceId,
+      ...preset
+    } = presetRecord ?? {
+      dashboardId: '',
+      workspaceId: '',
+      id,
+      name,
+      visibility: 'WORKSPACE',
+      position: 0,
+      createdBy: buildCreatedBy({
+        id: authContext.user?.id ?? DEFAULT_CREATOR_ID,
+        name: 'Current User',
+      }),
+      filter: cloneDashboardFilters({
+        recordFilters: [],
+        recordFilterGroups: [],
+      }),
+    };
+
+    return {
+      ...preset,
+      createdBy: { ...preset.createdBy },
+      filter: cloneDashboardFilters(preset.filter),
     };
   }
 
@@ -332,11 +456,10 @@ export class DashboardFilterService {
             ...widgetFilters.recordFilterGroups,
           ],
           referencedGroupIds,
-        })
-          .map((recordFilterGroup) => [
-            recordFilterGroup.id,
-            recordFilterGroup,
-          ]),
+        }).map((recordFilterGroup) => [
+          recordFilterGroup.id,
+          recordFilterGroup,
+        ]),
       ).values(),
     );
   }

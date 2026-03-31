@@ -190,6 +190,110 @@ describe('DashboardResolver', () => {
     expect(result).toEqual({ success: true });
   });
 
+  it('creates a dashboard preset and forwards the workspace auth context', async () => {
+    const createDashboardPresetSpy = jest
+      .spyOn(dashboardFilterService, 'createDashboardPreset')
+      .mockResolvedValue({
+        id: 'preset-id',
+        name: 'Team pipeline',
+        visibility: 'WORKSPACE',
+        position: 2,
+        createdBy: {
+          id: 'user-id',
+          name: 'Current User',
+        },
+        filter: {
+          recordFilters: [],
+          recordFilterGroups: [],
+        },
+      });
+
+    const input = {
+      dashboardId: 'dashboard-id',
+      name: 'Team pipeline',
+      visibility: 'WORKSPACE',
+      filter: {
+        recordFilters: [],
+        recordFilterGroups: [],
+      },
+    };
+
+    const result = await resolver.createDashboardPreset(
+      input,
+      workspace,
+      user,
+      workspaceMemberId,
+      userWorkspaceId,
+    );
+
+    expect(createDashboardPresetSpy).toHaveBeenCalledWith({
+      input,
+      authContext,
+    });
+    expect(result).toEqual({
+      id: 'preset-id',
+      name: 'Team pipeline',
+      visibility: 'WORKSPACE',
+      position: 2,
+      createdBy: {
+        id: 'user-id',
+        name: 'Current User',
+      },
+      filter: {
+        recordFilters: [],
+        recordFilterGroups: [],
+      },
+    });
+  });
+
+  it('renames a dashboard preset and forwards the workspace auth context', async () => {
+    const renameDashboardPresetSpy = jest
+      .spyOn(dashboardFilterService, 'renameDashboardPreset')
+      .mockResolvedValue({
+        id: 'preset-id',
+        name: 'Renamed preset',
+        visibility: 'WORKSPACE',
+        position: 2,
+        createdBy: {
+          id: 'user-id',
+          name: 'Current User',
+        },
+        filter: {
+          recordFilters: [],
+          recordFilterGroups: [],
+        },
+      });
+
+    const result = await resolver.renameDashboardPreset(
+      'preset-id',
+      'Renamed preset',
+      workspace,
+      user,
+      workspaceMemberId,
+      userWorkspaceId,
+    );
+
+    expect(renameDashboardPresetSpy).toHaveBeenCalledWith({
+      id: 'preset-id',
+      name: 'Renamed preset',
+      authContext,
+    });
+    expect(result).toEqual({
+      id: 'preset-id',
+      name: 'Renamed preset',
+      visibility: 'WORKSPACE',
+      position: 2,
+      createdBy: {
+        id: 'user-id',
+        name: 'Current User',
+      },
+      filter: {
+        recordFilters: [],
+        recordFilterGroups: [],
+      },
+    });
+  });
+
   it('propagates authorization failures when the user lacks layouts permission', async () => {
     mockPermissionsService.userHasWorkspaceSettingPermission.mockResolvedValue(
       false,

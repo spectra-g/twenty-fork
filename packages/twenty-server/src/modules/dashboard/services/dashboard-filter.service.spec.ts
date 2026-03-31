@@ -298,8 +298,9 @@ describe('DashboardFilterService', () => {
       });
 
       expect(secondResponse.activeFilters.recordFilters[0].value).toBe('open');
-      expect(secondResponse.activeFilters.recordFilterGroups[0].logicalOperator)
-        .toBe('AND');
+      expect(
+        secondResponse.activeFilters.recordFilterGroups[0].logicalOperator,
+      ).toBe('AND');
     });
 
     it('should deny access when the user does not have layouts permission', async () => {
@@ -406,6 +407,49 @@ describe('DashboardFilterService', () => {
           authContext,
         }),
       ).resolves.toEqual({ success: true });
+    });
+  });
+
+  describe('createDashboardPreset', () => {
+    it('should reject workspace preset creation when the user lacks layouts permission', async () => {
+      mockPermissionsService.userHasWorkspaceSettingPermission.mockResolvedValue(
+        false,
+      );
+
+      await expect(
+        service.createDashboardPreset({
+          input: {
+            dashboardId: 'dashboard-id',
+            name: 'Team pipeline',
+            visibility: 'WORKSPACE',
+            filter: {
+              recordFilters: [],
+              recordFilterGroups: [],
+            },
+          },
+          authContext,
+        }),
+      ).rejects.toMatchObject<Partial<PermissionsException>>({
+        code: PermissionsExceptionCode.PERMISSION_DENIED,
+      });
+    });
+  });
+
+  describe('renameDashboardPreset', () => {
+    it('should reject renaming another user preset when the user lacks layouts permission', async () => {
+      mockPermissionsService.userHasWorkspaceSettingPermission.mockResolvedValue(
+        false,
+      );
+
+      await expect(
+        service.renameDashboardPreset({
+          id: '00000000-0000-0000-0000-000000000004',
+          name: 'Renamed preset',
+          authContext,
+        }),
+      ).rejects.toMatchObject<Partial<PermissionsException>>({
+        code: PermissionsExceptionCode.PERMISSION_DENIED,
+      });
     });
   });
 });
