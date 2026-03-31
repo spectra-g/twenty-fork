@@ -40,6 +40,7 @@ export class BarChartDataResolver {
       userWorkspaceId,
     };
 
+    // @clawdence-stub: STORY-100 - Compose dashboard-level filters with widget-local filters using logical AND before querying
     return this.barChartDataService.getBarChartData({
       objectMetadataId: input.objectMetadataId,
       configuration: input.configuration,

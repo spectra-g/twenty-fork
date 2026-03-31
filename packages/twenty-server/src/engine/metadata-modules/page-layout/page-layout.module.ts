@@ -13,6 +13,7 @@ import { PageLayoutController } from 'src/engine/metadata-modules/page-layout/co
 import { PageLayoutEntity } from 'src/engine/metadata-modules/page-layout/entities/page-layout.entity';
 import { PageLayoutResolver } from 'src/engine/metadata-modules/page-layout/resolvers/page-layout.resolver';
 import { PageLayoutDuplicationService } from 'src/engine/metadata-modules/page-layout/services/page-layout-duplication.service';
+import { PageLayoutDashboardFilterStateService } from 'src/engine/metadata-modules/page-layout/services/page-layout-dashboard-filter-state.service';
 import { PageLayoutUpdateService } from 'src/engine/metadata-modules/page-layout/services/page-layout-update.service';
 import { PageLayoutService } from 'src/engine/metadata-modules/page-layout/services/page-layout.service';
 import { PermissionsModule } from 'src/engine/metadata-modules/permissions/permissions.module';
@@ -41,6 +42,7 @@ import { DashboardSyncModule } from 'src/modules/dashboard-sync/dashboard-sync.m
   controllers: [PageLayoutController],
   providers: [
     PageLayoutService,
+    PageLayoutDashboardFilterStateService,
     PageLayoutDuplicationService,
     PageLayoutResolver,
     PageLayoutUpdateService,
