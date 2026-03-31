@@ -119,6 +119,52 @@ describe('DashboardFilterService', () => {
         ]),
       );
     });
+
+    it('should retain parent filter groups when a referenced child group is nested', () => {
+      const result = service.computeEffectiveFilters({
+        dashboardFilters: {
+          recordFilters: [
+            {
+              fieldMetadataId: 'owner-field',
+              operand: 'eq',
+              value: 'Alice',
+              type: 'TEXT',
+              recordFilterGroupId: 'child-group',
+              subFieldName: null,
+            },
+          ],
+          recordFilterGroups: [
+            {
+              id: 'parent-group',
+              logicalOperator: 'AND',
+              parentRecordFilterGroupId: null,
+            },
+            {
+              id: 'child-group',
+              logicalOperator: 'OR',
+              parentRecordFilterGroupId: 'parent-group',
+            },
+          ],
+        },
+        widgetFilters: {
+          recordFilters: [],
+          recordFilterGroups: [],
+        },
+      });
+
+      expect(result.recordFilterGroups).toEqual([
+        {
+          id: 'parent-group',
+          logicalOperator: 'AND',
+          parentRecordFilterGroupId: null,
+        },
+        {
+          id: 'child-group',
+          logicalOperator: 'OR',
+          parentRecordFilterGroupId: 'parent-group',
+        },
+      ]);
+    });
   });
 
   describe('applyPresetToWidgetFilters', () => {

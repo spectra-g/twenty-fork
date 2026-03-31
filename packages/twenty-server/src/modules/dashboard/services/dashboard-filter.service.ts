@@ -289,9 +289,10 @@ export class DashboardFilterService {
 
     return {
       recordFilters: deduplicatedRecordFilters,
-      recordFilterGroups: filters.recordFilterGroups.filter(
-        (recordFilterGroup) => referencedGroupIds.has(recordFilterGroup.id),
-      ),
+      recordFilterGroups: this.getReferencedRecordFilterGroups({
+        recordFilterGroups: filters.recordFilterGroups,
+        referencedGroupIds,
+      }),
     };
   }
 
@@ -313,13 +314,13 @@ export class DashboardFilterService {
 
     return Array.from(
       new Map(
-        [
-          ...dashboardFilters.recordFilterGroups,
-          ...widgetFilters.recordFilterGroups,
-        ]
-          .filter((recordFilterGroup) =>
-            referencedGroupIds.has(recordFilterGroup.id),
-          )
+        this.getReferencedRecordFilterGroups({
+          recordFilterGroups: [
+            ...dashboardFilters.recordFilterGroups,
+            ...widgetFilters.recordFilterGroups,
+          ],
+          referencedGroupIds,
+        })
           .map((recordFilterGroup) => [
             recordFilterGroup.id,
             recordFilterGroup,
@@ -330,6 +331,37 @@ export class DashboardFilterService {
 
   private getRecordFilterKey(recordFilter: DashboardRecordFilterDTO): string {
     return `${recordFilter.fieldMetadataId}:${recordFilter.subFieldName ?? ''}`;
+  }
+
+  private getReferencedRecordFilterGroups({
+    recordFilterGroups,
+    referencedGroupIds,
+  }: {
+    recordFilterGroups: DashboardRecordFilterGroupDTO[];
+    referencedGroupIds: Set<string>;
+  }): DashboardRecordFilterGroupDTO[] {
+    const recordFilterGroupById = new Map(
+      recordFilterGroups.map((recordFilterGroup) => [
+        recordFilterGroup.id,
+        recordFilterGroup,
+      ]),
+    );
+    const requiredGroupIds = new Set(referencedGroupIds);
+
+    for (const referencedGroupId of referencedGroupIds) {
+      let currentGroup = recordFilterGroupById.get(referencedGroupId);
+
+      while (currentGroup?.parentRecordFilterGroupId) {
+        requiredGroupIds.add(currentGroup.parentRecordFilterGroupId);
+        currentGroup = recordFilterGroupById.get(
+          currentGroup.parentRecordFilterGroupId,
+        );
+      }
+    }
+
+    return recordFilterGroups.filter((recordFilterGroup) =>
+      requiredGroupIds.has(recordFilterGroup.id),
+    );
   }
 
   private async assertCanAccessDashboardFilters({
