@@ -20,6 +20,7 @@ import { type FlatEntityMaps } from 'src/engine/metadata-modules/flat-entity/typ
 import { findFlatEntityByIdInFlatEntityMaps } from 'src/engine/metadata-modules/flat-entity/utils/find-flat-entity-by-id-in-flat-entity-maps.util';
 import { type FlatFieldMetadata } from 'src/engine/metadata-modules/flat-field-metadata/types/flat-field-metadata.type';
 import { type FlatObjectMetadata } from 'src/engine/metadata-modules/flat-object-metadata/types/flat-object-metadata.type';
+import { normalizeChartFilterForPermissions } from 'src/modules/dashboard/chart-data/utils/permission-aware-filter.util';
 
 type ConvertChartFilterToGqlOperationFilterParams = {
   filter: ChartFilter | undefined;
@@ -126,14 +127,20 @@ export const convertChartFilterToGqlOperationFilter = ({
   userTimezone,
 }: ConvertChartFilterToGqlOperationFilterParams): ObjectRecordFilter => {
   const globalOperationFilter = computeSingleChartFilterOperation({
-    filter: globalFilter,
+    filter: normalizeChartFilterForPermissions({
+      filter: globalFilter,
+      flatFieldMetadataMaps,
+    }),
     flatObjectMetadata,
     flatFieldMetadataMaps,
     userTimezone,
   });
 
   const localOperationFilter = computeSingleChartFilterOperation({
-    filter,
+    filter: normalizeChartFilterForPermissions({
+      filter,
+      flatFieldMetadataMaps,
+    }),
     flatObjectMetadata,
     flatFieldMetadataMaps,
     userTimezone,
