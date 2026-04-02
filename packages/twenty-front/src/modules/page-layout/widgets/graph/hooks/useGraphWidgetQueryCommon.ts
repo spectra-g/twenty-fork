@@ -1,5 +1,7 @@
+import { useDashboardFilters } from '@/dashboard/hooks/useDashboardFilters';
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
 import { useUserTimezone } from '@/ui/input/components/internal/date/hooks/useUserTimezone';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import {
   computeRecordGqlOperationFilter,
   isDefined,
@@ -37,13 +39,17 @@ export const useGraphWidgetQueryCommon = ({
   }
 
   const { userTimezone } = useUserTimezone();
+  const { globalFilters } = useDashboardFilters();
 
   const gqlOperationFilter = computeRecordGqlOperationFilter({
     fields: objectMetadataItem.fields,
     filterValueDependencies: {
       timeZone: userTimezone,
     },
-    recordFilters: configuration.filter?.recordFilters ?? [],
+    recordFilters: [
+      ...globalFilters,
+      ...(configuration.filter?.recordFilters ?? []),
+    ],
     recordFilterGroups: configuration.filter?.recordFilterGroups ?? [],
   });
 
