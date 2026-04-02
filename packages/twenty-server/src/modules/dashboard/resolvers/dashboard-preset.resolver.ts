@@ -16,6 +16,7 @@ import { ApplyDashboardPresetInput } from 'src/modules/dashboard/dtos/apply-dash
 import { ApplyDashboardPresetResultDTO } from 'src/modules/dashboard/dtos/apply-dashboard-preset-result.dto';
 import { CreateDashboardPresetInput } from 'src/modules/dashboard/dtos/create-dashboard-preset.input';
 import { DashboardPresetDTO } from 'src/modules/dashboard/dtos/dashboard-preset.dto';
+import { UpdateDashboardPresetInput } from 'src/modules/dashboard/dtos/update-dashboard-preset.input';
 import { DashboardPresetService } from 'src/modules/dashboard/services/dashboard-preset.service';
 import { DashboardGraphqlApiExceptionFilter } from 'src/modules/dashboard/utils/dashboard-graphql-api-exception.filter';
 
@@ -80,6 +81,50 @@ export class DashboardPresetResolver {
 
     return this.dashboardPresetService.apply({
       applyDashboardPresetInput,
+      authContext,
+    });
+  }
+
+  @Mutation(() => DashboardPresetDTO)
+  @UseGuards(NoPermissionGuard)
+  async updateDashboardPreset(
+    @Args('input') updateDashboardPresetInput: UpdateDashboardPresetInput,
+    @AuthWorkspace() workspace: WorkspaceEntity,
+    @AuthUser() user: UserEntity,
+    @AuthWorkspaceMemberId() workspaceMemberId: string,
+    @AuthUserWorkspaceId() userWorkspaceId: string,
+  ): Promise<DashboardPresetDTO> {
+    const authContext: AuthContext = {
+      user,
+      workspace,
+      workspaceMemberId,
+      userWorkspaceId,
+    };
+
+    return this.dashboardPresetService.update({
+      updateDashboardPresetInput,
+      authContext,
+    });
+  }
+
+  @Mutation(() => Boolean)
+  @UseGuards(NoPermissionGuard)
+  async deleteDashboardPreset(
+    @Args('id', { type: () => String }) id: string,
+    @AuthWorkspace() workspace: WorkspaceEntity,
+    @AuthUser() user: UserEntity,
+    @AuthWorkspaceMemberId() workspaceMemberId: string,
+    @AuthUserWorkspaceId() userWorkspaceId: string,
+  ): Promise<boolean> {
+    const authContext: AuthContext = {
+      user,
+      workspace,
+      workspaceMemberId,
+      userWorkspaceId,
+    };
+
+    return this.dashboardPresetService.delete({
+      id,
       authContext,
     });
   }

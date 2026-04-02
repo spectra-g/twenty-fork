@@ -21,7 +21,8 @@ export const DashboardFilterBar = ({
   objectMetadataItemId: string;
 }) => {
   const { globalFilters, setGlobalFilters } = useDashboardFilters();
-  const { applyPreset, presets, savePreset } = useDashboardPresets();
+  const { applyPreset, deletePreset, presets, renamePreset, savePreset } =
+    useDashboardPresets();
   const { objectMetadataItem } = useObjectMetadataItemById({
     objectId: objectMetadataItemId,
   });
@@ -52,6 +53,8 @@ export const DashboardFilterBar = ({
     <StyledContainer data-testid="dashboard-filter-bar">
       <DashboardPresetDropdown
         onApplyPreset={applyPreset}
+        onDeletePreset={deletePreset}
+        onRenamePreset={renamePreset}
         onSavePreset={savePreset}
         presets={presets}
       />

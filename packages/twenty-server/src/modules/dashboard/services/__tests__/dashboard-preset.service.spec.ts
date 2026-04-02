@@ -52,6 +52,7 @@ describe('DashboardPresetService', () => {
   beforeEach(async () => {
     dashboardPresetRepository = {
       create: jest.fn(),
+      delete: jest.fn(),
       find: jest.fn(),
       findOne: jest.fn(),
       save: jest.fn(),
@@ -248,6 +249,97 @@ describe('DashboardPresetService', () => {
           targetDashboardId: dashboardId,
         },
         authContext,
+      }),
+    ).rejects.toMatchObject({
+      code: DashboardExceptionCode.DASHBOARD_PRESET_NOT_FOUND,
+    });
+  });
+
+  it('renames an existing preset in the current workspace', async () => {
+    const updatedAt = new Date('2026-04-02T11:00:00.000Z');
+
+    dashboardPresetRepository.findOne.mockResolvedValue({
+      id: presetId,
+      dashboardId,
+      workspaceId,
+      name: 'Q1 Sales View',
+      filterState,
+      createdAt: new Date('2026-04-02T10:00:00.000Z'),
+      updatedAt,
+    } as DashboardPresetEntity);
+    dashboardPresetRepository.save.mockImplementation(async (value) => ({
+      ...(value as DashboardPresetEntity),
+      updatedAt,
+    }));
+
+    const result = await service.update({
+      authContext,
+      updateDashboardPresetInput: {
+        id: presetId,
+        name: ' Q2 Sales View ',
+      },
+    });
+
+    expect(dashboardPresetRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: presetId,
+        name: 'Q2 Sales View',
+      }),
+    );
+    expect(result).toMatchObject({
+      id: presetId,
+      name: 'Q2 Sales View',
+    });
+  });
+
+  it('throws when renaming a preset with only whitespace', async () => {
+    await expect(
+      service.update({
+        authContext,
+        updateDashboardPresetInput: {
+          id: presetId,
+          name: '   ',
+        },
+      }),
+    ).rejects.toMatchObject({
+      code: DashboardExceptionCode.DASHBOARD_PRESET_INVALID_INPUT,
+    });
+  });
+
+  it('deletes an existing preset in the current workspace', async () => {
+    dashboardPresetRepository.findOne.mockResolvedValue({
+      id: presetId,
+      dashboardId,
+      workspaceId,
+      name: 'Q1 Sales View',
+      filterState,
+      createdAt: new Date('2026-04-02T10:00:00.000Z'),
+      updatedAt: new Date('2026-04-02T10:00:00.000Z'),
+    } as DashboardPresetEntity);
+    dashboardPresetRepository.delete.mockResolvedValue({
+      affected: 1,
+      raw: {},
+    });
+
+    const result = await service.delete({
+      authContext,
+      id: presetId,
+    });
+
+    expect(dashboardPresetRepository.delete).toHaveBeenCalledWith({
+      id: presetId,
+      workspaceId,
+    });
+    expect(result).toBe(true);
+  });
+
+  it('throws when deleting a missing preset', async () => {
+    dashboardPresetRepository.findOne.mockResolvedValue(null);
+
+    await expect(
+      service.delete({
+        authContext,
+        id: presetId,
       }),
     ).rejects.toMatchObject({
       code: DashboardExceptionCode.DASHBOARD_PRESET_NOT_FOUND,

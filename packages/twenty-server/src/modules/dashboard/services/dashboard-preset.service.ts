@@ -15,6 +15,7 @@ import { ApplyDashboardPresetInput } from 'src/modules/dashboard/dtos/apply-dash
 import { ApplyDashboardPresetResultDTO } from 'src/modules/dashboard/dtos/apply-dashboard-preset-result.dto';
 import { CreateDashboardPresetInput } from 'src/modules/dashboard/dtos/create-dashboard-preset.input';
 import { DashboardPresetDTO } from 'src/modules/dashboard/dtos/dashboard-preset.dto';
+import { UpdateDashboardPresetInput } from 'src/modules/dashboard/dtos/update-dashboard-preset.input';
 import { DashboardPresetEntity } from 'src/modules/dashboard/entities/dashboard-preset.entity';
 import {
   DashboardException,
@@ -81,6 +82,59 @@ export class DashboardPresetService {
     );
   }
 
+  async update({
+    authContext,
+    updateDashboardPresetInput,
+  }: {
+    authContext: AuthContext;
+    updateDashboardPresetInput: UpdateDashboardPresetInput;
+  }): Promise<DashboardPresetDTO> {
+    const presetName = updateDashboardPresetInput.name.trim();
+
+    if (presetName.length === 0) {
+      throw new DashboardException(
+        generateDashboardExceptionMessage(
+          DashboardExceptionMessageKey.DASHBOARD_PRESET_INVALID_INPUT,
+          'name must not be empty',
+        ),
+        DashboardExceptionCode.DASHBOARD_PRESET_INVALID_INPUT,
+      );
+    }
+
+    const dashboardPreset = await this.getDashboardPresetOrThrow({
+      presetId: updateDashboardPresetInput.id,
+      workspaceId: this.getWorkspaceIdOrThrow(authContext),
+    });
+
+    dashboardPreset.name = presetName;
+
+    return this.toDTO(
+      await this.dashboardPresetRepository.save(dashboardPreset),
+    );
+  }
+
+  async delete({
+    authContext,
+    id,
+  }: {
+    authContext: AuthContext;
+    id: string;
+  }): Promise<boolean> {
+    const workspaceId = this.getWorkspaceIdOrThrow(authContext);
+
+    await this.getDashboardPresetOrThrow({
+      presetId: id,
+      workspaceId,
+    });
+
+    await this.dashboardPresetRepository.delete({
+      id,
+      workspaceId,
+    });
+
+    return true;
+  }
+
   async apply({
     applyDashboardPresetInput,
     authContext,
@@ -89,17 +143,14 @@ export class DashboardPresetService {
     authContext: AuthContext;
   }): Promise<ApplyDashboardPresetResultDTO> {
     const workspaceId = this.getWorkspaceIdOrThrow(authContext);
-    const dashboardPreset = await this.dashboardPresetRepository.findOne({
-      where: {
-        id: applyDashboardPresetInput.presetId,
-        workspaceId,
-      },
+    const dashboardPreset = await this.getDashboardPresetOrThrow({
+      presetId: applyDashboardPresetInput.presetId,
+      workspaceId,
     });
 
     if (
-      !isDefined(dashboardPreset) ||
       dashboardPreset.dashboardId !==
-        applyDashboardPresetInput.targetDashboardId
+      applyDashboardPresetInput.targetDashboardId
     ) {
       throw new DashboardException(
         generateDashboardExceptionMessage(
@@ -188,6 +239,33 @@ export class DashboardPresetService {
     }
 
     return dashboard;
+  }
+
+  private async getDashboardPresetOrThrow({
+    presetId,
+    workspaceId,
+  }: {
+    presetId: string;
+    workspaceId: string;
+  }): Promise<DashboardPresetEntity> {
+    const dashboardPreset = await this.dashboardPresetRepository.findOne({
+      where: {
+        id: presetId,
+        workspaceId,
+      },
+    });
+
+    if (!isDefined(dashboardPreset)) {
+      throw new DashboardException(
+        generateDashboardExceptionMessage(
+          DashboardExceptionMessageKey.DASHBOARD_PRESET_NOT_FOUND,
+          presetId,
+        ),
+        DashboardExceptionCode.DASHBOARD_PRESET_NOT_FOUND,
+      );
+    }
+
+    return dashboardPreset;
   }
 
   private toDTO(dashboardPreset: DashboardPresetEntity): DashboardPresetDTO {
