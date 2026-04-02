@@ -1,8 +1,8 @@
 import { type PageLayoutWidget } from '@/page-layout/types/PageLayoutWidget';
 import { PageLayoutWidgetNoDataDisplay } from '@/page-layout/widgets/components/PageLayoutWidgetNoDataDisplay';
+import { GraphWidgetFilterPills } from '@/page-layout/widgets/graph/components/GraphWidgetFilterPills';
 import { GraphWidget } from '@/page-layout/widgets/graph/components/GraphWidget';
 import { hasMinimalRequiredConfigForGraph } from '@/page-layout/widgets/graph/utils/hasMinimalRequiredConfigForGraph';
-import { isDefined } from 'twenty-shared/utils';
 
 type GraphWidgetRendererProps = {
   widget: PageLayoutWidget;
@@ -10,12 +10,17 @@ type GraphWidgetRendererProps = {
 
 export const GraphWidgetRenderer = ({ widget }: GraphWidgetRendererProps) => {
   if (
-    !isDefined(widget.configuration) ||
-    !isDefined(widget.objectMetadataId) ||
+    !widget.configuration ||
+    !widget.objectMetadataId ||
     !hasMinimalRequiredConfigForGraph(widget.configuration)
   ) {
     return <PageLayoutWidgetNoDataDisplay />;
   }
 
-  return <GraphWidget />;
+  return (
+    <>
+      <GraphWidgetFilterPills widget={widget} />
+      <GraphWidget />
+    </>
+  );
 };
