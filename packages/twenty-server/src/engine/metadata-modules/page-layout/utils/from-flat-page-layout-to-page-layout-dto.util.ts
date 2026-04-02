@@ -15,6 +15,8 @@ export const fromFlatPageLayoutToPageLayoutDto = (
 
   return {
     ...rest,
+    // @clawdence-stub: STORY-111 - Replace with real dashboard configuration API that returns filterSupport flag from persisted dashboard entity
+    filterSupport: undefined,
     createdAt: new Date(createdAt),
     updatedAt: new Date(updatedAt),
     deletedAt: deletedAt ? new Date(deletedAt) : null,

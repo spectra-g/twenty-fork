@@ -1,4 +1,6 @@
 import { useNavigatePageLayoutCommandMenu } from '@/command-menu/pages/page-layout/hooks/useNavigatePageLayoutCommandMenu';
+import { DashboardFilterBar } from '@/dashboard/components/DashboardFilterBar';
+import { DashboardFilterProvider } from '@/dashboard/contexts/DashboardFilterContext';
 import { PageLayoutLeftPanel } from '@/page-layout/components/PageLayoutLeftPanel';
 import { PageLayoutTabList } from '@/page-layout/components/PageLayoutTabList';
 import { PageLayoutTabListEffect } from '@/page-layout/components/PageLayoutTabListEffect';
@@ -22,9 +24,13 @@ import { useSetAtomComponentState } from '@/ui/utilities/state/jotai/hooks/useSe
 import { useAtomComponentStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateValue';
 import styled from '@emotion/styled';
 import { t } from '@lingui/core/macro';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import { CommandMenuPages } from 'twenty-shared/types';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import { isDefined } from 'twenty-shared/utils';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import { useIsMobile } from 'twenty-ui/utilities';
+import { PageLayoutType } from '~/generated-metadata/graphql';
 
 const StyledContainer = styled.div<{ hasPinnedTab: boolean }>`
   display: grid;
@@ -140,16 +146,21 @@ export const PageLayoutRendererContent = () => {
           />
         )}
 
-        <StyledScrollWrapper
-          componentInstanceId={getScrollWrapperInstanceIdFromPageLayoutId(
-            currentPageLayout.id,
-          )}
-          defaultEnableXScroll={false}
-        >
-          {isDefined(activeTabId) && (
-            <PageLayoutMainContent tabId={activeTabId} />
-          )}
-        </StyledScrollWrapper>
+        <DashboardFilterProvider>
+          {currentPageLayout.type === PageLayoutType.DASHBOARD &&
+            currentPageLayout.filterSupport === true && <DashboardFilterBar />}
+
+          <StyledScrollWrapper
+            componentInstanceId={getScrollWrapperInstanceIdFromPageLayoutId(
+              currentPageLayout.id,
+            )}
+            defaultEnableXScroll={false}
+          >
+            {isDefined(activeTabId) && (
+              <PageLayoutMainContent tabId={activeTabId} />
+            )}
+          </StyledScrollWrapper>
+        </DashboardFilterProvider>
       </StyledTabsAndDashboardContainer>
     </StyledContainer>
   );
