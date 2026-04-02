@@ -683,6 +683,12 @@ export const STANDARD_OBJECTS = {
       pageLayoutId: {
         universalIdentifier: '20202020-bb53-4648-aa36-1d9d54e6f7f2',
       },
+      filterBarEnabled: {
+        universalIdentifier: '20202020-3c0c-40c0-8c0c-0f11a22b33c4',
+      },
+      filterConfiguration: {
+        universalIdentifier: '20202020-4d0d-41d0-9d0d-1a22b33c44d5',
+      },
       createdBy: {
         universalIdentifier: '20202020-ff32-4fa1-b7ad-407cc6aa0734',
       },

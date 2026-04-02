@@ -1,3 +1,4 @@
+/* eslint-disable @nx/enforce-module-boundaries */
 import { type ChartFilter } from 'twenty-shared/types';
 
 export const mergeChartFilters = ({

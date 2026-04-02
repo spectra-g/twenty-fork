@@ -1,3 +1,4 @@
+/* eslint-disable @nx/enforce-module-boundaries */
 import {
   type ChartFilter,
   type CompositeFieldSubFieldName,
@@ -22,26 +23,30 @@ import { type FlatObjectMetadata } from 'src/engine/metadata-modules/flat-object
 
 type ConvertChartFilterToGqlOperationFilterParams = {
   filter: ChartFilter | undefined;
+  globalFilter?: ChartFilter;
   flatObjectMetadata: FlatObjectMetadata;
   flatFieldMetadataMaps: FlatEntityMaps<FlatFieldMetadata>;
   userTimezone: string;
 };
 
-export const convertChartFilterToGqlOperationFilter = ({
+const computeSingleChartFilterOperation = ({
   filter,
   flatObjectMetadata,
   flatFieldMetadataMaps,
   userTimezone,
-}: ConvertChartFilterToGqlOperationFilterParams): ObjectRecordFilter => {
+}: Omit<
+  ConvertChartFilterToGqlOperationFilterParams,
+  'globalFilter'
+>): ObjectRecordFilter | null => {
   if (!isDefined(filter)) {
-    return {};
+    return null;
   }
 
   const recordFilters = filter.recordFilters ?? [];
   const recordFilterGroups = filter.recordFilterGroups ?? [];
 
   if (recordFilters.length === 0 && recordFilterGroups.length === 0) {
-    return {};
+    return null;
   }
 
   const fieldIds = flatObjectMetadata.fieldIds ?? [];
@@ -111,4 +116,42 @@ export const convertChartFilterToGqlOperationFilter = ({
       timeZone: userTimezone,
     },
   });
+};
+
+export const convertChartFilterToGqlOperationFilter = ({
+  filter,
+  globalFilter,
+  flatObjectMetadata,
+  flatFieldMetadataMaps,
+  userTimezone,
+}: ConvertChartFilterToGqlOperationFilterParams): ObjectRecordFilter => {
+  const globalOperationFilter = computeSingleChartFilterOperation({
+    filter: globalFilter,
+    flatObjectMetadata,
+    flatFieldMetadataMaps,
+    userTimezone,
+  });
+
+  const localOperationFilter = computeSingleChartFilterOperation({
+    filter,
+    flatObjectMetadata,
+    flatFieldMetadataMaps,
+    userTimezone,
+  });
+
+  const nonEmptyFilters = [globalOperationFilter, localOperationFilter].filter(
+    isDefined,
+  );
+
+  if (nonEmptyFilters.length === 0) {
+    return {};
+  }
+
+  if (nonEmptyFilters.length === 1) {
+    return nonEmptyFilters[0];
+  }
+
+  return {
+    and: nonEmptyFilters,
+  };
 };
