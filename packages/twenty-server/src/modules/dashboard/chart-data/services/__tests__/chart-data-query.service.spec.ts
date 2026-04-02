@@ -1,3 +1,4 @@
+/* eslint-disable @nx/enforce-module-boundaries */
 import { Test, type TestingModule } from '@nestjs/testing';
 
 import { CalendarStartDay } from 'twenty-shared/constants';
@@ -27,14 +28,32 @@ describe('ChartDataQueryService', () => {
         id: 'status-field-id',
         name: 'status',
         label: 'Status',
-        type: FieldMetadataType.UUID,
+        type: FieldMetadataType.SELECT,
+        options: [
+          {
+            id: 'status-option-open-id',
+            value: 'OPEN',
+            label: 'Open',
+            position: 0,
+            color: 'green',
+          },
+        ],
         universalIdentifier: 'status-field-universal-id',
       },
       'source-field-universal-id': {
         id: 'source-field-id',
         name: 'source',
         label: 'Source',
-        type: FieldMetadataType.UUID,
+        type: FieldMetadataType.SELECT,
+        options: [
+          {
+            id: 'source-option-website-id',
+            value: 'WEBSITE',
+            label: 'Website',
+            position: 0,
+            color: 'blue',
+          },
+        ],
         universalIdentifier: 'source-field-universal-id',
       },
       'count-field-universal-id': {
@@ -71,7 +90,7 @@ describe('ChartDataQueryService', () => {
       {
         fieldMetadataId: 'status-field-id',
         operand: ViewFilterOperand.IS,
-        value: '11111111-1111-4111-8111-111111111111',
+        value: JSON.stringify(['OPEN']),
       },
     ],
   };
@@ -81,7 +100,32 @@ describe('ChartDataQueryService', () => {
       {
         fieldMetadataId: 'source-field-id',
         operand: ViewFilterOperand.IS,
-        value: '22222222-2222-4222-8222-222222222222',
+        value: JSON.stringify(['WEBSITE']),
+      },
+    ],
+  };
+
+  const localFilterWithUnavailableOption: ChartFilter = {
+    recordFilters: [
+      {
+        fieldMetadataId: 'status-field-id',
+        operand: ViewFilterOperand.IS,
+        value: JSON.stringify(['PRIVATE']),
+      },
+      {
+        fieldMetadataId: 'status-field-id',
+        operand: ViewFilterOperand.IS,
+        value: JSON.stringify(['OPEN']),
+      },
+    ],
+  };
+
+  const globalFilterWithUnavailableOption: ChartFilter = {
+    recordFilters: [
+      {
+        fieldMetadataId: 'source-field-id',
+        operand: ViewFilterOperand.IS,
+        value: JSON.stringify(['PARTNER']),
       },
     ],
   };
@@ -131,12 +175,12 @@ describe('ChartDataQueryService', () => {
           and: [
             {
               source: {
-                in: ['22222222-2222-4222-8222-222222222222'],
+                in: ['WEBSITE'],
               },
             },
             {
               status: {
-                in: ['11111111-1111-4111-8111-111111111111'],
+                in: ['OPEN'],
               },
             },
           ],
@@ -170,7 +214,40 @@ describe('ChartDataQueryService', () => {
       expect.objectContaining({
         filter: {
           status: {
-            in: ['11111111-1111-4111-8111-111111111111'],
+            in: ['OPEN'],
+          },
+        },
+      }),
+      expect.any(Object),
+    );
+  });
+
+  it('drops unavailable select option values before executing chart data queries', async () => {
+    await service.executeGroupByQuery({
+      flatObjectMetadata,
+      flatFieldMetadataMaps,
+      flatObjectMetadataMaps,
+      objectIdByNameSingular: {
+        company: flatObjectMetadata.id,
+      },
+      authContext: {
+        workspace: { id: 'workspace-id' } as any,
+      } as any,
+      groupByFieldMetadataId: 'status-field-id',
+      aggregateFieldMetadataId: 'count-field-id',
+      aggregateOperation: AggregateOperations.COUNT,
+      filter: localFilterWithUnavailableOption,
+      globalFilter: globalFilterWithUnavailableOption,
+      userTimezone: 'UTC',
+      firstDayOfTheWeek: CalendarStartDay.MONDAY,
+      limit: 10,
+    });
+
+    expect(executeMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filter: {
+          status: {
+            in: ['OPEN'],
           },
         },
       }),

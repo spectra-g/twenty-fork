@@ -1,9 +1,14 @@
+/* eslint-disable @nx/enforce-module-boundaries */
 import { type ObjectMetadataItem } from '@/object-metadata/types/ObjectMetadataItem';
 import { isCompositeFieldType } from '@/object-record/object-filter-dropdown/utils/isCompositeFieldType';
 import { type RecordFilter } from '@/object-record/record-filter/types/RecordFilter';
 import { type UrlSingleFilter } from '@/views/types/UrlSingleFilter';
 import { isNonEmptyString } from '@sniptt/guards';
-import { isDefined, isExpectedSubFieldName } from 'twenty-shared/utils';
+import {
+  isDefined,
+  isExpectedSubFieldName,
+  isFieldMetadataSelectKind,
+} from 'twenty-shared/utils';
 import { v4 as uuidv4 } from 'uuid';
 
 export const convertUrlSingleFilterToRecordFilter = ({
@@ -41,6 +46,17 @@ export const convertUrlSingleFilterToRecordFilter = ({
     ) {
       return null;
     }
+  }
+
+  if (
+    isFieldMetadataSelectKind(fieldMetadataItem.type) &&
+    isDefined(fieldMetadataItem.options) &&
+    fieldMetadataItem.options.length > 0 &&
+    !fieldMetadataItem.options.some(
+      (option) => option.value === urlSingleFilter.value,
+    )
+  ) {
+    return null;
   }
 
   const displayValue = urlSingleFilter.value;
