@@ -16,6 +16,7 @@ import { BarChartDataInput } from 'src/modules/dashboard/chart-data/dtos/inputs/
 import { BarChartDataOutputDTO } from 'src/modules/dashboard/chart-data/dtos/outputs/bar-chart-data-output.dto';
 import { ChartDataGraphqlApiExceptionFilter } from 'src/modules/dashboard/chart-data/filters/chart-data-graphql-api-exception.filter';
 import { BarChartDataService } from 'src/modules/dashboard/chart-data/services/bar-chart-data.service';
+import { mergeChartFilters } from 'src/modules/dashboard/chart-data/utils/merge-chart-filters.util';
 
 @MetadataResolver()
 @UseFilters(ChartDataGraphqlApiExceptionFilter)
@@ -42,7 +43,13 @@ export class BarChartDataResolver {
 
     return this.barChartDataService.getBarChartData({
       objectMetadataId: input.objectMetadataId,
-      configuration: input.configuration,
+      configuration: {
+        ...input.configuration,
+        filter: mergeChartFilters({
+          globalFilters: input.globalFilters,
+          localFilters: input.configuration.filter,
+        }),
+      },
       workspaceId: workspace.id,
       authContext,
     });

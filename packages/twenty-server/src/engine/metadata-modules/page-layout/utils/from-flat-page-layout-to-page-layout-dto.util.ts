@@ -3,6 +3,7 @@ import { type PageLayoutDTO } from 'src/engine/metadata-modules/page-layout/dtos
 
 export const fromFlatPageLayoutToPageLayoutDto = (
   flatPageLayout: FlatPageLayout,
+  filterSupport = false,
 ): Omit<PageLayoutDTO, 'tabs'> => {
   const {
     createdAt,
@@ -15,8 +16,7 @@ export const fromFlatPageLayoutToPageLayoutDto = (
 
   return {
     ...rest,
-    // @clawdence-stub: STORY-111 - Replace with real dashboard configuration API that returns filterSupport flag from persisted dashboard entity
-    filterSupport: undefined,
+    filterSupport,
     createdAt: new Date(createdAt),
     updatedAt: new Date(updatedAt),
     deletedAt: deletedAt ? new Date(deletedAt) : null,

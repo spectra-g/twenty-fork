@@ -16,6 +16,7 @@ import { PieChartDataInput } from 'src/modules/dashboard/chart-data/dtos/inputs/
 import { PieChartDataOutputDTO } from 'src/modules/dashboard/chart-data/dtos/outputs/pie-chart-data-output.dto';
 import { ChartDataGraphqlApiExceptionFilter } from 'src/modules/dashboard/chart-data/filters/chart-data-graphql-api-exception.filter';
 import { PieChartDataService } from 'src/modules/dashboard/chart-data/services/pie-chart-data.service';
+import { mergeChartFilters } from 'src/modules/dashboard/chart-data/utils/merge-chart-filters.util';
 
 @MetadataResolver()
 @UseFilters(ChartDataGraphqlApiExceptionFilter)
@@ -42,7 +43,13 @@ export class PieChartDataResolver {
 
     return this.pieChartDataService.getPieChartData({
       objectMetadataId: input.objectMetadataId,
-      configuration: input.configuration,
+      configuration: {
+        ...input.configuration,
+        filter: mergeChartFilters({
+          globalFilters: input.globalFilters,
+          localFilters: input.configuration.filter,
+        }),
+      },
       workspaceId: workspace.id,
       authContext,
     });

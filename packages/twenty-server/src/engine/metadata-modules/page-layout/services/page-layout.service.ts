@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { isNonEmptyString } from '@sniptt/guards';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import { isDefined } from 'twenty-shared/utils';
 
 import { ApplicationService } from 'src/engine/core-modules/application/services/application.service';
@@ -27,6 +28,7 @@ import {
   PageLayoutExceptionMessageKey,
   generatePageLayoutExceptionMessage,
 } from 'src/engine/metadata-modules/page-layout/exceptions/page-layout.exception';
+import { PageLayoutFilterSupportService } from 'src/engine/metadata-modules/page-layout/services/page-layout-filter-support.service';
 import { fromFlatPageLayoutToPageLayoutDto } from 'src/engine/metadata-modules/page-layout/utils/from-flat-page-layout-to-page-layout-dto.util';
 import { fromFlatPageLayoutWithTabsAndWidgetsToPageLayoutDto } from 'src/engine/metadata-modules/page-layout/utils/from-flat-page-layout-with-tabs-and-widgets-to-page-layout-dto.util';
 import { GlobalWorkspaceOrmManager } from 'src/engine/twenty-orm/global-workspace-datasource/global-workspace-orm.manager';
@@ -43,6 +45,7 @@ export class PageLayoutService {
     private readonly workspaceManyOrAllFlatEntityMapsCacheService: WorkspaceManyOrAllFlatEntityMapsCacheService,
     private readonly applicationService: ApplicationService,
     private readonly dashboardSyncService: DashboardSyncService,
+    private readonly pageLayoutFilterSupportService: PageLayoutFilterSupportService,
   ) {}
 
   async findByWorkspaceId(workspaceId: string): Promise<PageLayoutDTO[]> {
@@ -58,6 +61,15 @@ export class PageLayoutService {
       .filter(isDefined)
       .filter((layout) => !isDefined(layout.deletedAt));
 
+    const filterSupportMap =
+      await this.pageLayoutFilterSupportService.getFilterSupportMap({
+        workspaceId,
+        pageLayouts: activeLayouts.map((layout) => ({
+          id: layout.id,
+          type: layout.type,
+        })),
+      });
+
     return activeLayouts.map((layout) =>
       fromFlatPageLayoutWithTabsAndWidgetsToPageLayoutDto(
         reconstructFlatPageLayoutWithTabsAndWidgets({
@@ -65,6 +77,7 @@ export class PageLayoutService {
           flatPageLayoutTabMaps,
           flatPageLayoutWidgetMaps,
         }),
+        filterSupportMap.get(layout.id) ?? false,
       ),
     );
   }
@@ -101,6 +114,15 @@ export class PageLayoutService {
         return isNotDeleted && matchesObjectMetadataId && matchesPageLayoutType;
       });
 
+    const filterSupportMap =
+      await this.pageLayoutFilterSupportService.getFilterSupportMap({
+        workspaceId,
+        pageLayouts: activeLayouts.map((layout) => ({
+          id: layout.id,
+          type: layout.type,
+        })),
+      });
+
     return activeLayouts.map((layout) =>
       fromFlatPageLayoutWithTabsAndWidgetsToPageLayoutDto(
         reconstructFlatPageLayoutWithTabsAndWidgets({
@@ -108,6 +130,7 @@ export class PageLayoutService {
           flatPageLayoutTabMaps,
           flatPageLayoutWidgetMaps,
         }),
+        filterSupportMap.get(layout.id) ?? false,
       ),
     );
   }
@@ -143,12 +166,19 @@ export class PageLayoutService {
       );
     }
 
+    const filterSupportMap =
+      await this.pageLayoutFilterSupportService.getFilterSupportMap({
+        workspaceId,
+        pageLayouts: [{ id: flatLayout.id, type: flatLayout.type }],
+      });
+
     return fromFlatPageLayoutWithTabsAndWidgetsToPageLayoutDto(
       reconstructFlatPageLayoutWithTabsAndWidgets({
         layout: flatLayout,
         flatPageLayoutTabMaps,
         flatPageLayoutWidgetMaps,
       }),
+      filterSupportMap.get(flatLayout.id) ?? false,
     );
   }
 
@@ -243,6 +273,7 @@ export class PageLayoutService {
         flatEntityId: flatPageLayoutToCreate.id,
         flatEntityMaps: recomputedFlatPageLayoutMaps,
       }),
+      false,
     );
   }
 
@@ -328,7 +359,16 @@ export class PageLayoutService {
       },
     );
 
-    return fromFlatPageLayoutToPageLayoutDto(updatedLayout);
+    const filterSupportMap =
+      await this.pageLayoutFilterSupportService.getFilterSupportMap({
+        workspaceId,
+        pageLayouts: [{ id: updatedLayout.id, type: updatedLayout.type }],
+      });
+
+    return fromFlatPageLayoutToPageLayoutDto(
+      updatedLayout,
+      filterSupportMap.get(updatedLayout.id) ?? false,
+    );
   }
 
   async destroy({
