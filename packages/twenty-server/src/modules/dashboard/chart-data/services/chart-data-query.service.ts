@@ -1,3 +1,4 @@
+/* eslint-disable @nx/enforce-module-boundaries */
 import { Injectable } from '@nestjs/common';
 
 import { CalendarStartDay } from 'twenty-shared/constants';
@@ -51,6 +52,7 @@ type ExecuteGroupByQueryParams = {
   aggregateFieldMetadataId: string;
   aggregateOperation: AggregateOperations;
   filter?: ChartFilter;
+  globalFilter?: ChartFilter;
   dateGranularity?: ObjectRecordGroupByDateGranularity;
   userTimezone: string;
   firstDayOfTheWeek: CalendarStartDay;
@@ -80,6 +82,7 @@ export class ChartDataQueryService {
     aggregateFieldMetadataId,
     aggregateOperation,
     filter,
+    globalFilter,
     dateGranularity,
     userTimezone,
     firstDayOfTheWeek,
@@ -93,6 +96,7 @@ export class ChartDataQueryService {
   }: ExecuteGroupByQueryParams): Promise<GroupByRawResult[]> {
     const gqlOperationFilter = convertChartFilterToGqlOperationFilter({
       filter,
+      globalFilter,
       flatObjectMetadata,
       flatFieldMetadataMaps,
       userTimezone,

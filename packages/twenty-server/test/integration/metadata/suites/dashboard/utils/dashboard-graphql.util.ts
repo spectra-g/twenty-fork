@@ -1,6 +1,8 @@
 import gql from 'graphql-tag';
 import { type GraphQLResponse } from 'test/integration/graphql/utils/graphql-test-assertions.util';
 import { makeGraphqlAPIRequest } from 'test/integration/graphql/utils/make-graphql-api-request.util';
+// eslint-disable-next-line @nx/enforce-module-boundaries
+import { type ChartFilter } from 'twenty-shared/types';
 
 import { type DashboardWorkspaceEntity } from 'src/modules/dashboard/standard-objects/dashboard.workspace-entity';
 
@@ -43,6 +45,8 @@ export const createTestDashboardWithGraphQL = async (data: {
   title: string;
   position?: number;
   pageLayoutId?: string;
+  filterBarEnabled?: boolean;
+  filterConfiguration?: ChartFilter | null;
 }): Promise<DashboardWorkspaceEntity> => {
   const operation = {
     query: gql`
@@ -58,6 +62,8 @@ export const createTestDashboardWithGraphQL = async (data: {
         title: data.title,
         position: data.position ?? 0,
         pageLayoutId: data.pageLayoutId,
+        filterBarEnabled: data.filterBarEnabled,
+        filterConfiguration: data.filterConfiguration,
       },
     },
   };
@@ -131,6 +137,8 @@ export const createManyDashboardsWithGraphQL = async (
     title: string;
     position?: number;
     pageLayoutId?: string;
+    filterBarEnabled?: boolean;
+    filterConfiguration?: ChartFilter | null;
   }>,
 ): Promise<DashboardWorkspaceEntity[]> => {
   const operation = {
@@ -147,6 +155,8 @@ export const createManyDashboardsWithGraphQL = async (
         title: item.title,
         position: item.position ?? index,
         pageLayoutId: item.pageLayoutId,
+        filterBarEnabled: item.filterBarEnabled,
+        filterConfiguration: item.filterConfiguration,
       })),
     },
   };

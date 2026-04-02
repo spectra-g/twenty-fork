@@ -1,4 +1,9 @@
-import { type ActorMetadata, FieldMetadataType } from 'twenty-shared/types';
+/* eslint-disable @nx/enforce-module-boundaries */
+import {
+  type ActorMetadata,
+  type ChartFilter,
+  FieldMetadataType,
+} from 'twenty-shared/types';
 
 import { BaseWorkspaceEntity } from 'src/engine/twenty-orm/base.workspace-entity';
 import { type FieldTypeAndNameMetadata } from 'src/engine/workspace-manager/utils/get-ts-vector-column-expression.util';
@@ -16,6 +21,8 @@ export const SEARCH_FIELDS_FOR_DASHBOARD: FieldTypeAndNameMetadata[] = [
 export class DashboardWorkspaceEntity extends BaseWorkspaceEntity {
   title: string | null;
   pageLayoutId: string | null;
+  filterBarEnabled: boolean;
+  filterConfiguration: ChartFilter | null;
   position: number;
   createdBy: ActorMetadata;
   updatedBy: ActorMetadata;

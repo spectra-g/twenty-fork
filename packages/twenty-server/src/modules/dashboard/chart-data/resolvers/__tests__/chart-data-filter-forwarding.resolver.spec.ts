@@ -20,7 +20,7 @@ const authArgs = {
 };
 
 describe('Chart data resolvers filter forwarding', () => {
-  it('barChartData forwards merged global and local filters to the service layer', async () => {
+  it('barChartData forwards local and global filters separately to the service layer', async () => {
     const getBarChartData = jest.fn().mockResolvedValue({ data: [] });
     const resolver = new BarChartDataResolver({
       getBarChartData,
@@ -50,21 +50,13 @@ describe('Chart data resolvers filter forwarding', () => {
         userWorkspaceId: authArgs.userWorkspaceId,
       },
       configuration: {
-        filter: {
-          recordFilters: [
-            ...globalFilters.recordFilters,
-            ...localFilters.recordFilters,
-          ],
-          recordFilterGroups: [
-            ...globalFilters.recordFilterGroups,
-            ...localFilters.recordFilterGroups,
-          ],
-        },
+        filter: localFilters,
       },
+      globalFilter: globalFilters,
     });
   });
 
-  it('lineChartData forwards merged global and local filters to the service layer', async () => {
+  it('lineChartData forwards local and global filters separately to the service layer', async () => {
     const getLineChartData = jest.fn().mockResolvedValue({ data: [] });
     const resolver = new LineChartDataResolver({
       getLineChartData,
@@ -94,21 +86,13 @@ describe('Chart data resolvers filter forwarding', () => {
         userWorkspaceId: authArgs.userWorkspaceId,
       },
       configuration: {
-        filter: {
-          recordFilters: [
-            ...globalFilters.recordFilters,
-            ...localFilters.recordFilters,
-          ],
-          recordFilterGroups: [
-            ...globalFilters.recordFilterGroups,
-            ...localFilters.recordFilterGroups,
-          ],
-        },
+        filter: localFilters,
       },
+      globalFilter: globalFilters,
     });
   });
 
-  it('pieChartData forwards merged global and local filters to the service layer', async () => {
+  it('pieChartData forwards local and global filters separately to the service layer', async () => {
     const getPieChartData = jest.fn().mockResolvedValue({ data: [] });
     const resolver = new PieChartDataResolver({
       getPieChartData,
@@ -138,17 +122,9 @@ describe('Chart data resolvers filter forwarding', () => {
         userWorkspaceId: authArgs.userWorkspaceId,
       },
       configuration: {
-        filter: {
-          recordFilters: [
-            ...globalFilters.recordFilters,
-            ...localFilters.recordFilters,
-          ],
-          recordFilterGroups: [
-            ...globalFilters.recordFilterGroups,
-            ...localFilters.recordFilterGroups,
-          ],
-        },
+        filter: localFilters,
       },
+      globalFilter: globalFilters,
     });
   });
 });

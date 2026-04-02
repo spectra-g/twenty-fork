@@ -1,7 +1,8 @@
+/* eslint-disable @nx/enforce-module-boundaries */
 import { Injectable } from '@nestjs/common';
 
 import { CalendarStartDay } from 'twenty-shared/constants';
-import { FirstDayOfTheWeek } from 'twenty-shared/types';
+import { type ChartFilter, FirstDayOfTheWeek } from 'twenty-shared/types';
 import {
   convertCalendarStartDayNonIsoNumberToFirstDayOfTheWeek,
   isDefined,
@@ -43,6 +44,7 @@ type GetLineChartDataParams = {
   workspaceId: string;
   objectMetadataId: string;
   configuration: LineChartConfigurationDTO;
+  globalFilter?: ChartFilter;
   authContext: AuthContext;
 };
 
@@ -57,6 +59,7 @@ export class LineChartDataService {
     workspaceId,
     objectMetadataId,
     configuration,
+    globalFilter,
     authContext,
   }: GetLineChartDataParams): Promise<LineChartDataOutputDTO> {
     try {
@@ -155,6 +158,7 @@ export class LineChartDataService {
         aggregateFieldMetadataId: configuration.aggregateFieldMetadataId,
         aggregateOperation: configuration.aggregateOperation,
         filter: configuration.filter,
+        globalFilter,
         dateGranularity: configuration.primaryAxisDateGranularity,
         userTimezone,
         firstDayOfTheWeek,
