@@ -1,3 +1,4 @@
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import { assertUnreachable } from 'twenty-shared/utils';
 
 import {
@@ -13,6 +14,8 @@ export const dashboardGraphqlApiExceptionHandler = (error: Error) => {
   if (error instanceof DashboardException) {
     switch (error.code) {
       case DashboardExceptionCode.DASHBOARD_NOT_FOUND:
+        throw new NotFoundError(error.message);
+      case DashboardExceptionCode.DASHBOARD_PRESET_NOT_FOUND:
         throw new NotFoundError(error.message);
       case DashboardExceptionCode.PAGE_LAYOUT_NOT_FOUND:
         throw new NotFoundError(error.message);
