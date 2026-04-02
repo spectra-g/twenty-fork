@@ -7,7 +7,8 @@ import { RecordFilterOperand } from '@/object-record/record-filter/types/RecordF
 import { useGraphWidgetQueryCommon } from '@/page-layout/widgets/graph/hooks/useGraphWidgetQueryCommon';
 import { useUserTimezone } from '@/ui/input/components/internal/date/hooks/useUserTimezone';
 import { renderHook } from '@testing-library/react';
-import { computeRecordGqlOperationFilter, isDefined } from 'twenty-shared/utils';
+// eslint-disable-next-line @nx/enforce-module-boundaries
+import { computeRecordGqlOperationFilter } from 'twenty-shared/utils';
 import {
   AggregateOperations,
   type BarChartConfiguration,
@@ -31,7 +32,7 @@ describe('useGraphWidgetQueryCommon', () => {
     (field) => field.name === 'employees',
   );
 
-  if (!isDefined(companyNameField) || !isDefined(companyEmployeesField)) {
+  if (!companyNameField || !companyEmployeesField) {
     throw new Error('Expected company mock metadata fields to exist');
   }
 
@@ -73,7 +74,7 @@ describe('useGraphWidgetQueryCommon', () => {
     });
   });
 
-  it('merges dashboard global filters with widget-local filters', () => {
+  it('merges URL-hydrated dashboard global filters with widget-local filters', () => {
     const configuration: BarChartConfiguration = {
       __typename: 'BarChartConfiguration',
       configurationType: WidgetConfigurationType.BAR_CHART,

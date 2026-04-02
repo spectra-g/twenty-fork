@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 
 import { DashboardFilterBar } from '@/dashboard/components/DashboardFilterBar';
 import { DashboardFilterProvider } from '@/dashboard/contexts/DashboardFilterContext';
+import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
 import { RecordFilterOperand } from '@/object-record/record-filter/types/RecordFilterOperand';
 import { type DashboardPreset } from '@/dashboard/types/DashboardPreset';
 
@@ -27,6 +28,7 @@ jest.mock('@/views/components/SortOrFilterChip', () => ({
     </div>
   ),
 }));
+jest.mock('@/object-metadata/hooks/useObjectMetadataItemById');
 
 const q4FocusPreset: DashboardPreset = {
   id: 'preset-q4-focus',
@@ -54,11 +56,26 @@ const renderDashboardFilterBar = ({
 } = {}) =>
   render(
     <DashboardFilterProvider initialPresets={initialPresets}>
-      <DashboardFilterBar />
+      <DashboardFilterBar objectMetadataItemId="opportunity-object-id" />
     </DashboardFilterProvider>,
   );
 
 describe('DashboardFilterBar', () => {
+  beforeEach(() => {
+    (useObjectMetadataItemById as jest.Mock).mockReturnValue({
+      objectMetadataItem: {
+        fields: [
+          {
+            id: 'status-field-id',
+            name: 'status',
+            label: 'Status',
+            type: 'TEXT',
+          },
+        ],
+      },
+    });
+  });
+
   it('saves the current filters as a named preset', async () => {
     const user = userEvent.setup();
 
@@ -87,7 +104,9 @@ describe('DashboardFilterBar', () => {
     await user.click(screen.getByRole('button', { name: 'Q4 Focus' }));
 
     expect(screen.getByText('Closed')).toBeInTheDocument();
-    expect(screen.queryByTestId('dashboard-filter-toggle')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('dashboard-filter-toggle'),
+    ).not.toBeInTheDocument();
   });
 
   it('saves and reapplies an empty preset state', async () => {
