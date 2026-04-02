@@ -54,9 +54,43 @@ export const useDashboardPresets = () => {
     [presets, setGlobalFilterGroups, setGlobalFilters],
   );
 
+  const renamePreset = useCallback(
+    (presetId: string, name: string) => {
+      const trimmedName = name.trim();
+
+      if (trimmedName.length === 0) {
+        return;
+      }
+
+      setPresets((currentPresets) =>
+        currentPresets.map((preset) =>
+          preset.id === presetId
+            ? {
+                ...preset,
+                name: trimmedName,
+                updatedAt: new Date().toISOString(),
+              }
+            : preset,
+        ),
+      );
+    },
+    [setPresets],
+  );
+
+  const deletePreset = useCallback(
+    (presetId: string) => {
+      setPresets((currentPresets) =>
+        currentPresets.filter((preset) => preset.id !== presetId),
+      );
+    },
+    [setPresets],
+  );
+
   return {
     applyPreset,
+    deletePreset,
     presets,
+    renamePreset,
     savePreset,
   };
 };

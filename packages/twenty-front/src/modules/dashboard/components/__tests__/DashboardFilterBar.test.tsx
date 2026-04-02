@@ -130,4 +130,68 @@ describe('DashboardFilterBar', () => {
       screen.queryByTestId('remove-icon-dashboard-global-filter'),
     ).not.toBeInTheDocument();
   });
+
+  it('renames an existing preset from the presets dropdown', async () => {
+    const user = userEvent.setup();
+
+    renderDashboardFilterBar({ initialPresets: [q4FocusPreset] });
+
+    await user.click(screen.getByRole('button', { name: 'Presets' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Rename preset Q4 Focus' }),
+    );
+    await user.clear(screen.getByRole('textbox', { name: 'Rename preset' }));
+    await user.type(
+      screen.getByRole('textbox', { name: 'Rename preset' }),
+      'Q4 Pipeline Review',
+    );
+    await user.click(screen.getByRole('button', { name: 'Rename' }));
+
+    expect(
+      screen.getByRole('button', { name: 'Q4 Pipeline Review' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Q4 Focus' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('deletes an existing preset only after confirmation', async () => {
+    const user = userEvent.setup();
+
+    renderDashboardFilterBar({ initialPresets: [q4FocusPreset] });
+
+    await user.click(screen.getByRole('button', { name: 'Presets' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Delete preset Q4 Focus' }),
+    );
+
+    expect(
+      screen.getByRole('dialog', { name: 'Delete preset' }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(
+      screen.queryByRole('button', { name: 'Q4 Focus' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps the preset when deletion is cancelled', async () => {
+    const user = userEvent.setup();
+
+    renderDashboardFilterBar({ initialPresets: [q4FocusPreset] });
+
+    await user.click(screen.getByRole('button', { name: 'Presets' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Delete preset Q4 Focus' }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(
+      screen.queryByRole('dialog', { name: 'Delete preset' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Q4 Focus' }),
+    ).toBeInTheDocument();
+  });
 });
