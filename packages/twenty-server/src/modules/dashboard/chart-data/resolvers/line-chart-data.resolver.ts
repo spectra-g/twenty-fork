@@ -16,6 +16,7 @@ import { LineChartDataInput } from 'src/modules/dashboard/chart-data/dtos/inputs
 import { LineChartDataOutputDTO } from 'src/modules/dashboard/chart-data/dtos/outputs/line-chart-data-output.dto';
 import { ChartDataGraphqlApiExceptionFilter } from 'src/modules/dashboard/chart-data/filters/chart-data-graphql-api-exception.filter';
 import { LineChartDataService } from 'src/modules/dashboard/chart-data/services/line-chart-data.service';
+import { mergeChartFilters } from 'src/modules/dashboard/chart-data/utils/merge-chart-filters.util';
 
 @MetadataResolver()
 @UseFilters(ChartDataGraphqlApiExceptionFilter)
@@ -42,7 +43,13 @@ export class LineChartDataResolver {
 
     return this.lineChartDataService.getLineChartData({
       objectMetadataId: input.objectMetadataId,
-      configuration: input.configuration,
+      configuration: {
+        ...input.configuration,
+        filter: mergeChartFilters({
+          globalFilters: input.globalFilters,
+          localFilters: input.configuration.filter,
+        }),
+      },
       workspaceId: workspace.id,
       authContext,
     });

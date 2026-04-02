@@ -5,11 +5,12 @@ import { fromFlatPageLayoutToPageLayoutDto } from 'src/engine/metadata-modules/p
 
 export const fromFlatPageLayoutWithTabsAndWidgetsToPageLayoutDto = (
   flatPageLayoutWithTabsAndWidgets: FlatPageLayoutWithTabsAndWidgets,
+  filterSupport = false,
 ): PageLayoutDTO => {
   const { tabs, ...flatPageLayout } = flatPageLayoutWithTabsAndWidgets;
 
   return {
-    ...fromFlatPageLayoutToPageLayoutDto(flatPageLayout),
+    ...fromFlatPageLayoutToPageLayoutDto(flatPageLayout, filterSupport),
     tabs: tabs.map(fromFlatPageLayoutTabWithWidgetsToPageLayoutTabDto),
   };
 };
