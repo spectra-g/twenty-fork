@@ -10,11 +10,14 @@ import {
 } from 'twenty-shared/types';
 
 import { CommonGroupByQueryRunnerService } from 'src/engine/api/common/common-query-runners/common-group-by-query-runner.service';
+import { FeatureFlagKey } from 'src/engine/core-modules/feature-flag/enums/feature-flag-key.enum';
+import { FeatureFlagService } from 'src/engine/core-modules/feature-flag/services/feature-flag.service';
 import { ChartDataQueryService } from 'src/modules/dashboard/chart-data/services/chart-data-query.service';
 
 describe('ChartDataQueryService', () => {
   let service: ChartDataQueryService;
   let executeMock: jest.Mock;
+  let isFeatureEnabledMock: jest.Mock;
 
   const flatObjectMetadata = {
     id: 'company-object-id',
@@ -132,6 +135,7 @@ describe('ChartDataQueryService', () => {
 
   beforeEach(async () => {
     executeMock = jest.fn().mockResolvedValue([]);
+    isFeatureEnabledMock = jest.fn().mockResolvedValue(true);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -142,10 +146,55 @@ describe('ChartDataQueryService', () => {
             execute: executeMock,
           },
         },
+        {
+          provide: FeatureFlagService,
+          useValue: {
+            isFeatureEnabled: isFeatureEnabledMock,
+          },
+        },
       ],
     }).compile();
 
     service = module.get(ChartDataQueryService);
+  });
+
+  it('ignores global filters when IS_DASHBOARD_V2_ENABLED is disabled', async () => {
+    isFeatureEnabledMock.mockResolvedValue(false);
+
+    await service.executeGroupByQuery({
+      flatObjectMetadata,
+      flatFieldMetadataMaps,
+      flatObjectMetadataMaps,
+      objectIdByNameSingular: {
+        company: flatObjectMetadata.id,
+      },
+      authContext: {
+        workspace: { id: 'workspace-id' } as any,
+      } as any,
+      groupByFieldMetadataId: 'status-field-id',
+      aggregateFieldMetadataId: 'count-field-id',
+      aggregateOperation: AggregateOperations.COUNT,
+      filter: localFilter,
+      globalFilter,
+      userTimezone: 'UTC',
+      firstDayOfTheWeek: CalendarStartDay.MONDAY,
+      limit: 10,
+    });
+
+    expect(isFeatureEnabledMock).toHaveBeenCalledWith(
+      FeatureFlagKey.IS_DASHBOARD_V2_ENABLED,
+      'workspace-id',
+    );
+    expect(executeMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filter: {
+          status: {
+            in: ['OPEN'],
+          },
+        },
+      }),
+      expect.any(Object),
+    );
   });
 
   it('combines global and local chart filters with top-level AND logic', async () => {

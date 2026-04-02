@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
+import { FeatureFlagKey } from 'src/engine/core-modules/feature-flag/enums/feature-flag-key.enum';
+import { FeatureFlagService } from 'src/engine/core-modules/feature-flag/services/feature-flag.service';
 import { PageLayoutType } from 'src/engine/metadata-modules/page-layout/enums/page-layout-type.enum';
 import { GlobalWorkspaceOrmManager } from 'src/engine/twenty-orm/global-workspace-datasource/global-workspace-orm.manager';
 import { buildSystemAuthContext } from 'src/engine/twenty-orm/utils/build-system-auth-context.util';
@@ -9,6 +11,7 @@ import { type DashboardWorkspaceEntity } from 'src/modules/dashboard/standard-ob
 export class PageLayoutFilterSupportService {
   constructor(
     private readonly globalWorkspaceOrmManager: GlobalWorkspaceOrmManager,
+    private readonly featureFlagService: FeatureFlagService,
   ) {}
 
   async getFilterSupportMap({
@@ -30,6 +33,15 @@ export class PageLayoutFilterSupportService {
       return filterSupportMap;
     }
 
+    const isDashboardV2Enabled = await this.featureFlagService.isFeatureEnabled(
+      FeatureFlagKey.IS_DASHBOARD_V2_ENABLED,
+      workspaceId,
+    );
+
+    if (!isDashboardV2Enabled) {
+      return filterSupportMap;
+    }
+
     const dashboards =
       await this.globalWorkspaceOrmManager.executeInWorkspaceContext(
         async () => {
@@ -43,6 +55,7 @@ export class PageLayoutFilterSupportService {
           return dashboardRepository.find({
             select: {
               pageLayoutId: true,
+              filterBarEnabled: true,
             },
             where: dashboardPageLayoutIds.map((pageLayoutId) => ({
               pageLayoutId,
@@ -53,7 +66,7 @@ export class PageLayoutFilterSupportService {
       );
 
     for (const dashboard of dashboards) {
-      if (dashboard.pageLayoutId) {
+      if (dashboard.pageLayoutId && dashboard.filterBarEnabled === true) {
         filterSupportMap.set(dashboard.pageLayoutId, true);
       }
     }
