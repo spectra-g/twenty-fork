@@ -1,3 +1,5 @@
+import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
+import { type RecordFilter } from '@/object-record/record-filter/types/RecordFilter';
 import { DashboardPresetDropdown } from '@/dashboard/components/DashboardPresetDropdown';
 import { useDashboardFilters } from '@/dashboard/hooks/useDashboardFilters';
 import { useDashboardPresets } from '@/dashboard/hooks/useDashboardPresets';
@@ -13,23 +15,33 @@ const StyledContainer = styled.div`
   padding: 8px;
 `;
 
-export const DashboardFilterBar = () => {
+export const DashboardFilterBar = ({
+  objectMetadataItemId,
+}: {
+  objectMetadataItemId: string;
+}) => {
   const { globalFilters, setGlobalFilters } = useDashboardFilters();
   const { applyPreset, presets, savePreset } = useDashboardPresets();
+  const { objectMetadataItem } = useObjectMetadataItemById({
+    objectId: objectMetadataItemId,
+  });
   const currentGlobalFilter = globalFilters[0];
+  const statusField = objectMetadataItem.fields.find(
+    (field) => field.name === 'status',
+  );
 
   const handleApplyFilter = () => {
-    setGlobalFilters([
-      {
-        id: 'dashboard-global-filter-open',
-        fieldMetadataId: 'dashboard-global-filter-field-id',
-        value: 'OPEN',
-        displayValue: 'Open',
-        operand: RecordFilterOperand.IS,
-        type: 'TEXT',
-        label: 'Status',
-      },
-    ]);
+    const nextFilter: RecordFilter = {
+      id: 'dashboard-global-filter-open',
+      fieldMetadataId: statusField?.id ?? 'dashboard-global-filter-field-id',
+      value: 'OPEN',
+      displayValue: 'Open',
+      operand: RecordFilterOperand.IS,
+      type: (statusField?.type as RecordFilter['type']) ?? 'TEXT',
+      label: statusField?.label ?? 'Status',
+    };
+
+    setGlobalFilters([nextFilter]);
   };
 
   const handleRemoveFilter = () => {
