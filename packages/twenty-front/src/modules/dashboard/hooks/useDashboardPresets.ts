@@ -21,11 +21,11 @@ export const useDashboardPresets = () => {
       }
 
       const timestamp = new Date().toISOString();
+      const presetId = `dashboard-preset-${crypto.randomUUID()}`;
 
-      // @clawdence-stub: STORY-114 - Implement dashboard preset service layer with workspace-scoped preset storage
       setPresets((currentPresets) => [
         {
-          id: `dashboard-preset-${currentPresets.length + 1}`,
+          id: presetId,
           name: trimmedName,
           filters: globalFilters,
           filterGroups: globalFilterGroups,
