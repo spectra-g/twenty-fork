@@ -8,7 +8,10 @@ import { useGraphWidgetQueryCommon } from '@/page-layout/widgets/graph/hooks/use
 import { useUserTimezone } from '@/ui/input/components/internal/date/hooks/useUserTimezone';
 import { renderHook } from '@testing-library/react';
 // eslint-disable-next-line @nx/enforce-module-boundaries
-import { computeRecordGqlOperationFilter } from 'twenty-shared/utils';
+import {
+  combineFilters,
+  computeRecordGqlOperationFilter,
+} from 'twenty-shared/utils';
 import {
   AggregateOperations,
   type BarChartConfiguration,
@@ -54,6 +57,28 @@ describe('useGraphWidgetQueryCommon', () => {
     operand: RecordFilterOperand.GREATER_THAN_OR_EQUAL,
     type: 'NUMBER',
     label: 'Employees',
+  };
+
+  const globalFilterGroup = {
+    id: 'global-filter-group',
+    logicalOperator: 'AND',
+  } as const;
+
+  const localFilterGroup = {
+    id: 'local-filter-group',
+    logicalOperator: 'AND',
+  } as const;
+
+  const groupedGlobalFilter: RecordFilter = {
+    ...globalFilter,
+    id: 'grouped-global-filter',
+    recordFilterGroupId: globalFilterGroup.id,
+  };
+
+  const groupedLocalFilter: RecordFilter = {
+    ...localFilter,
+    id: 'grouped-local-filter',
+    recordFilterGroupId: localFilterGroup.id,
   };
 
   const wrapper = ({ children }: { children: ReactNode }) => (
@@ -108,5 +133,68 @@ describe('useGraphWidgetQueryCommon', () => {
         recordFilterGroups: [],
       }),
     );
+  });
+
+  it('composes global and local filter groups additively without mutating widget-local configuration', () => {
+    const configuration: BarChartConfiguration = {
+      __typename: 'BarChartConfiguration',
+      configurationType: WidgetConfigurationType.BAR_CHART,
+      aggregateFieldMetadataId: companyEmployeesField.id,
+      aggregateOperation: AggregateOperations.COUNT,
+      primaryAxisGroupByFieldMetadataId: companyNameField.id,
+      primaryAxisOrderBy: GraphOrderBy.FIELD_ASC,
+      layout: BarChartLayout.VERTICAL,
+      filter: {
+        recordFilters: [groupedLocalFilter],
+        recordFilterGroups: [localFilterGroup],
+      },
+    };
+
+    const wrapperWithGroups = ({ children }: { children: ReactNode }) => (
+      <DashboardFilterProvider
+        initialGlobalFilters={[groupedGlobalFilter]}
+        initialGlobalFilterGroups={[globalFilterGroup]}
+      >
+        {children}
+      </DashboardFilterProvider>
+    );
+
+    const localConfigurationFilter = configuration.filter;
+
+    const { result } = renderHook(
+      () =>
+        useGraphWidgetQueryCommon({
+          objectMetadataItemId: companyObjectMetadataItem.id,
+          configuration,
+        }),
+      { wrapper: wrapperWithGroups },
+    );
+
+    expect(result.current.gqlOperationFilter).toEqual(
+      combineFilters([
+        computeRecordGqlOperationFilter({
+          fields: companyObjectMetadataItem.fields,
+          filterValueDependencies: {
+            timeZone: 'Europe/London',
+          },
+          recordFilters: [groupedGlobalFilter],
+          recordFilterGroups: [globalFilterGroup],
+        }),
+        computeRecordGqlOperationFilter({
+          fields: companyObjectMetadataItem.fields,
+          filterValueDependencies: {
+            timeZone: 'Europe/London',
+          },
+          recordFilters: [groupedLocalFilter],
+          recordFilterGroups: [localFilterGroup],
+        }),
+      ]),
+    );
+
+    expect(configuration.filter).toBe(localConfigurationFilter);
+    expect(configuration.filter).toEqual({
+      recordFilters: [groupedLocalFilter],
+      recordFilterGroups: [localFilterGroup],
+    });
   });
 });
