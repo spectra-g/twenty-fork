@@ -1,17 +1,22 @@
 import { type MessageDescriptor } from '@lingui/core';
 import { msg } from '@lingui/core/macro';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import { assertUnreachable } from 'twenty-shared/utils';
 
 import { CustomException } from 'src/utils/custom-exception';
 
 export enum DashboardExceptionCode {
   DASHBOARD_NOT_FOUND = 'DASHBOARD_NOT_FOUND',
+  DASHBOARD_PRESET_INVALID_INPUT = 'DASHBOARD_PRESET_INVALID_INPUT',
+  DASHBOARD_PRESET_NOT_FOUND = 'DASHBOARD_PRESET_NOT_FOUND',
   DASHBOARD_DUPLICATION_FAILED = 'DASHBOARD_DUPLICATION_FAILED',
   PAGE_LAYOUT_NOT_FOUND = 'PAGE_LAYOUT_NOT_FOUND',
 }
 
 export enum DashboardExceptionMessageKey {
   DASHBOARD_NOT_FOUND = 'DASHBOARD_NOT_FOUND',
+  DASHBOARD_PRESET_INVALID_INPUT = 'DASHBOARD_PRESET_INVALID_INPUT',
+  DASHBOARD_PRESET_NOT_FOUND = 'DASHBOARD_PRESET_NOT_FOUND',
   DASHBOARD_DUPLICATION_FAILED = 'DASHBOARD_DUPLICATION_FAILED',
   PAGE_LAYOUT_NOT_FOUND = 'PAGE_LAYOUT_NOT_FOUND',
 }
@@ -22,6 +27,10 @@ const getDashboardExceptionUserFriendlyMessage = (
   switch (code) {
     case DashboardExceptionCode.DASHBOARD_NOT_FOUND:
       return msg`Dashboard not found.`;
+    case DashboardExceptionCode.DASHBOARD_PRESET_NOT_FOUND:
+      return msg`Dashboard preset not found.`;
+    case DashboardExceptionCode.DASHBOARD_PRESET_INVALID_INPUT:
+      return msg`Dashboard preset input is invalid.`;
     case DashboardExceptionCode.DASHBOARD_DUPLICATION_FAILED:
       return msg`Failed to duplicate dashboard.`;
     case DashboardExceptionCode.PAGE_LAYOUT_NOT_FOUND:
@@ -51,6 +60,10 @@ export const generateDashboardExceptionMessage = (
   switch (key) {
     case DashboardExceptionMessageKey.DASHBOARD_NOT_FOUND:
       return `Dashboard with ID "${value}" not found`;
+    case DashboardExceptionMessageKey.DASHBOARD_PRESET_NOT_FOUND:
+      return `Dashboard preset with ID "${value}" not found`;
+    case DashboardExceptionMessageKey.DASHBOARD_PRESET_INVALID_INPUT:
+      return `Invalid dashboard preset input: ${value}`;
     case DashboardExceptionMessageKey.DASHBOARD_DUPLICATION_FAILED:
       return `Failed to duplicate dashboard: ${value}`;
     case DashboardExceptionMessageKey.PAGE_LAYOUT_NOT_FOUND:

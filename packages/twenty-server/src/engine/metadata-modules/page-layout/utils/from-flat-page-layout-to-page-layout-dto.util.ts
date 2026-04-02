@@ -3,6 +3,7 @@ import { type PageLayoutDTO } from 'src/engine/metadata-modules/page-layout/dtos
 
 export const fromFlatPageLayoutToPageLayoutDto = (
   flatPageLayout: FlatPageLayout,
+  filterSupport = false,
 ): Omit<PageLayoutDTO, 'tabs'> => {
   const {
     createdAt,
@@ -15,6 +16,7 @@ export const fromFlatPageLayoutToPageLayoutDto = (
 
   return {
     ...rest,
+    filterSupport,
     createdAt: new Date(createdAt),
     updatedAt: new Date(updatedAt),
     deletedAt: deletedAt ? new Date(deletedAt) : null,

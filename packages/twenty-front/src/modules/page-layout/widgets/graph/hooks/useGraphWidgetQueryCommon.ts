@@ -1,6 +1,9 @@
+import { useDashboardFilters } from '@/dashboard/hooks/useDashboardFilters';
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
 import { useUserTimezone } from '@/ui/input/components/internal/date/hooks/useUserTimezone';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import {
+  combineFilters,
   computeRecordGqlOperationFilter,
   isDefined,
 } from 'twenty-shared/utils';
@@ -37,8 +40,18 @@ export const useGraphWidgetQueryCommon = ({
   }
 
   const { userTimezone } = useUserTimezone();
+  const { globalFilters, globalFilterGroups } = useDashboardFilters();
 
-  const gqlOperationFilter = computeRecordGqlOperationFilter({
+  const globalGqlOperationFilter = computeRecordGqlOperationFilter({
+    fields: objectMetadataItem.fields,
+    filterValueDependencies: {
+      timeZone: userTimezone,
+    },
+    recordFilters: globalFilters,
+    recordFilterGroups: globalFilterGroups,
+  });
+
+  const localGqlOperationFilter = computeRecordGqlOperationFilter({
     fields: objectMetadataItem.fields,
     filterValueDependencies: {
       timeZone: userTimezone,
@@ -49,7 +62,10 @@ export const useGraphWidgetQueryCommon = ({
 
   return {
     objectMetadataItem,
-    gqlOperationFilter,
+    gqlOperationFilter: combineFilters([
+      globalGqlOperationFilter,
+      localGqlOperationFilter,
+    ]),
     aggregateField,
   };
 };

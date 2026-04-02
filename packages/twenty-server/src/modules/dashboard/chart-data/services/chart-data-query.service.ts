@@ -1,3 +1,4 @@
+/* eslint-disable @nx/enforce-module-boundaries */
 import { Injectable } from '@nestjs/common';
 
 import { CalendarStartDay } from 'twenty-shared/constants';
@@ -17,6 +18,8 @@ import { ObjectRecordGroupBy } from 'src/engine/api/graphql/workspace-query-buil
 
 import { CommonGroupByQueryRunnerService } from 'src/engine/api/common/common-query-runners/common-group-by-query-runner.service';
 import { AuthContext } from 'src/engine/core-modules/auth/types/auth-context.type';
+import { FeatureFlagKey } from 'src/engine/core-modules/feature-flag/enums/feature-flag-key.enum';
+import { FeatureFlagService } from 'src/engine/core-modules/feature-flag/services/feature-flag.service';
 import { FlatEntityMaps } from 'src/engine/metadata-modules/flat-entity/types/flat-entity-maps.type';
 import { FlatFieldMetadata } from 'src/engine/metadata-modules/flat-field-metadata/types/flat-field-metadata.type';
 import { FlatObjectMetadata } from 'src/engine/metadata-modules/flat-object-metadata/types/flat-object-metadata.type';
@@ -51,6 +54,7 @@ type ExecuteGroupByQueryParams = {
   aggregateFieldMetadataId: string;
   aggregateOperation: AggregateOperations;
   filter?: ChartFilter;
+  globalFilter?: ChartFilter;
   dateGranularity?: ObjectRecordGroupByDateGranularity;
   userTimezone: string;
   firstDayOfTheWeek: CalendarStartDay;
@@ -67,6 +71,7 @@ type ExecuteGroupByQueryParams = {
 export class ChartDataQueryService {
   constructor(
     private readonly commonGroupByQueryRunnerService: CommonGroupByQueryRunnerService,
+    private readonly featureFlagService: FeatureFlagService,
   ) {}
 
   async executeGroupByQuery({
@@ -80,6 +85,7 @@ export class ChartDataQueryService {
     aggregateFieldMetadataId,
     aggregateOperation,
     filter,
+    globalFilter,
     dateGranularity,
     userTimezone,
     firstDayOfTheWeek,
@@ -91,8 +97,17 @@ export class ChartDataQueryService {
     secondaryAxisOrderBy,
     splitMultiValueFields,
   }: ExecuteGroupByQueryParams): Promise<GroupByRawResult[]> {
+    const workspaceId = authContext.workspace?.id;
+    const shouldApplyGlobalFilter =
+      isDefined(workspaceId) &&
+      (await this.featureFlagService.isFeatureEnabled(
+        FeatureFlagKey.IS_DASHBOARD_V2_ENABLED,
+        workspaceId,
+      ));
+
     const gqlOperationFilter = convertChartFilterToGqlOperationFilter({
       filter,
+      globalFilter: shouldApplyGlobalFilter ? globalFilter : undefined,
       flatObjectMetadata,
       flatFieldMetadataMaps,
       userTimezone,

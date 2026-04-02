@@ -1,4 +1,9 @@
 import { useNavigatePageLayoutCommandMenu } from '@/command-menu/pages/page-layout/hooks/useNavigatePageLayoutCommandMenu';
+import { DashboardFilterBar } from '@/dashboard/components/DashboardFilterBar';
+import { DashboardFiltersUrlEffect } from '@/dashboard/components/DashboardFiltersUrlEffect';
+import { DashboardFilterProvider } from '@/dashboard/contexts/DashboardFilterContext';
+import { getDashboardFiltersFromSearchParams } from '@/dashboard/utils/get-dashboard-filters-from-search-params';
+import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
 import { PageLayoutLeftPanel } from '@/page-layout/components/PageLayoutLeftPanel';
 import { PageLayoutTabList } from '@/page-layout/components/PageLayoutTabList';
 import { PageLayoutTabListEffect } from '@/page-layout/components/PageLayoutTabListEffect';
@@ -22,9 +27,14 @@ import { useSetAtomComponentState } from '@/ui/utilities/state/jotai/hooks/useSe
 import { useAtomComponentStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateValue';
 import styled from '@emotion/styled';
 import { t } from '@lingui/core/macro';
+import { useSearchParams } from 'react-router-dom';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import { CommandMenuPages } from 'twenty-shared/types';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import { isDefined } from 'twenty-shared/utils';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import { useIsMobile } from 'twenty-ui/utilities';
+import { PageLayoutType } from '~/generated-metadata/graphql';
 
 const StyledContainer = styled.div<{ hasPinnedTab: boolean }>`
   display: grid;
@@ -48,6 +58,39 @@ const StyledPageLayoutTabList = styled(PageLayoutTabList)`
 const StyledScrollWrapper = styled(ScrollWrapper)`
   flex: 1;
 `;
+
+const DashboardPageLayoutContent = ({
+  objectMetadataItemId,
+  showDashboardFilterBar,
+  children,
+}: {
+  objectMetadataItemId: string;
+  showDashboardFilterBar: boolean;
+  children: React.ReactNode;
+}) => {
+  const [searchParams] = useSearchParams();
+  const { objectMetadataItem } = useObjectMetadataItemById({
+    objectId: objectMetadataItemId,
+  });
+  const { recordFilters, recordFilterGroups } =
+    getDashboardFiltersFromSearchParams({
+      searchParams,
+      objectMetadataItem,
+    });
+
+  return (
+    <DashboardFilterProvider
+      initialGlobalFilters={recordFilters}
+      initialGlobalFilterGroups={recordFilterGroups}
+    >
+      <DashboardFiltersUrlEffect objectMetadataItem={objectMetadataItem} />
+      {showDashboardFilterBar && (
+        <DashboardFilterBar objectMetadataItemId={objectMetadataItemId} />
+      )}
+      {children}
+    </DashboardFilterProvider>
+  );
+};
 
 export const PageLayoutRendererContent = () => {
   const { currentPageLayout } = useCurrentPageLayout();
@@ -140,16 +183,24 @@ export const PageLayoutRendererContent = () => {
           />
         )}
 
-        <StyledScrollWrapper
-          componentInstanceId={getScrollWrapperInstanceIdFromPageLayoutId(
-            currentPageLayout.id,
-          )}
-          defaultEnableXScroll={false}
+        <DashboardPageLayoutContent
+          objectMetadataItemId={currentPageLayout.objectMetadataId}
+          showDashboardFilterBar={
+            currentPageLayout.type === PageLayoutType.DASHBOARD &&
+            currentPageLayout.filterSupport === true
+          }
         >
-          {isDefined(activeTabId) && (
-            <PageLayoutMainContent tabId={activeTabId} />
-          )}
-        </StyledScrollWrapper>
+          <StyledScrollWrapper
+            componentInstanceId={getScrollWrapperInstanceIdFromPageLayoutId(
+              currentPageLayout.id,
+            )}
+            defaultEnableXScroll={false}
+          >
+            {isDefined(activeTabId) && (
+              <PageLayoutMainContent tabId={activeTabId} />
+            )}
+          </StyledScrollWrapper>
+        </DashboardPageLayoutContent>
       </StyledTabsAndDashboardContainer>
     </StyledContainer>
   );

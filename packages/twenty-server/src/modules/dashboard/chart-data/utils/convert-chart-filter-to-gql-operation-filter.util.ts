@@ -1,3 +1,4 @@
+/* eslint-disable @nx/enforce-module-boundaries */
 import {
   type ChartFilter,
   type CompositeFieldSubFieldName,
@@ -19,29 +20,34 @@ import { type FlatEntityMaps } from 'src/engine/metadata-modules/flat-entity/typ
 import { findFlatEntityByIdInFlatEntityMaps } from 'src/engine/metadata-modules/flat-entity/utils/find-flat-entity-by-id-in-flat-entity-maps.util';
 import { type FlatFieldMetadata } from 'src/engine/metadata-modules/flat-field-metadata/types/flat-field-metadata.type';
 import { type FlatObjectMetadata } from 'src/engine/metadata-modules/flat-object-metadata/types/flat-object-metadata.type';
+import { normalizeChartFilterForPermissions } from 'src/modules/dashboard/chart-data/utils/permission-aware-filter.util';
 
 type ConvertChartFilterToGqlOperationFilterParams = {
   filter: ChartFilter | undefined;
+  globalFilter?: ChartFilter;
   flatObjectMetadata: FlatObjectMetadata;
   flatFieldMetadataMaps: FlatEntityMaps<FlatFieldMetadata>;
   userTimezone: string;
 };
 
-export const convertChartFilterToGqlOperationFilter = ({
+const computeSingleChartFilterOperation = ({
   filter,
   flatObjectMetadata,
   flatFieldMetadataMaps,
   userTimezone,
-}: ConvertChartFilterToGqlOperationFilterParams): ObjectRecordFilter => {
+}: Omit<
+  ConvertChartFilterToGqlOperationFilterParams,
+  'globalFilter'
+>): ObjectRecordFilter | null => {
   if (!isDefined(filter)) {
-    return {};
+    return null;
   }
 
   const recordFilters = filter.recordFilters ?? [];
   const recordFilterGroups = filter.recordFilterGroups ?? [];
 
   if (recordFilters.length === 0 && recordFilterGroups.length === 0) {
-    return {};
+    return null;
   }
 
   const fieldIds = flatObjectMetadata.fieldIds ?? [];
@@ -111,4 +117,48 @@ export const convertChartFilterToGqlOperationFilter = ({
       timeZone: userTimezone,
     },
   });
+};
+
+export const convertChartFilterToGqlOperationFilter = ({
+  filter,
+  globalFilter,
+  flatObjectMetadata,
+  flatFieldMetadataMaps,
+  userTimezone,
+}: ConvertChartFilterToGqlOperationFilterParams): ObjectRecordFilter => {
+  const globalOperationFilter = computeSingleChartFilterOperation({
+    filter: normalizeChartFilterForPermissions({
+      filter: globalFilter,
+      flatFieldMetadataMaps,
+    }),
+    flatObjectMetadata,
+    flatFieldMetadataMaps,
+    userTimezone,
+  });
+
+  const localOperationFilter = computeSingleChartFilterOperation({
+    filter: normalizeChartFilterForPermissions({
+      filter,
+      flatFieldMetadataMaps,
+    }),
+    flatObjectMetadata,
+    flatFieldMetadataMaps,
+    userTimezone,
+  });
+
+  const nonEmptyFilters = [globalOperationFilter, localOperationFilter].filter(
+    isDefined,
+  );
+
+  if (nonEmptyFilters.length === 0) {
+    return {};
+  }
+
+  if (nonEmptyFilters.length === 1) {
+    return nonEmptyFilters[0];
+  }
+
+  return {
+    and: nonEmptyFilters,
+  };
 };

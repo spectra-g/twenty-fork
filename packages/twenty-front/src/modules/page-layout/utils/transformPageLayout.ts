@@ -3,7 +3,7 @@ import { type PageLayoutTab } from '@/page-layout/types/PageLayoutTab';
 import { type PageLayout as PageLayoutGenerated } from '~/generated-metadata/graphql';
 
 export const transformPageLayout = (
-  pageLayout: PageLayoutGenerated,
+  pageLayout: PageLayoutGenerated & { filterSupport?: boolean | null },
 ): PageLayout => {
   return {
     ...pageLayout,

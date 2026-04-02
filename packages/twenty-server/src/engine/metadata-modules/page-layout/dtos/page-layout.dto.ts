@@ -1,6 +1,7 @@
 import { Field, ObjectType, registerEnumType } from '@nestjs/graphql';
 
 import { IDField } from '@ptc-org/nestjs-query-graphql';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import { SerializedRelation } from 'twenty-shared/types';
 
 import { UUIDScalarType } from 'src/engine/api/graphql/workspace-schema-builder/graphql-types/scalars';
@@ -25,6 +26,9 @@ export class PageLayoutDTO {
 
   @Field(() => UUIDScalarType, { nullable: true })
   objectMetadataId?: string | null;
+
+  @Field(() => Boolean, { nullable: true })
+  filterSupport?: boolean | null;
 
   @Field(() => [PageLayoutTabDTO], { nullable: true })
   tabs?: PageLayoutTabDTO[] | null;

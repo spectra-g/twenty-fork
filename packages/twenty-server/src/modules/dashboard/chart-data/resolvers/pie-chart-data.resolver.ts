@@ -43,6 +43,7 @@ export class PieChartDataResolver {
     return this.pieChartDataService.getPieChartData({
       objectMetadataId: input.objectMetadataId,
       configuration: input.configuration,
+      globalFilter: input.globalFilters,
       workspaceId: workspace.id,
       authContext,
     });

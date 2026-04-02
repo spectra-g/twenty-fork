@@ -7,6 +7,7 @@ export const PAGE_LAYOUT_FRAGMENT = gql`
     id
     name
     objectMetadataId
+    filterSupport
     type
     defaultTabToFocusOnMobileAndSidePanelId
     createdAt
