@@ -61,6 +61,37 @@ const mocks: MockedResponse[] = [
   {
     request: {
       query: gql`
+        query DashboardPreset($id: UUID!) {
+          dashboardPreset(id: $id) {
+            id
+            name
+            dashboardId
+            filter
+            createdAt
+            updatedAt
+          }
+        }
+      `,
+      variables: {
+        id: presetId,
+      },
+    },
+    result: jest.fn(() => ({
+      data: {
+        dashboardPreset: {
+          id: presetId,
+          name: 'Open deals',
+          dashboardId,
+          filter: filterState,
+          createdAt: '2024-01-01T00:00:00.000Z',
+          updatedAt: '2024-01-01T00:00:00.000Z',
+        },
+      },
+    })),
+  },
+  {
+    request: {
+      query: gql`
         query DashboardPresets($dashboardId: UUID!) {
           dashboardPresets(dashboardId: $dashboardId) {
             id
@@ -175,6 +206,23 @@ describe('useDashboardPresetsApi', () => {
     });
 
     await act(async () => {
+      const preset = await result.current.getDashboardPreset(presetId);
+
+      expect(preset).toEqual(
+        expect.objectContaining({
+          id: presetId,
+          name: 'Open deals',
+          dashboardId,
+          filterState,
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(mocks[1].result).toHaveBeenCalled();
+    });
+
+    await act(async () => {
       const presets = await result.current.listDashboardPresets(dashboardId);
 
       expect(presets).toEqual([
@@ -188,7 +236,7 @@ describe('useDashboardPresetsApi', () => {
     });
 
     await waitFor(() => {
-      expect(mocks[1].result).toHaveBeenCalled();
+      expect(mocks[2].result).toHaveBeenCalled();
     });
 
     await act(async () => {
@@ -204,7 +252,7 @@ describe('useDashboardPresetsApi', () => {
     });
 
     await waitFor(() => {
-      expect(mocks[2].result).toHaveBeenCalled();
+      expect(mocks[3].result).toHaveBeenCalled();
     });
 
     await act(async () => {
@@ -214,7 +262,7 @@ describe('useDashboardPresetsApi', () => {
     });
 
     await waitFor(() => {
-      expect(mocks[3].result).toHaveBeenCalled();
+      expect(mocks[4].result).toHaveBeenCalled();
     });
   });
 });

@@ -65,6 +65,19 @@ const LIST_DASHBOARD_PRESETS = gql`
   }
 `;
 
+const GET_DASHBOARD_PRESET = gql`
+  query DashboardPreset($id: UUID!) {
+    dashboardPreset(id: $id) {
+      id
+      name
+      dashboardId
+      filter
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
 const mapDashboardPreset = (
   preset: DashboardPresetGraphqlRecord,
 ): DashboardPreset => ({
@@ -157,8 +170,27 @@ export const useDashboardPresetsApi = (dashboardId?: string) => {
     return (data?.dashboardPresets ?? []).map(mapDashboardPreset);
   };
 
+  const getDashboardPreset = async (id: string) => {
+    const { data } = await apolloClient.query<{
+      dashboardPreset: DashboardPresetGraphqlRecord;
+    }>({
+      query: GET_DASHBOARD_PRESET,
+      variables: {
+        id,
+      },
+      fetchPolicy: 'no-cache',
+    });
+
+    if (data?.dashboardPreset === undefined) {
+      throw new Error('Failed to fetch dashboard preset');
+    }
+
+    return mapDashboardPreset(data.dashboardPreset);
+  };
+
   return {
     createDashboardPreset,
+    getDashboardPreset,
     renameDashboardPreset,
     deleteDashboardPreset,
     listDashboardPresets,

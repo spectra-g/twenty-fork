@@ -1,5 +1,6 @@
 /* eslint-disable @nx/enforce-module-boundaries */
 import { dashboardFiltersComponentState } from '@/page-layout/states/dashboardFiltersComponentState';
+import { activeDashboardPresetComponentState } from '@/page-layout/states/activeDashboardPresetComponentState';
 import { currentUserWorkspaceState } from '@/auth/states/currentUserWorkspaceState';
 import { DashboardFilterBar } from '@/page-layout/components/DashboardFilterBar';
 import { type PageLayout } from '@/page-layout/types/PageLayout';
@@ -365,5 +366,53 @@ describe('DashboardFilterBar', () => {
     expect(shareableUrl).toContain('/dashboard?');
     expect(shareableUrl).toContain('foo=bar');
     expect(shareableUrl).toContain('filter%5Bstatus%5D%5BIS%5D=OPEN');
+  });
+
+  it('should show the active preset name when the current filters still match the preset', () => {
+    const store = createStore();
+
+    store.set(
+      dashboardFiltersComponentState.atomFamily({
+        instanceId: PAGE_LAYOUT_TEST_INSTANCE_ID,
+      }),
+      {
+        recordFilters: [
+          {
+            fieldMetadataId: 'status-field-id',
+            id: 'dashboard-status-filter',
+            operand: ViewFilterOperand.IS,
+            type: FieldMetadataType.SELECT,
+            value: 'OPEN',
+          },
+        ],
+        recordFilterGroups: [],
+      },
+    );
+    store.set(
+      activeDashboardPresetComponentState.atomFamily({
+        instanceId: PAGE_LAYOUT_TEST_INSTANCE_ID,
+      }),
+      {
+        id: 'preset-1',
+        name: 'Open deals',
+        filterState: {
+          recordFilters: [
+            {
+              fieldMetadataId: 'status-field-id',
+              id: 'dashboard-status-filter',
+              operand: ViewFilterOperand.IS,
+              type: FieldMetadataType.SELECT,
+              value: 'OPEN',
+            },
+          ],
+          recordFilterGroups: [],
+        },
+      },
+    );
+
+    renderDashboardFilterBar({ store });
+
+    expect(screen.getByText('Open deals')).toBeVisible();
+    expect(screen.queryByText('Status is Open')).not.toBeInTheDocument();
   });
 });
