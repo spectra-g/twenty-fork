@@ -1,6 +1,7 @@
 /* eslint-disable @nx/enforce-module-boundaries */
 import { useObjectMetadataItems } from '@/object-metadata/hooks/useObjectMetadataItems';
 import { useBasePageLayout } from '@/page-layout/hooks/useBasePageLayout';
+import { getFiltersFromUrl } from '@/page-layout/hooks/useDashboardUrlFilters';
 import { usePageLayoutWithRelationWidgets } from '@/page-layout/hooks/usePageLayoutWithRelationWidgets';
 import { dashboardFiltersComponentState } from '@/page-layout/states/dashboardFiltersComponentState';
 import { pageLayoutCurrentLayoutsComponentState } from '@/page-layout/states/pageLayoutCurrentLayoutsComponentState';
@@ -10,7 +11,6 @@ import { pageLayoutPersistedComponentState } from '@/page-layout/states/pageLayo
 import { type PageLayout } from '@/page-layout/types/PageLayout';
 import { convertPageLayoutToTabLayouts } from '@/page-layout/utils/convertPageLayoutToTabLayouts';
 import { getDashboardFilterObjectMetadataItem } from '@/page-layout/utils/getDashboardFilterObjectMetadataItem';
-import { getDashboardFiltersFromQueryParams } from '@/page-layout/utils/getDashboardFiltersFromQueryParams';
 import { useAtomComponentState } from '@/ui/utilities/state/jotai/hooks/useAtomComponentState';
 import { useAtomComponentStateCallbackState } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateCallbackState';
 import { useStore } from 'jotai';
@@ -84,7 +84,7 @@ export const PageLayoutInitializationQueryEffect = ({
         return;
       }
 
-      const dashboardFilters = getDashboardFiltersFromQueryParams({
+      const dashboardFilters = getFiltersFromUrl({
         searchParams,
         objectMetadataItem,
       });

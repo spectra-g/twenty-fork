@@ -146,4 +146,81 @@ describe('QueryParamsDashboardFiltersEffect', () => {
       expect(search).toContain('filter%5Bstatus%5D%5BIS%5D=OPEN');
     });
   });
+
+  it('should remove dashboard filter query params when filters are cleared', async () => {
+    const store = createStore();
+
+    render(
+      <MemoryRouter
+        initialEntries={[
+          '/dashboards/filter-propagation?view=board&filter%5Bstatus%5D%5BIS%5D=OPEN',
+        ]}
+      >
+        <PageLayoutTestWrapper store={store}>
+          <QueryParamsDashboardFiltersEffect
+            pageLayout={{
+              id: 'dashboard-id',
+              name: 'Dashboard',
+              type: 'DASHBOARD',
+              objectMetadataId: null,
+              tabs: [
+                {
+                  id: 'tab-1',
+                  title: 'Main',
+                  position: 0,
+                  applicationId: 'app-id',
+                  pageLayoutId: 'dashboard-id',
+                  createdAt: '2024-01-01T00:00:00.000Z',
+                  updatedAt: '2024-01-01T00:00:00.000Z',
+                  deletedAt: null,
+                  widgets: [
+                    {
+                      id: 'widget-1',
+                      title: 'Pipeline',
+                      type: 'GRAPH',
+                      objectMetadataId: 'person-id',
+                      pageLayoutTabId: 'tab-1',
+                      createdAt: '2024-01-01T00:00:00.000Z',
+                      updatedAt: '2024-01-01T00:00:00.000Z',
+                      deletedAt: null,
+                      gridPosition: {
+                        __typename: 'GridPosition',
+                        row: 0,
+                        column: 0,
+                        rowSpan: 2,
+                        columnSpan: 2,
+                      },
+                      configuration: {
+                        __typename: 'BarChartConfiguration',
+                        configurationType: 'BAR_CHART',
+                      },
+                    },
+                  ],
+                },
+              ],
+            }}
+          />
+          <DashboardLocationProbe />
+        </PageLayoutTestWrapper>
+      </MemoryRouter>,
+    );
+
+    act(() => {
+      store.set(
+        dashboardFiltersComponentState.atomFamily({
+          instanceId: PAGE_LAYOUT_TEST_INSTANCE_ID,
+        }),
+        {
+          recordFilters: [],
+          recordFilterGroups: [],
+        },
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('location-search')).toHaveTextContent(
+        '?view=board',
+      );
+    });
+  });
 });
