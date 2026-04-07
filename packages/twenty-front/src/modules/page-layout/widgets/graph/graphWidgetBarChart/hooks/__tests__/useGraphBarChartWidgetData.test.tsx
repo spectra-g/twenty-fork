@@ -45,7 +45,7 @@ describe('useGraphBarChartWidgetData', () => {
     });
   });
 
-  it('should refresh two widgets with the dashboard filter when it changes', () => {
+  it('should refresh two widgets with merged local and dashboard filters when the dashboard filter changes', () => {
     const store = createStore();
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <PageLayoutTestWrapper store={store}>{children}</PageLayoutTestWrapper>
@@ -126,6 +126,10 @@ describe('useGraphBarChartWidgetData', () => {
               filter: {
                 recordFilters: [
                   expect.objectContaining({
+                    id: 'widget-local-filter',
+                    value: 'Ignored',
+                  }),
+                  expect.objectContaining({
                     id: 'dashboard-status-filter',
                     value: 'OPEN',
                   }),
@@ -147,8 +151,71 @@ describe('useGraphBarChartWidgetData', () => {
               filter: {
                 recordFilters: [
                   expect.objectContaining({
+                    id: 'widget-local-filter',
+                    value: 'Ignored',
+                  }),
+                  expect.objectContaining({
                     id: 'dashboard-status-filter',
                     value: 'OPEN',
+                  }),
+                ],
+                recordFilterGroups: [],
+              },
+            }),
+          },
+        },
+      }),
+    );
+  });
+
+  it('should keep widget-local filters when dashboard filters are cleared', () => {
+    const store = createStore();
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <PageLayoutTestWrapper store={store}>{children}</PageLayoutTestWrapper>
+    );
+
+    const configuration = {
+      __typename: 'BarChartConfiguration',
+      configurationType: WidgetConfigurationType.BAR_CHART,
+      layout: BarChartLayout.VERTICAL,
+      aggregateOperation: AggregateOperations.COUNT,
+      aggregateFieldMetadataId: 'aggregate-field-id',
+      primaryAxisGroupByFieldMetadataId: 'group-by-field-id',
+      primaryAxisOrderBy: GraphOrderBy.VALUE_DESC,
+      filter: {
+        recordFilters: [
+          {
+            id: 'widget-local-filter',
+            fieldMetadataId: 'local-field-id',
+            operand: ViewFilterOperand.IS,
+            type: FieldMetadataType.TEXT,
+            value: 'ACTIVE',
+          },
+        ],
+        recordFilterGroups: [],
+      },
+    } as const;
+
+    renderHook(
+      () =>
+        useGraphBarChartWidgetData({
+          objectMetadataItemId: 'person-id',
+          configuration,
+        }),
+      { wrapper },
+    );
+
+    expect((useQuery as jest.Mock).mock.calls[0]?.[1]).toEqual(
+      expect.objectContaining({
+        variables: {
+          input: {
+            objectMetadataId: 'person-id',
+            configuration: expect.objectContaining({
+              filter: {
+                recordFilters: [
+                  expect.objectContaining({
+                    id: 'widget-local-filter',
+                    value: 'ACTIVE',
                   }),
                 ],
                 recordFilterGroups: [],

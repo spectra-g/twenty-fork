@@ -10,9 +10,21 @@ export const getGraphWidgetConfigurationWithDashboardFilters = <
   configuration: TConfiguration,
   dashboardFilters: ChartFilter,
 ): TConfiguration => {
-  // @clawdence-stub: STORY-121 - Implement AND merge of dashboard filters with widget-local filters before GraphQL query
+  const widgetFilters = configuration.filter;
+  const mergedRecordFilters = [
+    ...(widgetFilters?.recordFilters ?? []),
+    ...(dashboardFilters.recordFilters ?? []),
+  ];
+  const mergedRecordFilterGroups = [
+    ...(widgetFilters?.recordFilterGroups ?? []),
+    ...(dashboardFilters.recordFilterGroups ?? []),
+  ];
+
   return {
     ...configuration,
-    filter: dashboardFilters,
+    filter: {
+      recordFilters: mergedRecordFilters,
+      recordFilterGroups: mergedRecordFilterGroups,
+    },
   };
 };

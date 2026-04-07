@@ -1,5 +1,6 @@
 /* eslint-disable @nx/enforce-module-boundaries */
 import { dashboardFiltersComponentState } from '@/page-layout/states/dashboardFiltersComponentState';
+import { getGraphWidgetConfigurationWithDashboardFilters } from '@/page-layout/widgets/graph/utils/getGraphWidgetConfigurationWithDashboardFilters';
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
 import { useAtomComponentStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateValue';
 import { useUserTimezone } from '@/ui/input/components/internal/date/hooks/useUserTimezone';
@@ -43,15 +44,21 @@ export const useGraphWidgetQueryCommon = ({
   }
 
   const { userTimezone } = useUserTimezone();
+  const configurationWithDashboardFilters =
+    getGraphWidgetConfigurationWithDashboardFilters(
+      configuration,
+      dashboardFilters,
+    );
 
   const gqlOperationFilter = computeRecordGqlOperationFilter({
     fields: objectMetadataItem.fields,
     filterValueDependencies: {
       timeZone: userTimezone,
     },
-    // @clawdence-stub: STORY-121 - Implement AND merge of dashboard filters with widget-local filters before GraphQL query
-    recordFilters: dashboardFilters.recordFilters ?? [],
-    recordFilterGroups: dashboardFilters.recordFilterGroups ?? [],
+    recordFilters:
+      configurationWithDashboardFilters.filter?.recordFilters ?? [],
+    recordFilterGroups:
+      configurationWithDashboardFilters.filter?.recordFilterGroups ?? [],
   });
 
   return {

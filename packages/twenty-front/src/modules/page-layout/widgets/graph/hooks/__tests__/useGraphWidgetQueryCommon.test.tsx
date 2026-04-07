@@ -28,10 +28,6 @@ const { useUserTimezone } = jest.requireMock(
 );
 
 const mockObjectMetadataItem = getMockObjectMetadataItemOrThrow('person');
-const nameField = getMockFieldMetadataItemOrThrow({
-  objectMetadataItem: mockObjectMetadataItem,
-  fieldName: 'name',
-});
 const idField = getMockFieldMetadataItemOrThrow({
   objectMetadataItem: mockObjectMetadataItem,
   fieldName: 'id',
@@ -50,7 +46,7 @@ describe('useGraphWidgetQueryCommon', () => {
     });
   });
 
-  it('should use dashboard filters for aggregate queries and ignore widget-local filters in this story', () => {
+  it('should merge widget-local and dashboard filters for aggregate queries', () => {
     const store = createStore();
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <PageLayoutTestWrapper store={store}>{children}</PageLayoutTestWrapper>
@@ -103,8 +99,107 @@ describe('useGraphWidgetQueryCommon', () => {
     );
 
     expect(result.current.gqlOperationFilter).toEqual({
+      and: [
+        {
+          id: {
+            in: ['4f83d5c0-7c7a-4f67-9f29-0a6aad1f4eb1'],
+          },
+        },
+        {
+          id: {
+            in: ['4f83d5c0-7c7a-4f67-9f29-0a6aad1f4eb1'],
+          },
+        },
+      ],
+    });
+  });
+
+  it('should keep widget-local filters when dashboard filters are cleared', () => {
+    const store = createStore();
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <PageLayoutTestWrapper store={store}>{children}</PageLayoutTestWrapper>
+    );
+
+    const localFilterValue = '4f83d5c0-7c7a-4f67-9f29-0a6aad1f4eb1';
+    const localFilter = {
+      id: 'local-filter',
+      fieldMetadataId: idField.id,
+      operand: ViewFilterOperand.IS,
+      type: FieldMetadataType.UUID,
+      value: localFilterValue,
+    };
+
+    const { result } = renderHook(
+      () =>
+        useGraphWidgetQueryCommon({
+          objectMetadataItemId: mockObjectMetadataItem.id,
+          configuration: {
+            __typename: 'AggregateChartConfiguration',
+            configurationType: WidgetConfigurationType.AGGREGATE_CHART,
+            aggregateFieldMetadataId: idField.id,
+            aggregateOperation: AggregateOperations.COUNT,
+            filter: {
+              recordFilters: [localFilter],
+              recordFilterGroups: [],
+            },
+          },
+        }),
+      { wrapper },
+    );
+
+    expect(result.current.gqlOperationFilter).toEqual({
       id: {
-        in: ['4f83d5c0-7c7a-4f67-9f29-0a6aad1f4eb1'],
+        in: [localFilterValue],
+      },
+    });
+  });
+
+  it('should use dashboard filters when the widget has no local filters', () => {
+    const store = createStore();
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <PageLayoutTestWrapper store={store}>{children}</PageLayoutTestWrapper>
+    );
+
+    const dashboardFilterValue = '4f83d5c0-7c7a-4f67-9f29-0a6aad1f4eb2';
+
+    act(() => {
+      store.set(
+        dashboardFiltersComponentState.atomFamily({
+          instanceId: PAGE_LAYOUT_TEST_INSTANCE_ID,
+        }),
+        {
+          recordFilters: [
+            {
+              id: 'dashboard-filter',
+              fieldMetadataId: idField.id,
+              operand: ViewFilterOperand.IS,
+              type: FieldMetadataType.UUID,
+              value: dashboardFilterValue,
+            },
+          ],
+          recordFilterGroups: [],
+        },
+      );
+    });
+
+    const { result } = renderHook(
+      () =>
+        useGraphWidgetQueryCommon({
+          objectMetadataItemId: mockObjectMetadataItem.id,
+          configuration: {
+            __typename: 'AggregateChartConfiguration',
+            configurationType: WidgetConfigurationType.AGGREGATE_CHART,
+            aggregateFieldMetadataId: idField.id,
+            aggregateOperation: AggregateOperations.COUNT,
+            filter: null,
+          },
+        }),
+      { wrapper },
+    );
+
+    expect(result.current.gqlOperationFilter).toEqual({
+      id: {
+        in: [dashboardFilterValue],
       },
     });
   });
