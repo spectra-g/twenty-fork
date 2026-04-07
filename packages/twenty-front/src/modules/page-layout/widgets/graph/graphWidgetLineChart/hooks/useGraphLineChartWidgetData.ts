@@ -1,13 +1,17 @@
+/* eslint-disable @nx/enforce-module-boundaries */
+import { dashboardFiltersComponentState } from '@/page-layout/states/dashboardFiltersComponentState';
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
 import { type ObjectMetadataItem } from '@/object-metadata/types/ObjectMetadataItem';
 import { LINE_CHART_DATA } from '@/page-layout/widgets/graph/graphql/queries/lineChartData';
 import { type LineChartSeriesWithColor } from '@/page-layout/widgets/graph/graphWidgetLineChart/types/LineChartSeriesWithColor';
 import { type GraphColorMode } from '@/page-layout/widgets/graph/types/GraphColorMode';
 import { type RawDimensionValue } from '@/page-layout/widgets/graph/types/RawDimensionValue';
+import { getGraphWidgetConfigurationWithDashboardFilters } from '@/page-layout/widgets/graph/utils/getGraphWidgetConfigurationWithDashboardFilters';
 import { determineChartItemColor } from '@/page-layout/widgets/graph/utils/determineChartItemColor';
 import { determineGraphColorMode } from '@/page-layout/widgets/graph/utils/determineGraphColorMode';
 import { extractLineChartDataConfiguration } from '@/page-layout/widgets/graph/utils/extractLineChartDataConfiguration';
 import { parseGraphColor } from '@/page-layout/widgets/graph/utils/parseGraphColor';
+import { useAtomComponentStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateValue';
 import { useQuery } from '@apollo/client';
 import { isString } from '@sniptt/guards';
 import { FieldMetadataType } from 'twenty-shared/types';
@@ -41,11 +45,19 @@ export const useGraphLineChartWidgetData = ({
   objectMetadataItemId,
   configuration,
 }: UseGraphLineChartWidgetDataProps): UseGraphLineChartWidgetDataResult => {
+  const dashboardFilters = useAtomComponentStateValue(
+    dashboardFiltersComponentState,
+  );
   const { objectMetadataItem } = useObjectMetadataItemById({
     objectId: objectMetadataItemId,
   });
 
-  const dataConfiguration = extractLineChartDataConfiguration(configuration);
+  const dataConfiguration = extractLineChartDataConfiguration(
+    getGraphWidgetConfigurationWithDashboardFilters(
+      configuration,
+      dashboardFilters,
+    ),
+  );
 
   const {
     data: queryData,

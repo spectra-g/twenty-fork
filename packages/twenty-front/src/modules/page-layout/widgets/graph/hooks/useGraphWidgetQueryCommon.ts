@@ -1,4 +1,8 @@
+/* eslint-disable @nx/enforce-module-boundaries */
+import { dashboardFiltersComponentState } from '@/page-layout/states/dashboardFiltersComponentState';
+import { getGraphWidgetConfigurationWithDashboardFilters } from '@/page-layout/widgets/graph/utils/getGraphWidgetConfigurationWithDashboardFilters';
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
+import { useAtomComponentStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateValue';
 import { useUserTimezone } from '@/ui/input/components/internal/date/hooks/useUserTimezone';
 import {
   computeRecordGqlOperationFilter,
@@ -22,6 +26,9 @@ export const useGraphWidgetQueryCommon = ({
     | LineChartConfiguration
     | PieChartConfiguration;
 }) => {
+  const dashboardFilters = useAtomComponentStateValue(
+    dashboardFiltersComponentState,
+  );
   const { objectMetadataItem } = useObjectMetadataItemById({
     objectId: objectMetadataItemId,
   });
@@ -37,14 +44,21 @@ export const useGraphWidgetQueryCommon = ({
   }
 
   const { userTimezone } = useUserTimezone();
+  const configurationWithDashboardFilters =
+    getGraphWidgetConfigurationWithDashboardFilters(
+      configuration,
+      dashboardFilters,
+    );
 
   const gqlOperationFilter = computeRecordGqlOperationFilter({
     fields: objectMetadataItem.fields,
     filterValueDependencies: {
       timeZone: userTimezone,
     },
-    recordFilters: configuration.filter?.recordFilters ?? [],
-    recordFilterGroups: configuration.filter?.recordFilterGroups ?? [],
+    recordFilters:
+      configurationWithDashboardFilters.filter?.recordFilters ?? [],
+    recordFilterGroups:
+      configurationWithDashboardFilters.filter?.recordFilterGroups ?? [],
   });
 
   return {

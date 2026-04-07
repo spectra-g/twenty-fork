@@ -1,3 +1,6 @@
+/* eslint-disable @nx/enforce-module-boundaries */
+import { DashboardFilterBar } from '@/page-layout/components/DashboardFilterBar';
+import { QueryParamsDashboardFiltersEffect } from '@/page-layout/components/QueryParamsDashboardFiltersEffect';
 import { useNavigatePageLayoutCommandMenu } from '@/command-menu/pages/page-layout/hooks/useNavigatePageLayoutCommandMenu';
 import { PageLayoutLeftPanel } from '@/page-layout/components/PageLayoutLeftPanel';
 import { PageLayoutTabList } from '@/page-layout/components/PageLayoutTabList';
@@ -24,6 +27,7 @@ import styled from '@emotion/styled';
 import { t } from '@lingui/core/macro';
 import { CommandMenuPages } from 'twenty-shared/types';
 import { isDefined } from 'twenty-shared/utils';
+import { PageLayoutType } from '~/generated-metadata/graphql';
 import { useIsMobile } from 'twenty-ui/utilities';
 
 const StyledContainer = styled.div<{ hasPinnedTab: boolean }>`
@@ -138,6 +142,13 @@ export const PageLayoutRendererContent = () => {
             onReorder={canEnableTabEditing ? reorderTabs : undefined}
             pageLayoutType={currentPageLayout.type}
           />
+        )}
+
+        {currentPageLayout.type === PageLayoutType.DASHBOARD && (
+          <>
+            <QueryParamsDashboardFiltersEffect pageLayout={currentPageLayout} />
+            <DashboardFilterBar pageLayout={currentPageLayout} />
+          </>
         )}
 
         <StyledScrollWrapper
