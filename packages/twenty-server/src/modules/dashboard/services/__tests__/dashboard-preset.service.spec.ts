@@ -212,6 +212,33 @@ describe('DashboardPresetService', () => {
     );
   });
 
+  it('should reject whitespace-only names on create and update', async () => {
+    const { repository, dashboardRepository, service } = createService();
+    const existingPreset = buildEntity();
+
+    dashboardRepository.findOne.mockResolvedValue({ id: dashboardId });
+    repository.findOne.mockResolvedValueOnce(existingPreset);
+
+    await expect(
+      service.createPreset({
+        workspaceId: 'workspace-id',
+        dashboardId,
+        name: '   ',
+        filter,
+      }),
+    ).rejects.toThrow('Dashboard preset name cannot be blank');
+
+    repository.findOne.mockReset();
+    repository.findOne.mockResolvedValueOnce(existingPreset);
+
+    await expect(
+      service.updatePreset({
+        id: existingPreset.id,
+        name: '   ',
+      }),
+    ).rejects.toThrow('Dashboard preset name cannot be blank');
+  });
+
   it('should update an existing preset and reject duplicate rename attempts', async () => {
     const { repository, service } = createService();
     const existingPreset = buildEntity();

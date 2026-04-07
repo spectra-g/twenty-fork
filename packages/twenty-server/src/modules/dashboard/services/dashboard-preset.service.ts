@@ -6,6 +6,7 @@ import { IsNull, Repository } from 'typeorm';
 import {
   ConflictError,
   NotFoundError,
+  UserInputError,
 } from 'src/engine/core-modules/graphql/utils/graphql-errors.util';
 import { DashboardPresetEntity } from 'src/engine/metadata-modules/dashboard-preset/entities/dashboard-preset.entity';
 import { GlobalWorkspaceOrmManager } from 'src/engine/twenty-orm/global-workspace-datasource/global-workspace-orm.manager';
@@ -50,6 +51,8 @@ export class DashboardPresetService {
   async createPreset(
     input: CreateDashboardPresetInput & { workspaceId: string },
   ): Promise<DashboardPresetDTO> {
+    this.assertNameIsNotBlank(input.name);
+
     await this.assertDashboardExists({
       workspaceId: input.workspaceId,
       dashboardId: input.dashboardId,
@@ -123,6 +126,8 @@ export class DashboardPresetService {
 
     const nextName = input.name ?? existingPreset.name;
 
+    this.assertNameIsNotBlank(nextName);
+
     if (nextName !== existingPreset.name) {
       await this.assertNameIsUnique({
         dashboardId: existingPreset.dashboardId,
@@ -147,6 +152,12 @@ export class DashboardPresetService {
     const deleteResult = await this.dashboardPresetRepository.softDelete(id);
 
     return (deleteResult.affected ?? 0) > 0;
+  }
+
+  private assertNameIsNotBlank(name: string) {
+    if (name.trim().length === 0) {
+      throw new UserInputError('Dashboard preset name cannot be blank');
+    }
   }
 
   private async assertNameIsUnique({

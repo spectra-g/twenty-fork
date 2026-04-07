@@ -1,10 +1,16 @@
 /* eslint-disable @nx/enforce-module-boundaries */
 import { gql } from '@apollo/client';
 import { makeGraphqlAPIRequest } from 'test/integration/graphql/utils/make-graphql-api-request.util';
-import { FieldMetadataType, ViewFilterOperand } from 'twenty-shared/types';
+import {
+  FieldMetadataType,
+  RecordFilterGroupLogicalOperator,
+  ViewFilterOperand,
+} from 'twenty-shared/types';
 
 const dashboardId = 'dc0af4f7-a5c0-4be4-82ae-e39ed13c3a5d';
 const secondDashboardId = 'd5b8c2b3-e7c5-4656-bec3-8275d182d4d5';
+const UUID_V4_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const buildFilter = (value: string) => ({
   recordFilters: [
@@ -16,6 +22,24 @@ const buildFilter = (value: string) => ({
     },
   ],
   recordFilterGroups: [],
+});
+
+const buildGroupedFilter = (value: string) => ({
+  recordFilters: [
+    {
+      fieldMetadataId: 'status-field-id',
+      operand: ViewFilterOperand.IS,
+      recordFilterGroupId: 'root-group',
+      type: FieldMetadataType.SELECT,
+      value,
+    },
+  ],
+  recordFilterGroups: [
+    {
+      id: 'root-group',
+      logicalOperator: RecordFilterGroupLogicalOperator.AND,
+    },
+  ],
 });
 
 describe('Dashboard preset GraphQL contract', () => {
@@ -97,6 +121,43 @@ describe('Dashboard preset GraphQL contract', () => {
         updatedAt: expect.any(String),
       }),
     );
+    expect(response.body.data.createDashboardPreset.id).toMatch(UUID_V4_REGEX);
+  });
+
+  it('persists grouped filter payloads with a stable identifier', async () => {
+    const groupedDashboardId = 'cf214bc2-1d95-42bb-8d49-39af7b3c4e3d';
+    const expectedFilter = buildGroupedFilter('OPEN');
+    const response = await makeGraphqlAPIRequest({
+      query: gql`
+        mutation CreateDashboardPreset($input: CreateDashboardPresetInput!) {
+          createDashboardPreset(input: $input) {
+            id
+            name
+            dashboardId
+            filter
+            createdAt
+            updatedAt
+          }
+        }
+      `,
+      variables: {
+        input: {
+          dashboardId: groupedDashboardId,
+          name: 'Grouped deals',
+          filter: expectedFilter,
+        },
+      },
+    });
+
+    expect(response.body.errors).toBeUndefined();
+    expect(response.body.data.createDashboardPreset).toEqual({
+      id: expect.stringMatching(UUID_V4_REGEX),
+      name: 'Grouped deals',
+      dashboardId: groupedDashboardId,
+      filter: expectedFilter,
+      createdAt: expect.any(String),
+      updatedAt: expect.any(String),
+    });
   });
 
   it('createDashboardPreset mutation rejects an invalid filter payload', async () => {
@@ -236,6 +297,54 @@ describe('Dashboard preset GraphQL contract', () => {
         dashboardId: secondDashboardId,
         filter: buildFilter('OPEN'),
       }),
+    ]);
+  });
+
+  it('loads presets by dashboard id with grouped filter state intact', async () => {
+    const groupedDashboardId = '9fb5b5e5-8bb2-4f3b-9a21-4903adbfa0d4';
+    const expectedFilter = buildGroupedFilter('WON');
+    const createResponse = await makeGraphqlAPIRequest({
+      query: gql`
+        mutation CreateDashboardPreset($input: CreateDashboardPresetInput!) {
+          createDashboardPreset(input: $input) {
+            id
+          }
+        }
+      `,
+      variables: {
+        input: {
+          dashboardId: groupedDashboardId,
+          name: 'Won grouped deals',
+          filter: expectedFilter,
+        },
+      },
+    });
+
+    const presetId = createResponse.body.data.createDashboardPreset.id;
+    const response = await makeGraphqlAPIRequest({
+      query: gql`
+        query DashboardPresets($dashboardId: UUID!) {
+          dashboardPresets(dashboardId: $dashboardId) {
+            id
+            name
+            dashboardId
+            filter
+          }
+        }
+      `,
+      variables: {
+        dashboardId: groupedDashboardId,
+      },
+    });
+
+    expect(response.body.errors).toBeUndefined();
+    expect(response.body.data.dashboardPresets).toEqual([
+      {
+        id: presetId,
+        name: 'Won grouped deals',
+        dashboardId: groupedDashboardId,
+        filter: expectedFilter,
+      },
     ]);
   });
 
@@ -454,5 +563,60 @@ describe('Dashboard preset GraphQL contract', () => {
         }),
       ]),
     );
+  });
+
+  it('deletes a preset and returns an empty list for that dashboard afterwards', async () => {
+    const isolatedDashboardId = 'c9cb3b12-c752-4f4f-bf32-ed6465cbf7fd';
+    const createResponse = await makeGraphqlAPIRequest({
+      query: gql`
+        mutation CreateDashboardPreset($input: CreateDashboardPresetInput!) {
+          createDashboardPreset(input: $input) {
+            id
+          }
+        }
+      `,
+      variables: {
+        input: {
+          dashboardId: isolatedDashboardId,
+          name: 'Transient preset',
+          filter: buildGroupedFilter('CLOSED'),
+        },
+      },
+    });
+
+    const presetId = createResponse.body.data.createDashboardPreset.id;
+
+    const deleteResponse = await makeGraphqlAPIRequest({
+      query: gql`
+        mutation DeleteDashboardPreset($id: UUID!) {
+          deleteDashboardPreset(id: $id)
+        }
+      `,
+      variables: {
+        id: presetId,
+      },
+    });
+
+    expect(deleteResponse.body.errors).toBeUndefined();
+    expect(deleteResponse.body.data.deleteDashboardPreset).toBe(true);
+
+    const listResponse = await makeGraphqlAPIRequest({
+      query: gql`
+        query DashboardPresets($dashboardId: UUID!) {
+          dashboardPresets(dashboardId: $dashboardId) {
+            id
+            name
+            dashboardId
+            filter
+          }
+        }
+      `,
+      variables: {
+        dashboardId: isolatedDashboardId,
+      },
+    });
+
+    expect(listResponse.body.errors).toBeUndefined();
+    expect(listResponse.body.data.dashboardPresets).toEqual([]);
   });
 });
