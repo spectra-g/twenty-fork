@@ -1,13 +1,17 @@
+/* eslint-disable @nx/enforce-module-boundaries */
+import { dashboardFiltersComponentState } from '@/page-layout/states/dashboardFiltersComponentState';
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
 import { type ObjectMetadataItem } from '@/object-metadata/types/ObjectMetadataItem';
 import { PIE_CHART_DATA } from '@/page-layout/widgets/graph/graphql/queries/pieChartData';
 import { type PieChartDataItemWithColor } from '@/page-layout/widgets/graph/graphWidgetPieChart/types/PieChartDataItem';
 import { type GraphColorMode } from '@/page-layout/widgets/graph/types/GraphColorMode';
 import { type RawDimensionValue } from '@/page-layout/widgets/graph/types/RawDimensionValue';
+import { getGraphWidgetConfigurationWithDashboardFilters } from '@/page-layout/widgets/graph/utils/getGraphWidgetConfigurationWithDashboardFilters';
 import { determineChartItemColor } from '@/page-layout/widgets/graph/utils/determineChartItemColor';
 import { determineGraphColorMode } from '@/page-layout/widgets/graph/utils/determineGraphColorMode';
 import { extractPieChartDataConfiguration } from '@/page-layout/widgets/graph/utils/extractPieChartDataConfiguration';
 import { parseGraphColor } from '@/page-layout/widgets/graph/utils/parseGraphColor';
+import { useAtomComponentStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateValue';
 import { useQuery } from '@apollo/client';
 import { isString } from '@sniptt/guards';
 import { useMemo } from 'react';
@@ -37,13 +41,22 @@ export const useGraphPieChartWidgetData = ({
   objectMetadataItemId,
   configuration,
 }: UseGraphPieChartWidgetDataProps): UseGraphPieChartWidgetDataResult => {
+  const dashboardFilters = useAtomComponentStateValue(
+    dashboardFiltersComponentState,
+  );
   const { objectMetadataItem } = useObjectMetadataItemById({
     objectId: objectMetadataItemId,
   });
 
   const dataConfiguration = useMemo(
-    () => extractPieChartDataConfiguration(configuration),
-    [configuration],
+    () =>
+      extractPieChartDataConfiguration(
+        getGraphWidgetConfigurationWithDashboardFilters(
+          configuration,
+          dashboardFilters,
+        ),
+      ),
+    [configuration, dashboardFilters],
   );
 
   const {
