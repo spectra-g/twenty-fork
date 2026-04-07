@@ -63,8 +63,12 @@ export class DashboardResolver {
   // @clawdence-stub: STORY-127 - Support URL query param for preset resolution in list query
   async dashboardPresets(
     @Args('dashboardId', { type: () => UUIDScalarType }) dashboardId: string,
+    @AuthWorkspace() workspace: WorkspaceEntity,
   ): Promise<DashboardPresetDTO[]> {
-    return this.dashboardPresetService.findAllPresetsByDashboardId(dashboardId);
+    return this.dashboardPresetService.findAllPresetsByDashboardId({
+      workspaceId: workspace.id,
+      dashboardId,
+    });
   }
 
   @Query(() => DashboardPresetDTO)
@@ -80,8 +84,12 @@ export class DashboardResolver {
   @UseGuards(SettingsPermissionGuard(PermissionFlagType.LAYOUTS))
   async createDashboardPreset(
     @Args('input') input: CreateDashboardPresetInput,
+    @AuthWorkspace() workspace: WorkspaceEntity,
   ): Promise<DashboardPresetDTO> {
-    return this.dashboardPresetService.createPreset(input);
+    return this.dashboardPresetService.createPreset({
+      ...input,
+      workspaceId: workspace.id,
+    });
   }
 
   @Mutation(() => DashboardPresetDTO)

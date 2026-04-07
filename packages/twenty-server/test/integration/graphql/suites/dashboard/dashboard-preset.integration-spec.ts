@@ -19,6 +19,50 @@ const buildFilter = (value: string) => ({
 });
 
 describe('Dashboard preset GraphQL contract', () => {
+  it('createDashboardPreset mutation rejects an unknown dashboard id', async () => {
+    const response = await makeGraphqlAPIRequest({
+      query: gql`
+        mutation CreateDashboardPreset($input: CreateDashboardPresetInput!) {
+          createDashboardPreset(input: $input) {
+            id
+          }
+        }
+      `,
+      variables: {
+        input: {
+          dashboardId: '11111111-1111-4111-8111-111111111111',
+          name: 'Unknown dashboard',
+          filter: buildFilter('OPEN'),
+        },
+      },
+    });
+
+    expect(response.body.data).toBeNull();
+    expect(response.body.errors).toHaveLength(1);
+    expect(response.body.errors?.[0].message).toContain('Dashboard');
+    expect(response.body.errors?.[0].message).toContain('not found');
+  });
+
+  it('dashboardPresets query rejects an unknown dashboard id', async () => {
+    const response = await makeGraphqlAPIRequest({
+      query: gql`
+        query DashboardPresets($dashboardId: UUID!) {
+          dashboardPresets(dashboardId: $dashboardId) {
+            id
+          }
+        }
+      `,
+      variables: {
+        dashboardId: '11111111-1111-4111-8111-111111111111',
+      },
+    });
+
+    expect(response.body.data).toBeNull();
+    expect(response.body.errors).toHaveLength(1);
+    expect(response.body.errors?.[0].message).toContain('Dashboard');
+    expect(response.body.errors?.[0].message).toContain('not found');
+  });
+
   it('createDashboardPreset mutation returns preset with id', async () => {
     const response = await makeGraphqlAPIRequest({
       query: gql`
