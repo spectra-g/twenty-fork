@@ -1,6 +1,7 @@
 /* eslint-disable @nx/enforce-module-boundaries */
 import { useObjectMetadataItems } from '@/object-metadata/hooks/useObjectMetadataItems';
 import { activeDashboardPresetComponentState } from '@/page-layout/states/activeDashboardPresetComponentState';
+import { dashboardUrlErrorComponentState } from '@/page-layout/states/dashboardUrlErrorComponentState';
 import { DashboardPresetMenu } from '@/page-layout/components/DashboardPresetMenu';
 import { DashboardSavePresetDialog } from '@/page-layout/components/DashboardSavePresetDialog';
 import { DashboardShareButton } from '@/page-layout/components/DashboardShareButton';
@@ -27,10 +28,31 @@ import { useCopyToClipboard } from '~/hooks/useCopyToClipboard';
 import { isDeeplyEqual } from '~/utils/isDeeplyEqual';
 
 const StyledContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+`;
+
+const StyledControlsRow = styled.div`
   align-items: center;
   display: flex;
   gap: 8px;
+`;
+
+const StyledAlert = styled.div`
+  align-items: center;
+  background: ${({ theme }) => theme.background.transparent.light};
+  border: 1px solid ${({ theme }) => theme.border.color.medium};
+  border-radius: ${({ theme }) => theme.border.radius.md};
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
   padding: 8px;
+`;
+
+const StyledAlertMessage = styled.span`
+  color: ${({ theme }) => theme.font.color.primary};
 `;
 
 const StyledStatus = styled.span`
@@ -137,11 +159,17 @@ export const DashboardFilterBar = ({
   const dashboardFilters = useAtomComponentStateValue(
     dashboardFiltersComponentState,
   );
+  const dashboardUrlError = useAtomComponentStateValue(
+    dashboardUrlErrorComponentState,
+  );
   const activeDashboardPreset = useAtomComponentStateValue(
     activeDashboardPresetComponentState,
   );
   const setDashboardFilters = useSetAtomComponentState(
     dashboardFiltersComponentState,
+  );
+  const setDashboardUrlError = useSetAtomComponentState(
+    dashboardUrlErrorComponentState,
   );
   const { canManageDashboardPresets } = useCanManageDashboardPresets();
   const { presets, savePreset, renamePreset, removePreset } =
@@ -173,52 +201,66 @@ export const DashboardFilterBar = ({
 
   return (
     <StyledContainer>
-      {hasFilters ? (
-        <StyledFilterChip>{filterLabel}</StyledFilterChip>
-      ) : (
-        <StyledStatus>{t`No filters applied`}</StyledStatus>
+      {isDefined(dashboardUrlError) && (
+        <StyledAlert role="alert">
+          <StyledAlertMessage>{dashboardUrlError.message}</StyledAlertMessage>
+          <StyledButton
+            aria-label={t`Dismiss dashboard link error`}
+            type="button"
+            onClick={() => setDashboardUrlError(null)}
+          >
+            {t`Dismiss`}
+          </StyledButton>
+        </StyledAlert>
       )}
 
-      <StyledButton
-        type="button"
-        onClick={() => {
-          if (!isDefined(filterTemplate)) {
-            return;
-          }
+      <StyledControlsRow>
+        {hasFilters ? (
+          <StyledFilterChip>{filterLabel}</StyledFilterChip>
+        ) : (
+          <StyledStatus>{t`No filters applied`}</StyledStatus>
+        )}
 
-          // @clawdence-stub: STORY-127 - Parse URL query params to hydrate dashboard filter state on load
-          setDashboardFilters(filterTemplate.filter);
-        }}
-      >
-        {t`Add filter`}
-      </StyledButton>
-
-      {hasFilters && (
         <StyledButton
           type="button"
           onClick={() => {
-            setDashboardFilters({
-              recordFilters: [],
-              recordFilterGroups: [],
-            });
+            if (!isDefined(filterTemplate)) {
+              return;
+            }
+
+            setDashboardFilters(filterTemplate.filter);
           }}
         >
-          {t`Clear filters`}
+          {t`Add filter`}
         </StyledButton>
-      )}
-      <DashboardPresetMenu
-        presets={presets}
-        canManageDashboardPresets={canManageDashboardPresets}
-        onOpenSaveDialog={() => setIsSaveDialogOpen(true)}
-        onRenamePreset={renamePreset}
-        onDeletePreset={removePreset}
-      />
-      <DashboardShareButton
-        onClick={() => {
-          const shareableUrl = getDashboardShareableUrl(dashboardFilters);
-          void copyToClipboard(shareableUrl);
-        }}
-      />
+
+        {hasFilters && (
+          <StyledButton
+            type="button"
+            onClick={() => {
+              setDashboardFilters({
+                recordFilters: [],
+                recordFilterGroups: [],
+              });
+            }}
+          >
+            {t`Clear filters`}
+          </StyledButton>
+        )}
+        <DashboardPresetMenu
+          presets={presets}
+          canManageDashboardPresets={canManageDashboardPresets}
+          onOpenSaveDialog={() => setIsSaveDialogOpen(true)}
+          onRenamePreset={renamePreset}
+          onDeletePreset={removePreset}
+        />
+        <DashboardShareButton
+          onClick={() => {
+            const shareableUrl = getDashboardShareableUrl(dashboardFilters);
+            void copyToClipboard(shareableUrl);
+          }}
+        />
+      </StyledControlsRow>
       <DashboardSavePresetDialog
         isOpen={isSaveDialogOpen}
         onClose={() => setIsSaveDialogOpen(false)}

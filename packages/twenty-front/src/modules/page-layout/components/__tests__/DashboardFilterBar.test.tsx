@@ -1,6 +1,7 @@
 /* eslint-disable @nx/enforce-module-boundaries */
 import { dashboardFiltersComponentState } from '@/page-layout/states/dashboardFiltersComponentState';
 import { activeDashboardPresetComponentState } from '@/page-layout/states/activeDashboardPresetComponentState';
+import { dashboardUrlErrorComponentState } from '@/page-layout/states/dashboardUrlErrorComponentState';
 import { currentUserWorkspaceState } from '@/auth/states/currentUserWorkspaceState';
 import { DashboardFilterBar } from '@/page-layout/components/DashboardFilterBar';
 import { type PageLayout } from '@/page-layout/types/PageLayout';
@@ -414,5 +415,39 @@ describe('DashboardFilterBar', () => {
 
     expect(screen.getByText('Open deals')).toBeVisible();
     expect(screen.queryByText('Status is Open')).not.toBeInTheDocument();
+  });
+
+  it('should render and dismiss a dashboard URL error without blocking the filter controls', async () => {
+    const user = userEvent.setup();
+    const store = createStore();
+
+    store.set(
+      dashboardUrlErrorComponentState.atomFamily({
+        instanceId: PAGE_LAYOUT_TEST_INSTANCE_ID,
+      }),
+      {
+        message:
+          'This dashboard link contains invalid filter parameters. The dashboard loaded without them.',
+      },
+    );
+
+    renderDashboardFilterBar({ store });
+
+    expect(
+      screen.getByText(
+        'This dashboard link contains invalid filter parameters. The dashboard loaded without them.',
+      ),
+    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Add filter' })).toBeVisible();
+
+    await user.click(
+      screen.getByRole('button', { name: 'Dismiss dashboard link error' }),
+    );
+
+    expect(
+      screen.queryByText(
+        'This dashboard link contains invalid filter parameters. The dashboard loaded without them.',
+      ),
+    ).not.toBeInTheDocument();
   });
 });
