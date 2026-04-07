@@ -172,7 +172,7 @@ describe('Dashboard preset GraphQL contract', () => {
   });
 
   it('dashboardPresets query returns list of presets for dashboard', async () => {
-    await makeGraphqlAPIRequest({
+    const firstCreateResponse = await makeGraphqlAPIRequest({
       query: gql`
         mutation CreateDashboardPreset($input: CreateDashboardPresetInput!) {
           createDashboardPreset(input: $input) {
@@ -189,7 +189,7 @@ describe('Dashboard preset GraphQL contract', () => {
       },
     });
 
-    await makeGraphqlAPIRequest({
+    const secondCreateResponse = await makeGraphqlAPIRequest({
       query: gql`
         mutation CreateDashboardPreset($input: CreateDashboardPresetInput!) {
           createDashboardPreset(input: $input) {
@@ -223,20 +223,20 @@ describe('Dashboard preset GraphQL contract', () => {
     });
 
     expect(response.body.errors).toBeUndefined();
-    expect(response.body.data.dashboardPresets).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          name: 'Open deals',
-          dashboardId: secondDashboardId,
-          filter: buildFilter('OPEN'),
-        }),
-        expect.objectContaining({
-          name: 'Won deals',
-          dashboardId: secondDashboardId,
-          filter: buildFilter('WON'),
-        }),
-      ]),
-    );
+    expect(response.body.data.dashboardPresets).toEqual([
+      expect.objectContaining({
+        id: secondCreateResponse.body.data.createDashboardPreset.id,
+        name: 'Won deals',
+        dashboardId: secondDashboardId,
+        filter: buildFilter('WON'),
+      }),
+      expect.objectContaining({
+        id: firstCreateResponse.body.data.createDashboardPreset.id,
+        name: 'Open deals',
+        dashboardId: secondDashboardId,
+        filter: buildFilter('OPEN'),
+      }),
+    ]);
   });
 
   it('dashboardPreset query returns a preset by id across requests', async () => {

@@ -121,26 +121,30 @@ describe('DashboardPresetService', () => {
 
   it('should return persisted presets for a dashboard', async () => {
     const { repository, dashboardRepository, service } = createService();
+    const firstPreset = buildEntity({
+      createdAt: new Date('2026-04-07T10:00:00.000Z'),
+      updatedAt: new Date('2026-04-07T10:00:00.000Z'),
+    });
+    const latestPreset = buildEntity({
+      id: 'preset-id-2',
+      name: 'Won deals',
+      createdAt: new Date('2026-04-07T10:10:00.000Z'),
+      updatedAt: new Date('2026-04-07T10:10:00.000Z'),
+      filter: {
+        recordFilters: [
+          {
+            fieldMetadataId: 'status-field-id',
+            operand: ViewFilterOperand.IS,
+            type: FieldMetadataType.SELECT,
+            value: 'WON',
+          },
+        ],
+        recordFilterGroups: [],
+      },
+    });
 
     dashboardRepository.findOne.mockResolvedValue({ id: dashboardId });
-    repository.find.mockResolvedValue([
-      buildEntity(),
-      buildEntity({
-        id: 'preset-id-2',
-        name: 'Won deals',
-        filter: {
-          recordFilters: [
-            {
-              fieldMetadataId: 'status-field-id',
-              operand: ViewFilterOperand.IS,
-              type: FieldMetadataType.SELECT,
-              value: 'WON',
-            },
-          ],
-          recordFilterGroups: [],
-        },
-      }),
-    ]);
+    repository.find.mockResolvedValue([latestPreset, firstPreset]);
 
     const presets = await service.findAllPresetsByDashboardId({
       workspaceId: 'workspace-id',
@@ -153,17 +157,17 @@ describe('DashboardPresetService', () => {
         deletedAt: expect.anything(),
       },
       order: {
-        createdAt: 'ASC',
+        createdAt: 'DESC',
       },
     });
     expect(presets).toEqual([
       expect.objectContaining({
-        id: 'preset-id',
-        name: 'Open deals',
-      }),
-      expect.objectContaining({
         id: 'preset-id-2',
         name: 'Won deals',
+      }),
+      expect.objectContaining({
+        id: 'preset-id',
+        name: 'Open deals',
       }),
     ]);
   });

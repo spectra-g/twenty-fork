@@ -85,7 +85,7 @@ export class DashboardPresetService {
         deletedAt: IsNull(),
       },
       order: {
-        createdAt: 'ASC',
+        createdAt: 'DESC',
       },
     });
 
