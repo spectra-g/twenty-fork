@@ -63,6 +63,15 @@ export class DashboardResolver {
     return this.dashboardPresetService.findAllPresetsByDashboardId(dashboardId);
   }
 
+  @Query(() => DashboardPresetDTO)
+  @UseGuards(NoPermissionGuard)
+  // @clawdence-stub: STORY-127 - URL hydration logic will be added here to handle query-param filter state
+  async dashboardPreset(
+    @Args('id', { type: () => UUIDScalarType }) id: string,
+  ): Promise<DashboardPresetDTO> {
+    return this.dashboardPresetService.findPresetById(id);
+  }
+
   @Mutation(() => DashboardPresetDTO)
   @UseGuards(NoPermissionGuard)
   // @clawdence-stub: STORY-126 - Apply permission guards to all mutation operations

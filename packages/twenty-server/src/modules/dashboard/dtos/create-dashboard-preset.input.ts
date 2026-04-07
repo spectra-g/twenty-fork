@@ -1,11 +1,12 @@
 /* eslint-disable @nx/enforce-module-boundaries */
 import { Field, InputType } from '@nestjs/graphql';
 
-import { IsNotEmpty, IsObject, IsString, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsString, IsUUID, Validate } from 'class-validator';
 import GraphQLJSON from 'graphql-type-json';
 import { type ChartFilter } from 'twenty-shared/types';
 
 import { UUIDScalarType } from 'src/engine/api/graphql/workspace-schema-builder/graphql-types/scalars';
+import { IsChartFilterPayloadValidator } from 'src/modules/dashboard/validators/is-chart-filter-payload.validator';
 
 @InputType()
 export class CreateDashboardPresetInput {
@@ -18,8 +19,7 @@ export class CreateDashboardPresetInput {
   @IsNotEmpty()
   name: string;
 
-  // @clawdence-stub: STORY-125 - Add DTO validation for filter payload schema and name uniqueness
   @Field(() => GraphQLJSON)
-  @IsObject()
+  @Validate(IsChartFilterPayloadValidator)
   filter: ChartFilter;
 }

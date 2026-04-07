@@ -1,5 +1,5 @@
+/* eslint-disable @nx/enforce-module-boundaries */
 import { gql } from '@apollo/client';
-
 import { makeGraphqlAPIRequest } from 'test/integration/graphql/utils/make-graphql-api-request.util';
 import { FieldMetadataType, ViewFilterOperand } from 'twenty-shared/types';
 
@@ -52,6 +52,78 @@ describe('Dashboard preset GraphQL contract', () => {
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
       }),
+    );
+  });
+
+  it('createDashboardPreset mutation rejects an invalid filter payload', async () => {
+    const response = await makeGraphqlAPIRequest({
+      query: gql`
+        mutation CreateDashboardPreset($input: CreateDashboardPresetInput!) {
+          createDashboardPreset(input: $input) {
+            id
+          }
+        }
+      `,
+      variables: {
+        input: {
+          dashboardId,
+          name: 'Invalid filter',
+          filter: {
+            recordFilters: 'not-an-array',
+            recordFilterGroups: [],
+          },
+        },
+      },
+    });
+
+    expect(response.body.errors).toHaveLength(1);
+    expect(response.body.errors?.[0].extensions.code).toBe('BAD_USER_INPUT');
+    expect(response.body.errors?.[0].message).toContain(
+      'filter must be a valid chart filter payload',
+    );
+  });
+
+  it('createDashboardPreset mutation rejects duplicate names on the same dashboard', async () => {
+    const duplicateDashboardId = '6d0cbf48-235a-4db8-b7a7-a04361739997';
+
+    await makeGraphqlAPIRequest({
+      query: gql`
+        mutation CreateDashboardPreset($input: CreateDashboardPresetInput!) {
+          createDashboardPreset(input: $input) {
+            id
+          }
+        }
+      `,
+      variables: {
+        input: {
+          dashboardId: duplicateDashboardId,
+          name: 'Quarterly pipeline',
+          filter: buildFilter('OPEN'),
+        },
+      },
+    });
+
+    const response = await makeGraphqlAPIRequest({
+      query: gql`
+        mutation CreateDashboardPreset($input: CreateDashboardPresetInput!) {
+          createDashboardPreset(input: $input) {
+            id
+          }
+        }
+      `,
+      variables: {
+        input: {
+          dashboardId: duplicateDashboardId,
+          name: 'Quarterly pipeline',
+          filter: buildFilter('WON'),
+        },
+      },
+    });
+
+    expect(response.body.errors).toHaveLength(1);
+    expect(response.body.errors?.[0].extensions.code).toBe('CONFLICT');
+    expect(response.body.errors?.[0].message).toContain(
+      'already exists for dashboard',
     );
   });
 
@@ -123,6 +195,54 @@ describe('Dashboard preset GraphQL contract', () => {
     );
   });
 
+  it('dashboardPreset query returns a preset by id across requests', async () => {
+    const createResponse = await makeGraphqlAPIRequest({
+      query: gql`
+        mutation CreateDashboardPreset($input: CreateDashboardPresetInput!) {
+          createDashboardPreset(input: $input) {
+            id
+            filter
+          }
+        }
+      `,
+      variables: {
+        input: {
+          dashboardId,
+          name: 'Reloaded preset',
+          filter: buildFilter('REOPENED'),
+        },
+      },
+    });
+
+    const presetId = createResponse.body.data.createDashboardPreset.id;
+
+    const response = await makeGraphqlAPIRequest({
+      query: gql`
+        query DashboardPreset($id: UUID!) {
+          dashboardPreset(id: $id) {
+            id
+            name
+            dashboardId
+            filter
+          }
+        }
+      `,
+      variables: {
+        id: presetId,
+      },
+    });
+
+    expect(response.body.errors).toBeUndefined();
+    expect(response.body.data.dashboardPreset).toEqual(
+      expect.objectContaining({
+        id: presetId,
+        name: 'Reloaded preset',
+        dashboardId,
+        filter: buildFilter('REOPENED'),
+      }),
+    );
+  });
+
   it('updateDashboardPreset mutation modifies existing preset', async () => {
     const createResponse = await makeGraphqlAPIRequest({
       query: gql`
@@ -169,6 +289,66 @@ describe('Dashboard preset GraphQL contract', () => {
         dashboardId,
         filter: buildFilter('CLOSED'),
       }),
+    );
+  });
+
+  it('updateDashboardPreset mutation rejects duplicate names on the same dashboard', async () => {
+    const duplicateDashboardId = 'e1855202-dfd7-4904-bb0e-6fe3f4a8f578';
+
+    const firstCreateResponse = await makeGraphqlAPIRequest({
+      query: gql`
+        mutation CreateDashboardPreset($input: CreateDashboardPresetInput!) {
+          createDashboardPreset(input: $input) {
+            id
+          }
+        }
+      `,
+      variables: {
+        input: {
+          dashboardId: duplicateDashboardId,
+          name: 'Open deals',
+          filter: buildFilter('OPEN'),
+        },
+      },
+    });
+
+    await makeGraphqlAPIRequest({
+      query: gql`
+        mutation CreateDashboardPreset($input: CreateDashboardPresetInput!) {
+          createDashboardPreset(input: $input) {
+            id
+          }
+        }
+      `,
+      variables: {
+        input: {
+          dashboardId: duplicateDashboardId,
+          name: 'Won deals',
+          filter: buildFilter('WON'),
+        },
+      },
+    });
+
+    const response = await makeGraphqlAPIRequest({
+      query: gql`
+        mutation UpdateDashboardPreset($input: UpdateDashboardPresetInput!) {
+          updateDashboardPreset(input: $input) {
+            id
+          }
+        }
+      `,
+      variables: {
+        input: {
+          id: firstCreateResponse.body.data.createDashboardPreset.id,
+          name: 'Won deals',
+        },
+      },
+    });
+
+    expect(response.body.errors).toHaveLength(1);
+    expect(response.body.errors?.[0].extensions.code).toBe('CONFLICT');
+    expect(response.body.errors?.[0].message).toContain(
+      'already exists for dashboard',
     );
   });
 
