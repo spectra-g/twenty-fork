@@ -1,5 +1,6 @@
 /* eslint-disable @nx/enforce-module-boundaries */
 import { DashboardFilterBar } from '@/page-layout/components/DashboardFilterBar';
+import { QueryParamsDashboardFiltersEffect } from '@/page-layout/components/QueryParamsDashboardFiltersEffect';
 import { useNavigatePageLayoutCommandMenu } from '@/command-menu/pages/page-layout/hooks/useNavigatePageLayoutCommandMenu';
 import { PageLayoutLeftPanel } from '@/page-layout/components/PageLayoutLeftPanel';
 import { PageLayoutTabList } from '@/page-layout/components/PageLayoutTabList';
@@ -144,7 +145,10 @@ export const PageLayoutRendererContent = () => {
         )}
 
         {currentPageLayout.type === PageLayoutType.DASHBOARD && (
-          <DashboardFilterBar pageLayout={currentPageLayout} />
+          <>
+            <QueryParamsDashboardFiltersEffect pageLayout={currentPageLayout} />
+            <DashboardFilterBar pageLayout={currentPageLayout} />
+          </>
         )}
 
         <StyledScrollWrapper
