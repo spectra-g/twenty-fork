@@ -13,7 +13,7 @@ export const useDashboardPresets = (dashboardId: string) => {
     renameDashboardPreset,
     deleteDashboardPreset,
     listDashboardPresets,
-  } = useDashboardPresetsApi();
+  } = useDashboardPresetsApi(dashboardId);
   const [presets, setPresets] = useState<DashboardPreset[]>([]);
 
   useEffect(() => {
