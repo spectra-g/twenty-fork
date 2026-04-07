@@ -6,6 +6,7 @@ import { getFiltersFromUrl } from '@/page-layout/hooks/useDashboardUrlFilters';
 import { usePageLayoutWithRelationWidgets } from '@/page-layout/hooks/usePageLayoutWithRelationWidgets';
 import { activeDashboardPresetComponentState } from '@/page-layout/states/activeDashboardPresetComponentState';
 import { dashboardFiltersComponentState } from '@/page-layout/states/dashboardFiltersComponentState';
+import { dashboardUrlErrorComponentState } from '@/page-layout/states/dashboardUrlErrorComponentState';
 import { pageLayoutCurrentLayoutsComponentState } from '@/page-layout/states/pageLayoutCurrentLayoutsComponentState';
 import { pageLayoutDraftComponentState } from '@/page-layout/states/pageLayoutDraftComponentState';
 import { pageLayoutIsInitializedComponentState } from '@/page-layout/states/pageLayoutIsInitializedComponentState';
@@ -16,6 +17,7 @@ import { getDashboardFilterObjectMetadataItem } from '@/page-layout/utils/getDas
 import { useAtomComponentState } from '@/ui/utilities/state/jotai/hooks/useAtomComponentState';
 import { useAtomComponentStateCallbackState } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateCallbackState';
 import { useStore } from 'jotai';
+import { t } from '@lingui/core/macro';
 import { useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { isDefined } from 'twenty-shared/utils';
@@ -52,6 +54,8 @@ export const PageLayoutInitializationQueryEffect = ({
     useAtomComponentStateCallbackState(dashboardFiltersComponentState);
   const activeDashboardPresetComponentCallbackState =
     useAtomComponentStateCallbackState(activeDashboardPresetComponentState);
+  const dashboardUrlErrorComponentCallbackState =
+    useAtomComponentStateCallbackState(dashboardUrlErrorComponentState);
 
   const store = useStore();
   const { getDashboardPreset } = useDashboardPresetsApi(pageLayoutId);
@@ -89,36 +93,62 @@ export const PageLayoutInitializationQueryEffect = ({
         return;
       }
 
+      store.set(dashboardUrlErrorComponentCallbackState, null);
+
       const presetId = searchParams.get('preset');
 
       if (isDefined(presetId) && presetId.length > 0) {
-        const dashboardPreset = await getDashboardPreset(presetId);
+        try {
+          const dashboardPreset = await getDashboardPreset(presetId);
 
-        store.set(activeDashboardPresetComponentCallbackState, {
-          id: dashboardPreset.id,
-          name: dashboardPreset.name,
-          filterState: dashboardPreset.filterState,
-        });
-        store.set(
-          dashboardFiltersComponentCallbackState,
-          dashboardPreset.filterState,
-        );
+          store.set(activeDashboardPresetComponentCallbackState, {
+            id: dashboardPreset.id,
+            name: dashboardPreset.name,
+            filterState: dashboardPreset.filterState,
+          });
+          store.set(
+            dashboardFiltersComponentCallbackState,
+            dashboardPreset.filterState,
+          );
 
-        return;
+          return;
+        } catch {
+          store.set(activeDashboardPresetComponentCallbackState, null);
+          store.set(dashboardFiltersComponentCallbackState, {
+            recordFilters: [],
+            recordFilterGroups: [],
+          });
+          store.set(dashboardUrlErrorComponentCallbackState, {
+            message: t`This preset is no longer available. The dashboard loaded without it.`,
+          });
+
+          return;
+        }
       }
 
       store.set(activeDashboardPresetComponentCallbackState, null);
 
-      const dashboardFilters = getFiltersFromUrl({
-        searchParams,
-        objectMetadataItem,
-      });
+      try {
+        const dashboardFilters = getFiltersFromUrl({
+          searchParams,
+          objectMetadataItem,
+        });
 
-      store.set(dashboardFiltersComponentCallbackState, dashboardFilters);
+        store.set(dashboardFiltersComponentCallbackState, dashboardFilters);
+      } catch {
+        store.set(dashboardFiltersComponentCallbackState, {
+          recordFilters: [],
+          recordFilterGroups: [],
+        });
+        store.set(dashboardUrlErrorComponentCallbackState, {
+          message: t`This dashboard link contains invalid filter parameters. The dashboard loaded without them.`,
+        });
+      }
     },
     [
       activeDashboardPresetComponentCallbackState,
       dashboardFiltersComponentCallbackState,
+      dashboardUrlErrorComponentCallbackState,
       getDashboardPreset,
       objectMetadataItems,
       pageLayoutCurrentLayoutsComponentCallbackState,
