@@ -1,3 +1,5 @@
+/* eslint-disable @nx/enforce-module-boundaries */
+import { dashboardFiltersComponentState } from '@/page-layout/states/dashboardFiltersComponentState';
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
 import { type FieldMetadataItemOption } from '@/object-metadata/types/FieldMetadataItem';
 import { BAR_CHART_DATA } from '@/page-layout/widgets/graph/graphql/queries/barChartData';
@@ -6,10 +8,12 @@ import { getEffectiveGroupMode } from '@/page-layout/widgets/graph/graphWidgetBa
 import { type BarChartDatum } from '@/page-layout/widgets/graph/graphWidgetBarChart/types/BarChartDatum';
 import { type GraphColorMode } from '@/page-layout/widgets/graph/types/GraphColorMode';
 import { type RawDimensionValue } from '@/page-layout/widgets/graph/types/RawDimensionValue';
+import { getGraphWidgetConfigurationWithDashboardFilters } from '@/page-layout/widgets/graph/utils/getGraphWidgetConfigurationWithDashboardFilters';
 import { determineChartItemColor } from '@/page-layout/widgets/graph/utils/determineChartItemColor';
 import { determineGraphColorMode } from '@/page-layout/widgets/graph/utils/determineGraphColorMode';
 import { extractBarChartDataConfiguration } from '@/page-layout/widgets/graph/utils/extractBarChartDataConfiguration';
 import { parseGraphColor } from '@/page-layout/widgets/graph/utils/parseGraphColor';
+import { useAtomComponentStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateValue';
 import { useQuery } from '@apollo/client';
 import { isString } from '@sniptt/guards';
 import { useMemo } from 'react';
@@ -52,13 +56,22 @@ export const useGraphBarChartWidgetData = ({
   objectMetadataItemId,
   configuration,
 }: UseGraphBarChartWidgetDataProps): UseGraphBarChartWidgetDataResult => {
+  const dashboardFilters = useAtomComponentStateValue(
+    dashboardFiltersComponentState,
+  );
   const { objectMetadataItem } = useObjectMetadataItemById({
     objectId: objectMetadataItemId,
   });
 
   const dataConfiguration = useMemo(
-    () => extractBarChartDataConfiguration(configuration),
-    [configuration],
+    () =>
+      extractBarChartDataConfiguration(
+        getGraphWidgetConfigurationWithDashboardFilters(
+          configuration,
+          dashboardFilters,
+        ),
+      ),
+    [configuration, dashboardFilters],
   );
 
   const {
