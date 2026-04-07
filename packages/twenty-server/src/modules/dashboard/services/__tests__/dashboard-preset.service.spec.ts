@@ -121,26 +121,30 @@ describe('DashboardPresetService', () => {
 
   it('should return persisted presets for a dashboard', async () => {
     const { repository, dashboardRepository, service } = createService();
+    const firstPreset = buildEntity({
+      createdAt: new Date('2026-04-07T10:00:00.000Z'),
+      updatedAt: new Date('2026-04-07T10:00:00.000Z'),
+    });
+    const latestPreset = buildEntity({
+      id: 'preset-id-2',
+      name: 'Won deals',
+      createdAt: new Date('2026-04-07T10:10:00.000Z'),
+      updatedAt: new Date('2026-04-07T10:10:00.000Z'),
+      filter: {
+        recordFilters: [
+          {
+            fieldMetadataId: 'status-field-id',
+            operand: ViewFilterOperand.IS,
+            type: FieldMetadataType.SELECT,
+            value: 'WON',
+          },
+        ],
+        recordFilterGroups: [],
+      },
+    });
 
     dashboardRepository.findOne.mockResolvedValue({ id: dashboardId });
-    repository.find.mockResolvedValue([
-      buildEntity(),
-      buildEntity({
-        id: 'preset-id-2',
-        name: 'Won deals',
-        filter: {
-          recordFilters: [
-            {
-              fieldMetadataId: 'status-field-id',
-              operand: ViewFilterOperand.IS,
-              type: FieldMetadataType.SELECT,
-              value: 'WON',
-            },
-          ],
-          recordFilterGroups: [],
-        },
-      }),
-    ]);
+    repository.find.mockResolvedValue([latestPreset, firstPreset]);
 
     const presets = await service.findAllPresetsByDashboardId({
       workspaceId: 'workspace-id',
@@ -153,17 +157,17 @@ describe('DashboardPresetService', () => {
         deletedAt: expect.anything(),
       },
       order: {
-        createdAt: 'ASC',
+        createdAt: 'DESC',
       },
     });
     expect(presets).toEqual([
       expect.objectContaining({
-        id: 'preset-id',
-        name: 'Open deals',
-      }),
-      expect.objectContaining({
         id: 'preset-id-2',
         name: 'Won deals',
+      }),
+      expect.objectContaining({
+        id: 'preset-id',
+        name: 'Open deals',
       }),
     ]);
   });
@@ -206,6 +210,33 @@ describe('DashboardPresetService', () => {
     ).rejects.toThrow(
       `Dashboard preset "Open deals" already exists for dashboard ${dashboardId}`,
     );
+  });
+
+  it('should reject whitespace-only names on create and update', async () => {
+    const { repository, dashboardRepository, service } = createService();
+    const existingPreset = buildEntity();
+
+    dashboardRepository.findOne.mockResolvedValue({ id: dashboardId });
+    repository.findOne.mockResolvedValueOnce(existingPreset);
+
+    await expect(
+      service.createPreset({
+        workspaceId: 'workspace-id',
+        dashboardId,
+        name: '   ',
+        filter,
+      }),
+    ).rejects.toThrow('Dashboard preset name cannot be blank');
+
+    repository.findOne.mockReset();
+    repository.findOne.mockResolvedValueOnce(existingPreset);
+
+    await expect(
+      service.updatePreset({
+        id: existingPreset.id,
+        name: '   ',
+      }),
+    ).rejects.toThrow('Dashboard preset name cannot be blank');
   });
 
   it('should update an existing preset and reject duplicate rename attempts', async () => {
