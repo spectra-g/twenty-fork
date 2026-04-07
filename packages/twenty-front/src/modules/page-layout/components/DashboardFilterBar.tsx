@@ -1,5 +1,6 @@
 /* eslint-disable @nx/enforce-module-boundaries */
 import { useObjectMetadataItems } from '@/object-metadata/hooks/useObjectMetadataItems';
+import { activeDashboardPresetComponentState } from '@/page-layout/states/activeDashboardPresetComponentState';
 import { DashboardPresetMenu } from '@/page-layout/components/DashboardPresetMenu';
 import { DashboardSavePresetDialog } from '@/page-layout/components/DashboardSavePresetDialog';
 import { DashboardShareButton } from '@/page-layout/components/DashboardShareButton';
@@ -23,6 +24,7 @@ import {
 import { isDefined, isNonEmptyArray } from 'twenty-shared/utils';
 import { WidgetType } from '~/generated-metadata/graphql';
 import { useCopyToClipboard } from '~/hooks/useCopyToClipboard';
+import { isDeeplyEqual } from '~/utils/isDeeplyEqual';
 
 const StyledContainer = styled.div`
   align-items: center;
@@ -135,6 +137,9 @@ export const DashboardFilterBar = ({
   const dashboardFilters = useAtomComponentStateValue(
     dashboardFiltersComponentState,
   );
+  const activeDashboardPreset = useAtomComponentStateValue(
+    activeDashboardPresetComponentState,
+  );
   const setDashboardFilters = useSetAtomComponentState(
     dashboardFiltersComponentState,
   );
@@ -155,10 +160,16 @@ export const DashboardFilterBar = ({
   const hasFilters =
     (dashboardFilters.recordFilters?.length ?? 0) > 0 ||
     (dashboardFilters.recordFilterGroups?.length ?? 0) > 0;
+  const isPresetLocked =
+    hasFilters &&
+    isDefined(activeDashboardPreset) &&
+    isDeeplyEqual(dashboardFilters, activeDashboardPreset.filterState);
 
-  const filterLabel = isDefined(filterTemplate)
-    ? filterTemplate.label
-    : t`1 filter applied`;
+  const filterLabel = isPresetLocked
+    ? activeDashboardPreset.name
+    : isDefined(filterTemplate)
+      ? filterTemplate.label
+      : t`1 filter applied`;
 
   return (
     <StyledContainer>

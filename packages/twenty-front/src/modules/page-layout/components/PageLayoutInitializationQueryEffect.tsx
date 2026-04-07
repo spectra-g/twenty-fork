@@ -1,8 +1,10 @@
 /* eslint-disable @nx/enforce-module-boundaries */
 import { useObjectMetadataItems } from '@/object-metadata/hooks/useObjectMetadataItems';
 import { useBasePageLayout } from '@/page-layout/hooks/useBasePageLayout';
+import { useDashboardPresetsApi } from '@/page-layout/hooks/useDashboardPresetsApi';
 import { getFiltersFromUrl } from '@/page-layout/hooks/useDashboardUrlFilters';
 import { usePageLayoutWithRelationWidgets } from '@/page-layout/hooks/usePageLayoutWithRelationWidgets';
+import { activeDashboardPresetComponentState } from '@/page-layout/states/activeDashboardPresetComponentState';
 import { dashboardFiltersComponentState } from '@/page-layout/states/dashboardFiltersComponentState';
 import { pageLayoutCurrentLayoutsComponentState } from '@/page-layout/states/pageLayoutCurrentLayoutsComponentState';
 import { pageLayoutDraftComponentState } from '@/page-layout/states/pageLayoutDraftComponentState';
@@ -48,11 +50,14 @@ export const PageLayoutInitializationQueryEffect = ({
     useAtomComponentStateCallbackState(pageLayoutCurrentLayoutsComponentState);
   const dashboardFiltersComponentCallbackState =
     useAtomComponentStateCallbackState(dashboardFiltersComponentState);
+  const activeDashboardPresetComponentCallbackState =
+    useAtomComponentStateCallbackState(activeDashboardPresetComponentState);
 
   const store = useStore();
+  const { getDashboardPreset } = useDashboardPresetsApi(pageLayoutId);
 
   const initializePageLayout = useCallback(
-    (layout: PageLayout) => {
+    async (layout: PageLayout) => {
       const currentPersisted = store.get(
         pageLayoutPersistedComponentCallbackState,
       );
@@ -84,6 +89,26 @@ export const PageLayoutInitializationQueryEffect = ({
         return;
       }
 
+      const presetId = searchParams.get('preset');
+
+      if (isDefined(presetId) && presetId.length > 0) {
+        const dashboardPreset = await getDashboardPreset(presetId);
+
+        store.set(activeDashboardPresetComponentCallbackState, {
+          id: dashboardPreset.id,
+          name: dashboardPreset.name,
+          filterState: dashboardPreset.filterState,
+        });
+        store.set(
+          dashboardFiltersComponentCallbackState,
+          dashboardPreset.filterState,
+        );
+
+        return;
+      }
+
+      store.set(activeDashboardPresetComponentCallbackState, null);
+
       const dashboardFilters = getFiltersFromUrl({
         searchParams,
         objectMetadataItem,
@@ -92,7 +117,9 @@ export const PageLayoutInitializationQueryEffect = ({
       store.set(dashboardFiltersComponentCallbackState, dashboardFilters);
     },
     [
+      activeDashboardPresetComponentCallbackState,
       dashboardFiltersComponentCallbackState,
+      getDashboardPreset,
       objectMetadataItems,
       pageLayoutCurrentLayoutsComponentCallbackState,
       pageLayoutDraftComponentCallbackState,
@@ -104,9 +131,10 @@ export const PageLayoutInitializationQueryEffect = ({
 
   useEffect(() => {
     if (!pageLayoutIsInitialized && isDefined(pageLayout)) {
-      initializePageLayout(pageLayout);
-      onInitialized?.(pageLayout);
-      setPageLayoutIsInitialized(true);
+      void initializePageLayout(pageLayout).then(() => {
+        onInitialized?.(pageLayout);
+        setPageLayoutIsInitialized(true);
+      });
     }
   }, [
     initializePageLayout,

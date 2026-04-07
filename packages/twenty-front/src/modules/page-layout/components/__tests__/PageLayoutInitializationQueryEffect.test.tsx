@@ -1,4 +1,6 @@
 /* eslint-disable @nx/enforce-module-boundaries */
+import { gql } from '@apollo/client';
+import { MockedProvider, type MockedResponse } from '@apollo/client/testing';
 import { dashboardFiltersComponentState } from '@/page-layout/states/dashboardFiltersComponentState';
 import { PageLayoutInitializationQueryEffect } from '@/page-layout/components/PageLayoutInitializationQueryEffect';
 import { render, waitFor } from '@testing-library/react';
@@ -37,6 +39,52 @@ const { usePageLayoutWithRelationWidgets } = jest.requireMock(
 const { useObjectMetadataItems } = jest.requireMock(
   '@/object-metadata/hooks/useObjectMetadataItems',
 );
+
+const dashboardPresetId = 'df68d6fd-c61a-4ef4-b8d4-0c9b2d1b6357';
+
+const dashboardPresetQueryMocks: MockedResponse[] = [
+  {
+    request: {
+      query: gql`
+        query DashboardPreset($id: UUID!) {
+          dashboardPreset(id: $id) {
+            id
+            name
+            dashboardId
+            filter
+            createdAt
+            updatedAt
+          }
+        }
+      `,
+      variables: {
+        id: dashboardPresetId,
+      },
+    },
+    result: {
+      data: {
+        dashboardPreset: {
+          id: dashboardPresetId,
+          name: 'Open deals',
+          dashboardId: 'dashboard-id',
+          filter: {
+            recordFilters: [
+              {
+                fieldMetadataId: 'status-field-id',
+                operand: ViewFilterOperand.IS,
+                type: FieldMetadataType.SELECT,
+                value: 'OPEN',
+              },
+            ],
+            recordFilterGroups: [],
+          },
+          createdAt: '2024-01-01T00:00:00.000Z',
+          updatedAt: '2024-01-01T00:00:00.000Z',
+        },
+      },
+    },
+  },
+];
 
 describe('PageLayoutInitializationQueryEffect', () => {
   beforeEach(() => {
@@ -108,15 +156,55 @@ describe('PageLayoutInitializationQueryEffect', () => {
     const store = createStore();
 
     render(
-      <MemoryRouter
-        initialEntries={[
-          '/dashboards/filter-propagation?filter[status][IS]=OPEN',
-        ]}
-      >
-        <PageLayoutTestWrapper store={store}>
-          <PageLayoutInitializationQueryEffect pageLayoutId="dashboard-id" />
-        </PageLayoutTestWrapper>
-      </MemoryRouter>,
+      <MockedProvider addTypename={false}>
+        <MemoryRouter
+          initialEntries={[
+            '/dashboards/filter-propagation?filter[status][IS]=OPEN',
+          ]}
+        >
+          <PageLayoutTestWrapper store={store}>
+            <PageLayoutInitializationQueryEffect pageLayoutId="dashboard-id" />
+          </PageLayoutTestWrapper>
+        </MemoryRouter>
+      </MockedProvider>,
+    );
+
+    await waitFor(() => {
+      expect(
+        store.get(
+          dashboardFiltersComponentState.atomFamily({
+            instanceId: PAGE_LAYOUT_TEST_INSTANCE_ID,
+          }),
+        ),
+      ).toEqual({
+        recordFilters: [
+          expect.objectContaining({
+            fieldMetadataId: 'status-field-id',
+            operand: ViewFilterOperand.IS,
+            type: FieldMetadataType.SELECT,
+            value: 'OPEN',
+          }),
+        ],
+        recordFilterGroups: [],
+      });
+    });
+  });
+
+  it('should hydrate dashboard filters from a preset id in the URL when the page layout initializes', async () => {
+    const store = createStore();
+
+    render(
+      <MockedProvider mocks={dashboardPresetQueryMocks} addTypename={false}>
+        <MemoryRouter
+          initialEntries={[
+            `/dashboards/filter-propagation?preset=${dashboardPresetId}`,
+          ]}
+        >
+          <PageLayoutTestWrapper store={store}>
+            <PageLayoutInitializationQueryEffect pageLayoutId="dashboard-id" />
+          </PageLayoutTestWrapper>
+        </MemoryRouter>
+      </MockedProvider>,
     );
 
     await waitFor(() => {
