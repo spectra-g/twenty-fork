@@ -4,6 +4,7 @@ import { FieldMetadataType, ViewFilterOperand } from 'twenty-shared/types';
 import type { Repository } from 'typeorm';
 
 import type { DashboardPresetEntity } from 'src/engine/metadata-modules/dashboard-preset/entities/dashboard-preset.entity';
+import type { GlobalWorkspaceOrmManager } from 'src/engine/twenty-orm/global-workspace-datasource/global-workspace-orm.manager';
 import { DashboardPresetService } from 'src/modules/dashboard/services/dashboard-preset.service';
 
 describe('DashboardPresetService', () => {
@@ -44,21 +45,51 @@ describe('DashboardPresetService', () => {
       softDelete: jest.fn(),
     }) as unknown as jest.Mocked<Repository<DashboardPresetEntity>>;
 
+  const createDashboardRepository = () =>
+    ({
+      findOne: jest.fn(),
+    }) as { findOne: jest.Mock };
+
+  const createService = ({
+    repository = createRepository(),
+    dashboardRepository = createDashboardRepository(),
+  }: {
+    repository?: jest.Mocked<Repository<DashboardPresetEntity>>;
+    dashboardRepository?: { findOne: jest.Mock };
+  } = {}) => {
+    const globalWorkspaceOrmManager = {
+      getRepository: jest.fn().mockResolvedValue(dashboardRepository),
+    } as unknown as jest.Mocked<
+      Pick<GlobalWorkspaceOrmManager, 'getRepository'>
+    >;
+
+    return {
+      repository,
+      dashboardRepository,
+      globalWorkspaceOrmManager,
+      service: new DashboardPresetService(
+        repository,
+        globalWorkspaceOrmManager,
+      ),
+    };
+  };
+
   type SoftDeleteResult = Awaited<
     ReturnType<Repository<DashboardPresetEntity>['softDelete']>
   >;
 
   it('should persist a preset and return an isolated DTO copy', async () => {
-    const repository = createRepository();
-    const service = new DashboardPresetService(repository);
+    const { repository, dashboardRepository, service } = createService();
     const entity = buildEntity();
 
+    dashboardRepository.findOne.mockResolvedValue({ id: dashboardId });
     repository.findOne.mockResolvedValueOnce(null);
     repository.create.mockReturnValue(entity);
     repository.save.mockResolvedValue(entity);
     repository.find.mockResolvedValue([entity]);
 
     const createdPreset = await service.createPreset({
+      workspaceId: 'workspace-id',
       dashboardId,
       name: 'Open deals',
       filter,
@@ -74,8 +105,10 @@ describe('DashboardPresetService', () => {
     });
     expect(createdPreset.id).toBe('preset-id');
 
-    const listedPresets =
-      await service.findAllPresetsByDashboardId(dashboardId);
+    const listedPresets = await service.findAllPresetsByDashboardId({
+      workspaceId: 'workspace-id',
+      dashboardId,
+    });
 
     expect(listedPresets).toEqual([
       expect.objectContaining({
@@ -87,9 +120,9 @@ describe('DashboardPresetService', () => {
   });
 
   it('should return persisted presets for a dashboard', async () => {
-    const repository = createRepository();
-    const service = new DashboardPresetService(repository);
+    const { repository, dashboardRepository, service } = createService();
 
+    dashboardRepository.findOne.mockResolvedValue({ id: dashboardId });
     repository.find.mockResolvedValue([
       buildEntity(),
       buildEntity({
@@ -109,12 +142,16 @@ describe('DashboardPresetService', () => {
       }),
     ]);
 
-    const presets = await service.findAllPresetsByDashboardId(dashboardId);
+    const presets = await service.findAllPresetsByDashboardId({
+      workspaceId: 'workspace-id',
+      dashboardId,
+    });
 
     expect(repository.find).toHaveBeenCalledWith({
-      where: expect.objectContaining({
+      where: {
         dashboardId,
-      }),
+        deletedAt: expect.anything(),
+      },
       order: {
         createdAt: 'ASC',
       },
@@ -132,8 +169,7 @@ describe('DashboardPresetService', () => {
   });
 
   it('should return a preset by id and throw when it is missing', async () => {
-    const repository = createRepository();
-    const service = new DashboardPresetService(repository);
+    const { repository, service } = createService();
     const existingPreset = buildEntity();
 
     repository.findOne
@@ -155,13 +191,14 @@ describe('DashboardPresetService', () => {
   });
 
   it('should reject duplicate names on create', async () => {
-    const repository = createRepository();
-    const service = new DashboardPresetService(repository);
+    const { repository, dashboardRepository, service } = createService();
 
+    dashboardRepository.findOne.mockResolvedValue({ id: dashboardId });
     repository.findOne.mockResolvedValue(buildEntity());
 
     await expect(
       service.createPreset({
+        workspaceId: 'workspace-id',
         dashboardId,
         name: 'Open deals',
         filter,
@@ -172,8 +209,7 @@ describe('DashboardPresetService', () => {
   });
 
   it('should update an existing preset and reject duplicate rename attempts', async () => {
-    const repository = createRepository();
-    const service = new DashboardPresetService(repository);
+    const { repository, service } = createService();
     const existingPreset = buildEntity();
     const conflictingPreset = buildEntity({
       id: 'preset-id-2',
@@ -230,8 +266,7 @@ describe('DashboardPresetService', () => {
   });
 
   it('should throw when updating a missing preset', async () => {
-    const repository = createRepository();
-    const service = new DashboardPresetService(repository);
+    const { repository, service } = createService();
 
     repository.findOne.mockResolvedValue(null);
 
@@ -244,8 +279,7 @@ describe('DashboardPresetService', () => {
   });
 
   it('should soft delete presets and report whether anything was deleted', async () => {
-    const repository = createRepository();
-    const service = new DashboardPresetService(repository);
+    const { repository, service } = createService();
 
     repository.softDelete
       .mockResolvedValueOnce({ affected: 1 } as SoftDeleteResult)
@@ -253,5 +287,33 @@ describe('DashboardPresetService', () => {
 
     await expect(service.deletePreset('preset-id')).resolves.toBe(true);
     await expect(service.deletePreset('missing-id')).resolves.toBe(false);
+  });
+
+  it('should reject preset creation when the dashboard does not exist', async () => {
+    const { dashboardRepository, service } = createService();
+
+    dashboardRepository.findOne.mockResolvedValue(null);
+
+    await expect(
+      service.createPreset({
+        workspaceId: 'workspace-id',
+        dashboardId,
+        name: 'Open deals',
+        filter,
+      }),
+    ).rejects.toThrow(`Dashboard with ID "${dashboardId}" not found`);
+  });
+
+  it('should reject preset listing when the dashboard does not exist', async () => {
+    const { dashboardRepository, service } = createService();
+
+    dashboardRepository.findOne.mockResolvedValue(null);
+
+    await expect(
+      service.findAllPresetsByDashboardId({
+        workspaceId: 'workspace-id',
+        dashboardId,
+      }),
+    ).rejects.toThrow(`Dashboard with ID "${dashboardId}" not found`);
   });
 });

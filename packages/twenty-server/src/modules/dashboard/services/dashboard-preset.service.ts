@@ -8,9 +8,17 @@ import {
   NotFoundError,
 } from 'src/engine/core-modules/graphql/utils/graphql-errors.util';
 import { DashboardPresetEntity } from 'src/engine/metadata-modules/dashboard-preset/entities/dashboard-preset.entity';
+import { GlobalWorkspaceOrmManager } from 'src/engine/twenty-orm/global-workspace-datasource/global-workspace-orm.manager';
 import { DashboardPresetDTO } from 'src/modules/dashboard/dtos/dashboard-preset.dto';
 import { CreateDashboardPresetInput } from 'src/modules/dashboard/dtos/create-dashboard-preset.input';
 import { UpdateDashboardPresetInput } from 'src/modules/dashboard/dtos/update-dashboard-preset.input';
+import {
+  DashboardException,
+  DashboardExceptionCode,
+  DashboardExceptionMessageKey,
+  generateDashboardExceptionMessage,
+} from 'src/modules/dashboard/exceptions/dashboard.exception';
+import { DashboardWorkspaceEntity } from 'src/modules/dashboard/standard-objects/dashboard.workspace-entity';
 
 const cloneFilter = (filter: DashboardPresetDTO['filter']) =>
   JSON.parse(JSON.stringify(filter)) as DashboardPresetDTO['filter'];
@@ -36,11 +44,17 @@ export class DashboardPresetService {
   constructor(
     @InjectRepository(DashboardPresetEntity)
     private readonly dashboardPresetRepository: Repository<DashboardPresetEntity>,
+    private readonly globalWorkspaceOrmManager: GlobalWorkspaceOrmManager,
   ) {}
 
   async createPreset(
-    input: CreateDashboardPresetInput,
+    input: CreateDashboardPresetInput & { workspaceId: string },
   ): Promise<DashboardPresetDTO> {
+    await this.assertDashboardExists({
+      workspaceId: input.workspaceId,
+      dashboardId: input.dashboardId,
+    });
+
     await this.assertNameIsUnique({
       dashboardId: input.dashboardId,
       name: input.name,
@@ -56,9 +70,15 @@ export class DashboardPresetService {
     return clonePreset(toDashboardPresetDTO(createdPreset));
   }
 
-  async findAllPresetsByDashboardId(
-    dashboardId: string,
-  ): Promise<DashboardPresetDTO[]> {
+  async findAllPresetsByDashboardId({
+    workspaceId,
+    dashboardId,
+  }: {
+    workspaceId: string;
+    dashboardId: string;
+  }): Promise<DashboardPresetDTO[]> {
+    await this.assertDashboardExists({ workspaceId, dashboardId });
+
     const presets = await this.dashboardPresetRepository.find({
       where: {
         dashboardId,
@@ -149,6 +169,35 @@ export class DashboardPresetService {
     if (existingPreset !== null && existingPreset.id !== excludedPresetId) {
       throw new ConflictError(
         `Dashboard preset "${name}" already exists for dashboard ${dashboardId}`,
+      );
+    }
+  }
+
+  private async assertDashboardExists({
+    workspaceId,
+    dashboardId,
+  }: {
+    workspaceId: string;
+    dashboardId: string;
+  }) {
+    const dashboardRepository =
+      await this.globalWorkspaceOrmManager.getRepository<DashboardWorkspaceEntity>(
+        workspaceId,
+        DashboardWorkspaceEntity,
+        { shouldBypassPermissionChecks: true },
+      );
+
+    const dashboard = await dashboardRepository.findOne({
+      where: { id: dashboardId },
+    });
+
+    if (dashboard == null) {
+      throw new DashboardException(
+        generateDashboardExceptionMessage(
+          DashboardExceptionMessageKey.DASHBOARD_NOT_FOUND,
+          dashboardId,
+        ),
+        DashboardExceptionCode.DASHBOARD_NOT_FOUND,
       );
     }
   }
