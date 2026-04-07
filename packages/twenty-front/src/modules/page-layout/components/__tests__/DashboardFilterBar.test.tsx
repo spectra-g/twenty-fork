@@ -1,5 +1,6 @@
 /* eslint-disable @nx/enforce-module-boundaries */
 import { dashboardFiltersComponentState } from '@/page-layout/states/dashboardFiltersComponentState';
+import { currentUserWorkspaceState } from '@/auth/states/currentUserWorkspaceState';
 import { DashboardFilterBar } from '@/page-layout/components/DashboardFilterBar';
 import { type PageLayout } from '@/page-layout/types/PageLayout';
 import { render, screen } from '@testing-library/react';
@@ -116,6 +117,12 @@ describe('DashboardFilterBar', () => {
 
     useObjectMetadataItems.mockReturnValue({
       objectMetadataItems: [
+        {
+          id: 'dashboard-object-metadata-id',
+          nameSingular: 'dashboard',
+          fields: [],
+          readableFields: [],
+        },
         {
           id: 'person-id',
           fields: [
@@ -302,6 +309,42 @@ describe('DashboardFilterBar', () => {
 
     expect(mockDeleteDashboardPreset).toHaveBeenCalledWith('preset-2');
     expect(screen.queryByText('Closed deals')).not.toBeInTheDocument();
+  });
+
+  it('should keep filter controls available while hiding preset controls without dashboard edit permission', async () => {
+    const user = userEvent.setup();
+    const store = createStore();
+
+    store.set(currentUserWorkspaceState.atom, {
+      permissionFlags: [],
+      twoFactorAuthenticationMethodSummary: [],
+      objectsPermissions: [
+        {
+          objectMetadataId: 'dashboard-object-metadata-id',
+          canReadObjectRecords: true,
+          canUpdateObjectRecords: false,
+          canSoftDeleteObjectRecords: true,
+          canDestroyObjectRecords: true,
+          restrictedFields: {},
+          rowLevelPermissionPredicates: [],
+          rowLevelPermissionPredicateGroups: [],
+        },
+      ],
+    });
+
+    renderDashboardFilterBar({ store });
+
+    expect(screen.getByRole('button', { name: 'Add filter' })).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: 'Presets' }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Add filter' }));
+
+    expect(screen.getByText('Status is Open')).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: 'Save preset' }),
+    ).not.toBeInTheDocument();
   });
 
   it('should copy a shareable dashboard URL with the encoded filter state', async () => {

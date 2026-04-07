@@ -1,5 +1,8 @@
+/* eslint-disable @nx/enforce-module-boundaries */
 import { UseFilters, UseGuards, UsePipes } from '@nestjs/common';
 import { Args, Mutation, Query } from '@nestjs/graphql';
+
+import { PermissionFlagType } from 'twenty-shared/constants';
 
 import { UUIDScalarType } from 'src/engine/api/graphql/workspace-schema-builder/graphql-types/scalars';
 import { MetadataResolver } from 'src/engine/api/graphql/graphql-config/decorators/metadata-resolver.decorator';
@@ -12,6 +15,7 @@ import { AuthUser } from 'src/engine/decorators/auth/auth-user.decorator';
 import { AuthWorkspaceMemberId } from 'src/engine/decorators/auth/auth-workspace-member-id.decorator';
 import { AuthWorkspace } from 'src/engine/decorators/auth/auth-workspace.decorator';
 import { NoPermissionGuard } from 'src/engine/guards/no-permission.guard';
+import { SettingsPermissionGuard } from 'src/engine/guards/settings-permission.guard';
 import { WorkspaceAuthGuard } from 'src/engine/guards/workspace-auth.guard';
 import { PageLayoutGraphqlApiExceptionFilter } from 'src/engine/metadata-modules/page-layout/utils/page-layout-graphql-api-exception.filter';
 import { CreateDashboardPresetInput } from 'src/modules/dashboard/dtos/create-dashboard-preset.input';
@@ -73,8 +77,7 @@ export class DashboardResolver {
   }
 
   @Mutation(() => DashboardPresetDTO)
-  @UseGuards(NoPermissionGuard)
-  // @clawdence-stub: STORY-126 - Apply permission guards to all mutation operations
+  @UseGuards(SettingsPermissionGuard(PermissionFlagType.LAYOUTS))
   async createDashboardPreset(
     @Args('input') input: CreateDashboardPresetInput,
   ): Promise<DashboardPresetDTO> {
@@ -82,8 +85,7 @@ export class DashboardResolver {
   }
 
   @Mutation(() => DashboardPresetDTO)
-  @UseGuards(NoPermissionGuard)
-  // @clawdence-stub: STORY-126 - Apply permission guards to all mutation operations
+  @UseGuards(SettingsPermissionGuard(PermissionFlagType.LAYOUTS))
   async updateDashboardPreset(
     @Args('input') input: UpdateDashboardPresetInput,
   ): Promise<DashboardPresetDTO> {
@@ -91,8 +93,7 @@ export class DashboardResolver {
   }
 
   @Mutation(() => Boolean)
-  @UseGuards(NoPermissionGuard)
-  // @clawdence-stub: STORY-126 - Apply permission guards to all mutation operations
+  @UseGuards(SettingsPermissionGuard(PermissionFlagType.LAYOUTS))
   async deleteDashboardPreset(
     @Args('id', { type: () => UUIDScalarType }) id: string,
   ): Promise<boolean> {
