@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { ActorModule } from 'src/engine/core-modules/actor/actor.module';
 import { AuthModule } from 'src/engine/core-modules/auth/auth.module';
+import { DashboardPresetEntity } from 'src/engine/metadata-modules/dashboard-preset/entities/dashboard-preset.entity';
 import { PageLayoutModule } from 'src/engine/metadata-modules/page-layout/page-layout.module';
 import { TwentyORMModule } from 'src/engine/twenty-orm/twenty-orm.module';
 import { WorkspaceCacheStorageModule } from 'src/engine/workspace-cache-storage/workspace-cache-storage.module';
@@ -17,6 +19,7 @@ import { DashboardPresetService } from 'src/modules/dashboard/services/dashboard
     AuthModule,
     ChartDataModule,
     PageLayoutModule,
+    TypeOrmModule.forFeature([DashboardPresetEntity]),
     TwentyORMModule,
     WorkspaceCacheStorageModule,
   ],

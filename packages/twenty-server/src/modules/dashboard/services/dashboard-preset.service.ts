@@ -1,7 +1,13 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 
-import { v4 as uuidv4 } from 'uuid';
+import { IsNull, Repository } from 'typeorm';
 
+import {
+  ConflictError,
+  NotFoundError,
+} from 'src/engine/core-modules/graphql/utils/graphql-errors.util';
+import { DashboardPresetEntity } from 'src/engine/metadata-modules/dashboard-preset/entities/dashboard-preset.entity';
 import { DashboardPresetDTO } from 'src/modules/dashboard/dtos/dashboard-preset.dto';
 import { CreateDashboardPresetInput } from 'src/modules/dashboard/dtos/create-dashboard-preset.input';
 import { UpdateDashboardPresetInput } from 'src/modules/dashboard/dtos/update-dashboard-preset.input';
@@ -14,93 +20,136 @@ const clonePreset = (preset: DashboardPresetDTO): DashboardPresetDTO => ({
   filter: cloneFilter(preset.filter),
 });
 
+const toDashboardPresetDTO = (
+  dashboardPreset: DashboardPresetEntity,
+): DashboardPresetDTO => ({
+  id: dashboardPreset.id,
+  dashboardId: dashboardPreset.dashboardId,
+  name: dashboardPreset.name,
+  filter: cloneFilter(dashboardPreset.filter),
+  createdAt: dashboardPreset.createdAt.toISOString(),
+  updatedAt: dashboardPreset.updatedAt.toISOString(),
+});
+
 @Injectable()
 export class DashboardPresetService {
-  private readonly presetsByDashboardId = new Map<
-    string,
-    DashboardPresetDTO[]
-  >();
+  constructor(
+    @InjectRepository(DashboardPresetEntity)
+    private readonly dashboardPresetRepository: Repository<DashboardPresetEntity>,
+  ) {}
 
-  // @clawdence-stub: STORY-125 - Implement actual createPreset method with database persistence and proper error handling
   async createPreset(
     input: CreateDashboardPresetInput,
   ): Promise<DashboardPresetDTO> {
-    const timestamp = new Date().toISOString();
-    const preset: DashboardPresetDTO = {
-      id: uuidv4(),
+    await this.assertNameIsUnique({
+      dashboardId: input.dashboardId,
+      name: input.name,
+    });
+
+    const preset = this.dashboardPresetRepository.create({
       name: input.name,
       dashboardId: input.dashboardId,
       filter: cloneFilter(input.filter),
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    };
+    });
+    const createdPreset = await this.dashboardPresetRepository.save(preset);
 
-    const currentPresets =
-      this.presetsByDashboardId.get(input.dashboardId) ?? [];
-
-    this.presetsByDashboardId.set(input.dashboardId, [
-      ...currentPresets,
-      preset,
-    ]);
-
-    return clonePreset(preset);
+    return clonePreset(toDashboardPresetDTO(createdPreset));
   }
 
-  // @clawdence-stub: STORY-125 - Implement actual findAllPresetsByDashboardId with database query
   async findAllPresetsByDashboardId(
     dashboardId: string,
   ): Promise<DashboardPresetDTO[]> {
-    return (this.presetsByDashboardId.get(dashboardId) ?? []).map(clonePreset);
+    const presets = await this.dashboardPresetRepository.find({
+      where: {
+        dashboardId,
+        deletedAt: IsNull(),
+      },
+      order: {
+        createdAt: 'ASC',
+      },
+    });
+
+    return presets.map((preset) => clonePreset(toDashboardPresetDTO(preset)));
   }
 
-  // @clawdence-stub: STORY-125 - Implement actual updatePreset with database update and validation
+  async findPresetById(id: string): Promise<DashboardPresetDTO> {
+    const preset = await this.dashboardPresetRepository.findOne({
+      where: {
+        id,
+        deletedAt: IsNull(),
+      },
+    });
+
+    if (preset === null) {
+      throw new NotFoundError(`Dashboard preset ${id} not found`);
+    }
+
+    return clonePreset(toDashboardPresetDTO(preset));
+  }
+
   async updatePreset(
     input: UpdateDashboardPresetInput,
   ): Promise<DashboardPresetDTO> {
-    for (const [dashboardId, presets] of this.presetsByDashboardId.entries()) {
-      const presetIndex = presets.findIndex((preset) => preset.id === input.id);
+    const existingPreset = await this.dashboardPresetRepository.findOne({
+      where: {
+        id: input.id,
+        deletedAt: IsNull(),
+      },
+    });
 
-      if (presetIndex === -1) {
-        continue;
-      }
-
-      const currentPreset = presets[presetIndex];
-      const updatedPreset: DashboardPresetDTO = {
-        ...currentPreset,
-        name: input.name ?? currentPreset.name,
-        filter:
-          input.filter === undefined
-            ? cloneFilter(currentPreset.filter)
-            : cloneFilter(input.filter),
-        updatedAt: new Date().toISOString(),
-      };
-
-      this.presetsByDashboardId.set(dashboardId, [
-        ...presets.slice(0, presetIndex),
-        updatedPreset,
-        ...presets.slice(presetIndex + 1),
-      ]);
-
-      return clonePreset(updatedPreset);
+    if (existingPreset === null) {
+      throw new NotFoundError(`Dashboard preset ${input.id} not found`);
     }
 
-    throw new Error(`Dashboard preset ${input.id} not found`);
+    const nextName = input.name ?? existingPreset.name;
+
+    if (nextName !== existingPreset.name) {
+      await this.assertNameIsUnique({
+        dashboardId: existingPreset.dashboardId,
+        name: nextName,
+        excludedPresetId: existingPreset.id,
+      });
+    }
+
+    const updatedPreset = await this.dashboardPresetRepository.save({
+      ...existingPreset,
+      name: nextName,
+      filter:
+        input.filter === undefined
+          ? cloneFilter(existingPreset.filter)
+          : cloneFilter(input.filter),
+    });
+
+    return clonePreset(toDashboardPresetDTO(updatedPreset));
   }
 
-  // @clawdence-stub: STORY-125 - Implement actual deletePreset with database deletion and cascade checks
   async deletePreset(id: string): Promise<boolean> {
-    for (const [dashboardId, presets] of this.presetsByDashboardId.entries()) {
-      const nextPresets = presets.filter((preset) => preset.id !== id);
+    const deleteResult = await this.dashboardPresetRepository.softDelete(id);
 
-      if (nextPresets.length === presets.length) {
-        continue;
-      }
+    return (deleteResult.affected ?? 0) > 0;
+  }
 
-      this.presetsByDashboardId.set(dashboardId, nextPresets);
+  private async assertNameIsUnique({
+    dashboardId,
+    name,
+    excludedPresetId,
+  }: {
+    dashboardId: string;
+    name: string;
+    excludedPresetId?: string;
+  }) {
+    const existingPreset = await this.dashboardPresetRepository.findOne({
+      where: {
+        dashboardId,
+        name,
+        deletedAt: IsNull(),
+      },
+    });
 
-      return true;
+    if (existingPreset !== null && existingPreset.id !== excludedPresetId) {
+      throw new ConflictError(
+        `Dashboard preset "${name}" already exists for dashboard ${dashboardId}`,
+      );
     }
-
-    return false;
   }
 }
